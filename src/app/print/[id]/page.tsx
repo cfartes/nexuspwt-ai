@@ -7,7 +7,13 @@ import { redirect, notFound } from 'next/navigation';
 import PrintButton from '@/components/print-button';
 import './print.css';
 export const dynamic = 'force-dynamic';
-export default async function PrintPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PrintPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ version?: string }>;
+}) {
   const user = await currentUser().catch(() => null);
   if (!user) redirect('/');
   const { id } = await params;
@@ -21,24 +27,45 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
   if (!doc) notFound();
   const unit = await unitAccess(user, doc.unit_id).catch(() => null);
   if (!unit) notFound();
-  const d = doc as DocumentRow & { contractor: string; unit: string; company: string };
-  if (
-    unit.role === 'executante' &&
-    d.created_by !== user.id &&
-    !(d.kind === 'APR' && d.status === 'aprovado') &&
-    !d.data.executors.some((e) => e.userId === user.id)
-  )
-    notFound();
+  const requestedVersion = (await searchParams).version;
+  const version = requestedVersion === undefined ? doc.version : Number(requestedVersion);
+  if (!Number.isSafeInteger(version) || version < 1) notFound();
+  const {
+    rows: [archived],
+  } = await db.query('SELECT snapshot FROM document_versions WHERE document_id=$1 AND version=$2', [
+    id,
+    version,
+  ]);
+  if (!archived && version !== doc.version) notFound();
+  const historical = version !== doc.version;
+  const d = {
+    ...doc,
+    ...(archived?.snapshot || {}),
+    starts_at: archived?.snapshot.starts_at || doc.starts_at.toISOString(),
+    ends_at: archived?.snapshot.ends_at || doc.ends_at.toISOString(),
+  } as DocumentRow & { contractor: string; unit: string; company: string };
+  const {
+    rows: [contractor],
+  } = await db.query('SELECT name FROM contractors WHERE id=$1', [d.contractor_id]);
+  d.contractor = contractor.name;
   const { rows: approvals } = await db.query(
     'SELECT a.*,u.name FROM approvals a JOIN users u ON u.id=a.user_id WHERE a.document_id=$1 AND a.version=$2 ORDER BY a.profile',
     [id, d.version],
   );
+  const approved = approvals.length > 0 && approvals.every((a) => a.decision === 'aprovado');
+  if (
+    unit.role === 'executante' &&
+    d.created_by !== user.id &&
+    !(d.kind === 'APR' && approved) &&
+    !d.data.executors.some((e) => e.userId === user.id)
+  )
+    notFound();
   const { rows: people } = await db.query('SELECT id,name FROM users WHERE id=ANY($1::uuid[])', [
     d.data.executors.map((e) => e.userId),
   ]);
   const { rows: photos } = await db.query(
-    'SELECT id,caption,captured_at,latitude,longitude,accuracy FROM photos WHERE document_id=$1 ORDER BY received_at',
-    [id],
+    'SELECT id,caption,captured_at,latitude,longitude,accuracy FROM photos WHERE document_id=$1 AND $2=false ORDER BY received_at',
+    [id, historical],
   );
   return (
     <div className={'print-document ' + d.kind}>
@@ -48,6 +75,7 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
           <small>
             Modelo inicial estruturado. Reprodução fiel do formulário ainda em validação.
           </small>
+          {historical && <small>Versão histórica arquivada · Revisão {version}</small>}
         </div>
         <PrintButton />
       </div>
@@ -78,19 +106,9 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
             </tr>
             <tr>
               <th>Início previsto</th>
-              <td>
-                {dateLabel(
-                  String(
-                    doc.starts_at instanceof Date ? doc.starts_at.toISOString() : doc.starts_at,
-                  ),
-                )}
-              </td>
+              <td>{dateLabel(String(d.starts_at))}</td>
               <th>Término previsto</th>
-              <td>
-                {dateLabel(
-                  String(doc.ends_at instanceof Date ? doc.ends_at.toISOString() : doc.ends_at),
-                )}
-              </td>
+              <td>{dateLabel(d.ends_at)}</td>
             </tr>
             <tr>
               <th>Descrição dos trabalhos</th>
@@ -119,7 +137,11 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
             {d.kind === 'PT' && (
               <tr>
                 <th>APR vinculada</th>
-                <td colSpan={3}>{d.apr_id}</td>
+                <td colSpan={3}>
+                  <a href={`/print/${d.apr_id}?version=${d.apr_version}`}>
+                    APR vinculada · versão {d.apr_version} · {d.apr_id}
+                  </a>
+                </td>
               </tr>
             )}
           </tbody>

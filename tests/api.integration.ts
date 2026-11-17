@@ -172,6 +172,119 @@ try {
   const print = await fetch(base + '/print/' + d.id, { headers: { Cookie: cookie } });
   assert.equal(print.status, 200);
   assert.match(await print.text(), /NÃO AUTORIZA EXECUÇÃO/);
+  await call(`/api/documents/${d.id}/workflow`, { action: 'revise', version: 2 }, 400);
+  await call(
+    `/api/documents/${d.id}/workflow`,
+    { action: 'revise', version: 1, comment: 'Revisar controles' },
+    409,
+  );
+  await call(
+    `/api/documents/${pt.id}/workflow`,
+    { action: 'revise', version: 1, comment: 'Não é APR' },
+    409,
+  );
+  await call(`/api/documents/${d.id}/workflow`, {
+    action: 'revise',
+    version: 2,
+    comment: 'Atualizar período e empresa responsável',
+  });
+  await call(
+    `/api/documents/${d.id}/workflow`,
+    { action: 'revise', version: 2, comment: 'Reenvio duplicado' },
+    409,
+  );
+  ws = await call('/api/workspace');
+  assert.equal(ws.documents.find((doc: { id: string }) => doc.id === d.id).version, 3);
+  assert.equal(ws.documents.find((doc: { id: string }) => doc.id === d.id).status, 'rascunho');
+  await call('/api/documents', { ...pt, id: randomUUID() }, 400);
+  await call('/api/admin', {
+    action: 'contractor',
+    unitId: unit.id,
+    name: 'Nova responsável',
+    cnpj: '98765432000198',
+  });
+  ws = await call('/api/workspace');
+  const nextContractor = ws.contractors.find(
+    (contractor: { cnpj: string }) => contractor.cnpj === '98765432000198',
+  );
+  const revision = await call('/api/documents', {
+    ...d,
+    version: 3,
+    title: 'Nova revisão da cobertura',
+    contractorId: nextContractor.id,
+    startsAt: '2026-11-19',
+  });
+  assert.equal(revision.version, 4);
+  const oldPt = await call('/api/documents', {
+    ...pt,
+    version: 1,
+    title: 'PT preservada na versão original',
+  });
+  assert.equal(
+    oldPt.apr_version,
+    2,
+    'Salvar a PT não troca sua versão da APR nem usa as novas datas/terceirizada',
+  );
+  await call(`/api/documents/${d.id}/workflow`, { action: 'submit', version: 4 });
+  await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 4 });
+  await call('/api/documents', { ...pt, id: randomUUID() }, 400);
+  const newPt = await call('/api/documents', {
+    ...pt,
+    id: randomUUID(),
+    contractorId: nextContractor.id,
+    startsAt: '2026-11-19',
+  });
+  assert.equal(newPt.apr_version, 4, 'Nova PT usa a versão aprovada atual');
+  const history = await call(`/api/documents/${d.id}/history`);
+  assert.deepEqual(
+    history.versions.map((v: { version: number }) => v.version),
+    [4, 2],
+  );
+  assert(history.versions.every((v: { status: string }) => v.status === 'aprovado'));
+  assert(
+    history.events.some(
+      (event: { action: string; details: { comment: string } }) =>
+        event.action === 'workflow.revise' &&
+        event.details.comment === 'Atualizar período e empresa responsável',
+    ),
+  );
+  const historical = await fetch(`${base}/print/${d.id}?version=2`, {
+    headers: { Cookie: cookie },
+  });
+  assert.equal(historical.status, 200);
+  const historicalHtml = await historical.text();
+  assert.match(historicalHtml, /Manutenção da cobertura/);
+  assert.doesNotMatch(historicalHtml, /Nova revisão da cobertura/);
+  assert.match(historicalHtml, /Terceirizada piloto/);
+  assert.equal(
+    (await fetch(`${base}/print/${d.id}?version=999`, { headers: { Cookie: cookie } })).status,
+    404,
+  );
+  assert.equal(
+    (await fetch(`${base}/print/${d.id}?version=inválida`, { headers: { Cookie: cookie } })).status,
+    404,
+  );
+  const adminCookie = cookie;
+  const executorPassword = randomUUID();
+  await call('/api/admin', {
+    action: 'user',
+    unitId: unit.id,
+    name: 'Outro executante',
+    email: 'executor@nexus.local',
+    phone: '+55 11 99999-9999',
+    password: executorPassword,
+    role: 'executante',
+  });
+  await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword });
+  await call(
+    `/api/documents/${d.id}/workflow`,
+    { action: 'revise', version: 4, comment: 'Tentativa sem permissão' },
+    403,
+  );
+  await call(`/api/documents/${pt.id}/history`, undefined, 403);
+  const approvedHistory = await call(`/api/documents/${d.id}/history`);
+  assert.equal(approvedHistory.versions.length, 2);
+  cookie = adminCookie;
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {
@@ -183,7 +296,7 @@ try {
   });
   assert.equal(foreign.status, 403);
   console.log(
-    'Integração OK: login, acesso por unidade, cadastro, reenvio idempotente, conflito de revisão, aprovação APR, bloqueio PT, impressão e CSRF.',
+    'Integração OK: login, acesso por unidade, cadastro, idempotência, conflitos, aprovação, revisão APR, preservação do vínculo PT, histórico, impressão histórica, permissões e CSRF.',
   );
 } catch (e) {
   console.error(logs);

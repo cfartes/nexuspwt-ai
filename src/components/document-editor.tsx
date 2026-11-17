@@ -17,6 +17,7 @@ import { aprProfiles, permissionTypes, ppeOptions, visibleSections } from '@/lib
 import { statuses, type WorkspaceData } from '@/lib/types';
 import { enqueue } from '@/lib/offline';
 import { api } from './workspace';
+import DocumentHistory from './document-history';
 type Photo = {
   id: string;
   caption: string;
@@ -32,6 +33,7 @@ export default function DocumentEditor({
   onClose,
   onSave,
   onSubmit,
+  onRevise,
   onPhotoQueued,
 }: {
   value: DocumentInput;
@@ -40,6 +42,7 @@ export default function DocumentEditor({
   onClose: () => void;
   onSave: (d: DocumentInput) => Promise<void>;
   onSubmit: () => Promise<void>;
+  onRevise: (reason: string) => Promise<void>;
   onPhotoQueued: () => Promise<void>;
 }) {
   const modal = useRef<HTMLElement>(null);
@@ -84,6 +87,7 @@ export default function DocumentEditor({
     ],
     ['executors', 'Executantes'],
     ['approvals', 'Aprovações'],
+    ['history', 'Histórico'],
     ...(d.kind === 'PT' ? [['photos', 'Evidências']] : []),
   ];
   useEffect(() => {
@@ -241,11 +245,20 @@ export default function DocumentEditor({
                       }}
                     >
                       <option value="">Selecione a análise de riscos</option>
+                      {d.aprId && !ws.documents.some((a) => a.id === d.aprId) && (
+                        <option value={d.aprId}>
+                          APR vinculada · versão {saved?.apr_version} · consultar pelo link abaixo
+                        </option>
+                      )}
                       {ws.documents
-                        .filter((a) => a.kind === 'APR')
+                        .filter(
+                          (a) => a.kind === 'APR' && (a.status === 'aprovado' || a.id === d.aprId),
+                        )
                         .map((a) => (
                           <option key={a.id} value={a.id}>
-                            APR-{a.number} · {a.title} ({statuses[a.status]})
+                            APR-{a.number} · versão{' '}
+                            {saved?.apr_id === a.id ? saved.apr_version : a.version} ·{' '}
+                            {saved?.apr_id === a.id ? 'Vínculo preservado' : a.title}
                           </option>
                         ))}
                     </select>
@@ -272,6 +285,19 @@ export default function DocumentEditor({
                   </>
                 )}
               </fieldset>
+              {d.kind === 'PT' && saved?.apr_id === d.aprId && (
+                <p className="muted">
+                  Esta PT usa a versão {saved.apr_version} da APR.{' '}
+                  <a
+                    className="text-button"
+                    href={`/print/${saved.apr_id}?version=${saved.apr_version}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Consultar versão vinculada
+                  </a>
+                </p>
+              )}
               {!ws.contractors.length && (
                 <div className="alert neutral">
                   Cadastre uma terceirizada em Configurações antes de salvar.
@@ -586,6 +612,12 @@ export default function DocumentEditor({
               })}
             </>
           )}
+          {page === 'history' &&
+            (saved ? (
+              <DocumentHistory id={d.id} online={online} />
+            ) : (
+              <p className="muted">Salve o documento para iniciar seu histórico.</p>
+            ))}
           {page === 'photos' && (
             <>
               <div className="section-intro">
@@ -645,6 +677,30 @@ export default function DocumentEditor({
             <button className="secondary" onClick={onClose}>
               Fechar
             </button>
+            {saved?.kind === 'APR' &&
+              saved.status === 'aprovado' &&
+              online &&
+              (saved.created_by === ws.user.id || ['admin', 'gestor'].includes(ws.unit.role)) && (
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={async () => {
+                    const reason = window.prompt('Informe o motivo da nova revisão da APR:');
+                    if (!reason?.trim()) return;
+                    setBusy(true);
+                    setError('');
+                    try {
+                      await onRevise(reason.trim());
+                    } catch (e) {
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Criar revisão
+                </button>
+              )}
             {saved?.status === 'rascunho' && online && (
               <button
                 className="secondary"

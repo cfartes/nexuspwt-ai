@@ -16,6 +16,8 @@ Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e
 - Captura pela câmera com legenda, geolocalização, precisão, data/hora do dispositivo, recebimento no servidor e hash SHA-256. Exige HTTPS ou localhost e permissões de câmera/localização.
 - Fotos privadas no PostgreSQL nesta etapa do piloto. `shortcut: fotos no banco aumentam o backup, migrar para armazenamento de objetos antes de ampliar o volume.`
 - Aprovação interna da APR em paralelo, vinculada ao snapshot da revisão, com histórico de autoria e decisões. Um usuário com mais de um perfil aprova todos os seus perfis pendentes ao decidir.
+- Nova revisão de APR aprovada, com motivo obrigatório, autoria e nova análise. A versão anterior permanece arquivada e cada PT mantém a versão original da APR, incluindo período e terceirizada.
+- Consulta do histórico de atividades e impressão de versões arquivadas. Novas PTs exigem uma APR atualmente aprovada; revisar a APR não revalida nem cancela automaticamente PTs existentes.
 - Prévia de impressão com campos, etapas, decisões e anexo de evidências. Usa impressão do navegador para PDF.
 - Docker Compose do app e configuração separada para instalação própria do Documenso.
 
@@ -61,7 +63,7 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 ## Decisões e limitações desta entrega
 
 - A validade da APR acompanha as datas previstas. A PT fica dentro desse intervalo; vencimento por turno e revalidação operacional aguardam o contratante.
-- A APR aprovada fica imutável. Ainda falta o comando de criar revisão mantendo o vínculo entre revisões do serviço. O contador atual representa versões salvas do rascunho.
+- O conteúdo da APR aprovada fica imutável no arquivo histórico. O autor ou gestor pode usar **Criar revisão**, informando um motivo, para abrir um novo rascunho do mesmo serviço. O contador representa versões salvas e pode saltar entre aprovações; numeração editorial separada ainda não foi definida com o contratante. Rascunhos intermediários não enviados para análise têm eventos registrados, mas não cópias integrais arquivadas.
 - O fluxo de aprovação interna é provisoriamente paralelo. Sequência, substitutos, proibição de autoaprovação e critérios de liberação dependem de confirmação.
 - A liberação da PT está bloqueada no servidor. Não basta preencher checklists para autorizar trabalho. Não há aprovação offline.
 - N/A aparece nos checklists do protótipo; os itens que podem aceitá-lo devem ser homologados.

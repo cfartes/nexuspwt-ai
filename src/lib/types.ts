@@ -20,6 +20,7 @@ export type DocumentRow = {
   starts_at: string;
   ends_at: string;
   apr_id: string | null;
+  apr_version: number | null;
   version: number;
   status: string;
   data: DocumentInput['data'];

@@ -645,11 +645,29 @@ export default function Workspace() {
       </div>
       {editor && (
         <DocumentEditor
+          key={`${editor.id}:${editor.version}`}
           value={editor}
           ws={ws}
           online={online}
           onClose={() => setEditor(null)}
           onSave={save}
+          onRevise={async (reason) => {
+            if (busy.current || pending.some((job) => job.id === editor.id))
+              throw new Error('Aguarde a sincronização antes de criar uma revisão.');
+            await api(`/api/documents/${editor.id}/workflow`, {
+              action: 'revise',
+              version: editor.version,
+              comment: reason,
+            });
+            const refreshed = await load(unit.id);
+            const revised = refreshed?.documents.find(
+              (document: DocumentRow) => document.id === editor.id,
+            );
+            if (revised) setEditor(asInput(revised));
+            setNotice(
+              'Nova revisão criada. A versão anterior e os vínculos das PTs foram preservados.',
+            );
+          }}
           onSubmit={async () => {
             const d = ws.documents.find((d) => d.id === editor.id);
             if (d) {

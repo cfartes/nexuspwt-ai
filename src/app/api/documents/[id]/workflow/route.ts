@@ -13,7 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     uuid.parse(id);
     const input = z
       .object({
-        action: z.enum(['submit', 'approve', 'reject']),
+        action: z.enum(['submit', 'approve', 'reject', 'revise']),
         version: z.number().int().positive(),
         comment: z.string().trim().max(2000).default(''),
       })
@@ -26,7 +26,22 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       const unit = await unitAccess(user, d.unit_id, undefined, c);
       if (d.version !== input.version)
         throw new HttpError(409, 'Versão desatualizada. Recarregue o documento.');
-      if (input.action === 'submit') {
+      if (input.action === 'revise') {
+        if (d.created_by !== user.id && !['admin', 'gestor'].includes(unit.role))
+          throw new HttpError(403, 'Somente o autor ou gestor pode criar uma revisão.');
+        if (d.kind !== 'APR' || d.status !== 'aprovado')
+          throw new HttpError(409, 'Somente uma APR aprovada pode originar uma nova revisão.');
+        if (input.comment.length < 3) throw new HttpError(400, 'Informe o motivo da revisão.');
+        // Preserve the approved snapshot before reopening; linked PTs keep their original version.
+        await c.query(
+          'INSERT INTO document_versions(document_id,version,snapshot) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
+          [id, d.version, JSON.stringify(d)],
+        );
+        await c.query(
+          "UPDATE documents SET version=version+1,status='rascunho',updated_at=now() WHERE id=$1",
+          [id],
+        );
+      } else if (input.action === 'submit') {
         if (d.created_by !== user.id && !['admin', 'gestor'].includes(unit.role))
           throw new HttpError(403, 'Sem permissão para enviar.');
         if (d.status !== 'rascunho')
@@ -102,7 +117,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           id,
           user.id,
           `workflow.${input.action}`,
-          JSON.stringify({ version: d.version, comment: input.comment }),
+          JSON.stringify({
+            version: input.action === 'revise' ? d.version + 1 : d.version,
+            ...(input.action === 'revise' ? { previousVersion: d.version } : {}),
+            comment: input.comment,
+          }),
         ],
       );
     });

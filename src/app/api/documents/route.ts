@@ -35,12 +35,27 @@ export async function POST(request: Request) {
           d.aprId,
           unit.id,
         ]);
-        if (!apr || apr.contractor_id !== d.contractorId)
-          throw new HttpError(400, 'APR precisa pertencer à mesma unidade e terceirizada.');
-        aprVersion = apr.version;
+        if (!apr) throw new HttpError(400, 'APR precisa pertencer à mesma unidade.');
+        const preserveLink = existing?.apr_id === d.aprId;
+        if (!preserveLink && apr.status !== 'aprovado')
+          throw new HttpError(400, 'Selecione uma APR aprovada para vincular a PT.');
+        aprVersion = preserveLink ? existing.apr_version : apr.version;
+        const {
+          rows: [archived],
+        } = await c.query(
+          'SELECT snapshot FROM document_versions WHERE document_id=$1 AND version=$2',
+          [d.aprId, aprVersion],
+        );
+        if (!archived)
+          throw new HttpError(
+            409,
+            'A APR vinculada não possui uma versão arquivada. Selecione uma APR aprovada.',
+          );
+        if (archived.snapshot.contractor_id !== d.contractorId)
+          throw new HttpError(400, 'APR precisa pertencer à mesma terceirizada.');
         if (
-          d.startsAt < apr.starts_at.toISOString().slice(0, 10) ||
-          d.endsAt > apr.ends_at.toISOString().slice(0, 10)
+          d.startsAt < archived.snapshot.starts_at.slice(0, 10) ||
+          d.endsAt > archived.snapshot.ends_at.slice(0, 10)
         )
           throw new HttpError(400, 'Datas da PT fora do período previsto na APR.');
       }
@@ -72,7 +87,7 @@ export async function POST(request: Request) {
         if (existing.status === 'aprovado')
           throw new HttpError(
             409,
-            'Documento aprovado é imutável nesta versão. Crie uma nova APR para revisar o serviço.',
+            'Documento aprovado é imutável. Use Criar revisão para revisar a APR.',
           );
         const {
           rows: [updated],
