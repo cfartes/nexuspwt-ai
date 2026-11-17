@@ -1,0 +1,39 @@
+name: nexus-documenso
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: documenso
+      POSTGRES_DB: documenso
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U documenso -d documenso']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  documenso:
+    image: ghcr.io/documenso/documenso:v2.21.1
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      PORT: '3000'
+      NEXT_PRIVATE_INTERNAL_WEBAPP_URL: http://localhost:3000
+      NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: /opt/documenso/cert.p12
+      NEXT_PUBLIC_UPLOAD_TRANSPORT: database
+    ports:
+      - '127.0.0.1:3020:3000'
+    volumes:
+      - type: bind
+        source: ./cert.p12
+        target: /opt/documenso/cert.p12
+        read_only: true
+        bind:
+          create_host_path: false
+volumes:
+  database:

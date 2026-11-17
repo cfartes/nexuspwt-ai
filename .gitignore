@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env*
+!.env.example
+!*.env.example
+tmp/
+data/
+*.tsbuildinfo
+deploy/documenso/*.p12
+deploy/documenso/*.key
+deploy/documenso/*.crt

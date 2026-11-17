@@ -1,0 +1,131 @@
+import { currentUser, unitAccess } from '@/lib/auth';
+import { transaction } from '@/lib/db';
+import { assertOrigin, HttpError } from '@/lib/security';
+import { apiError } from '@/lib/http';
+import { documentSchema } from '@/lib/validation';
+import { isDeepStrictEqual } from 'node:util';
+export async function POST(request: Request) {
+  try {
+    assertOrigin(request);
+    const user = await currentUser();
+    const d = documentSchema.parse(await request.json());
+    const unit = await unitAccess(user, d.unitId, ['admin', 'gestor', 'aprovador', 'executante']);
+    const result = await transaction(async (c) => {
+      // Serialize creates and retries by client-generated UUID; synchronization is idempotent.
+      await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [d.id]);
+      const {
+        rows: [existing],
+      } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [d.id]);
+      if (existing && existing.unit_id !== unit.id)
+        throw new HttpError(403, 'Documento indisponível.');
+      if (existing && existing.created_by !== user.id && !['admin', 'gestor'].includes(unit.role))
+        throw new HttpError(403, 'Somente o autor ou gestor pode editar.');
+      if (existing && existing.status === 'em_aprovacao')
+        throw new HttpError(409, 'Documento em aprovação. Não pode ser alterado.');
+      const { rowCount: linked } = await c.query(
+        'SELECT 1 FROM contractor_units WHERE contractor_id=$1 AND unit_id=$2',
+        [d.contractorId, unit.id],
+      );
+      if (!linked) throw new HttpError(400, 'Terceirizada não autorizada nesta unidade.');
+      let aprVersion: number | null = null;
+      if (d.kind === 'PT') {
+        const {
+          rows: [apr],
+        } = await c.query("SELECT * FROM documents WHERE id=$1 AND unit_id=$2 AND kind='APR'", [
+          d.aprId,
+          unit.id,
+        ]);
+        if (!apr || apr.contractor_id !== d.contractorId)
+          throw new HttpError(400, 'APR precisa pertencer à mesma unidade e terceirizada.');
+        aprVersion = apr.version;
+        if (
+          d.startsAt < apr.starts_at.toISOString().slice(0, 10) ||
+          d.endsAt > apr.ends_at.toISOString().slice(0, 10)
+        )
+          throw new HttpError(400, 'Datas da PT fora do período previsto na APR.');
+      }
+      for (const executor of d.data.executors) {
+        const { rowCount } = await c.query(
+          'SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.unit_id=$2 AND u.active',
+          [executor.userId, unit.id],
+        );
+        if (!rowCount) throw new HttpError(400, 'Executante sem acesso à unidade.');
+      }
+      const payload = JSON.stringify(d.data);
+      if (existing) {
+        if (existing.kind !== d.kind)
+          throw new HttpError(400, 'Não é possível trocar o tipo do documento.');
+        const same =
+          existing.title === d.title &&
+          existing.location === d.location &&
+          existing.contractor_id === d.contractorId &&
+          existing.apr_id === d.aprId &&
+          isDeepStrictEqual(existing.data, JSON.parse(payload)) &&
+          existing.starts_at.toISOString().slice(0, 10) === d.startsAt &&
+          existing.ends_at.toISOString().slice(0, 10) === d.endsAt;
+        if (same && existing.status === 'rascunho') return existing;
+        if (existing.version !== d.version)
+          throw new HttpError(
+            409,
+            'O documento foi alterado em outro dispositivo. Recarregue e revise os dados antes de salvar.',
+          );
+        if (existing.status === 'aprovado')
+          throw new HttpError(
+            409,
+            'Documento aprovado é imutável nesta versão. Crie uma nova APR para revisar o serviço.',
+          );
+        const {
+          rows: [updated],
+        } = await c.query(
+          "UPDATE documents SET title=$2,location=$3,starts_at=$4,ends_at=$5,contractor_id=$6,apr_id=$7,apr_version=$8,data=$9,version=version+1,status='rascunho',updated_at=now() WHERE id=$1 RETURNING *",
+          [
+            d.id,
+            d.title,
+            d.location,
+            d.startsAt,
+            d.endsAt,
+            d.contractorId,
+            d.aprId,
+            aprVersion,
+            payload,
+          ],
+        );
+        await c.query('INSERT INTO audit_events(document_id,actor_id,action) VALUES($1,$2,$3)', [
+          d.id,
+          user.id,
+          'rascunho.atualizado',
+        ]);
+        return updated;
+      }
+      const {
+        rows: [created],
+      } = await c.query(
+        'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,apr_id,apr_version,data,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *',
+        [
+          d.id,
+          unit.company_id,
+          unit.id,
+          d.contractorId,
+          d.kind,
+          d.title,
+          d.location,
+          d.startsAt,
+          d.endsAt,
+          d.aprId,
+          aprVersion,
+          payload,
+          user.id,
+        ],
+      );
+      await c.query('INSERT INTO audit_events(document_id,actor_id,action) VALUES($1,$2,$3)', [
+        d.id,
+        user.id,
+        'rascunho.criado',
+      ]);
+      return created;
+    });
+    return Response.json(result);
+  } catch (e) {
+    return apiError(e);
+  }
+}

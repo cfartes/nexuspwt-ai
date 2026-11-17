@@ -1,0 +1,34 @@
+name: nexus-ptw
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U nexus -d nexus']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:3010:3000'
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL com host database}
+      APP_URL: ${APP_URL:?Configure APP_URL com HTTPS}
+      COOKIE_SECURE: 'true'
+      DOCUMENSO_URL: ${DOCUMENSO_URL:-}
+      DOCUMENSO_API_TOKEN: ${DOCUMENSO_API_TOKEN:-}
+volumes:
+  database:
