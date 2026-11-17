@@ -6,8 +6,14 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
   const db = await PGlite.create();
   try {
     const sql = await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8');
+    const integrationsSql = await readFile(
+      new URL('../db/002-integrations.sql', import.meta.url),
+      'utf8',
+    );
     await db.exec(sql);
     await db.exec(sql);
+    await db.exec(integrationsSql);
+    await db.exec(integrationsSql);
     const { rows: companies } = await db.query<{ id: string }>(
       "INSERT INTO companies(name) VALUES('Empresa A'),('Empresa B') RETURNING id",
     );

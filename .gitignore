@@ -6,6 +6,6 @@ node_modules/
 tmp/
 data/
 *.tsbuildinfo
-deploy/documenso/*.p12
-deploy/documenso/*.key
-deploy/documenso/*.crt
+*.p12
+*.key
+*.crt

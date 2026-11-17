@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { randomBytes, scryptSync } from 'node:crypto';
 import pg from 'pg';
 if (!process.env.DATABASE_URL) throw new Error('Configure DATABASE_URL em .env.local');
@@ -7,7 +7,9 @@ await db.connect();
 try {
   await db.query('BEGIN');
   await db.query("SELECT pg_advisory_xact_lock(hashtext('nexus-schema'))");
-  await db.query(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
+  const migrations = new URL('../db/', import.meta.url);
+  for (const file of (await readdir(migrations)).filter((name) => /^\d+.*\.sql$/.test(name)).sort())
+    await db.query(await readFile(new URL(file, migrations), 'utf8'));
   const email = process.env.BOOTSTRAP_EMAIL?.trim().toLowerCase();
   const password = process.env.BOOTSTRAP_PASSWORD;
   if (email && password) {

@@ -4,6 +4,7 @@ import { Building2, Plus, Server, ShieldCheck } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { api } from './workspace';
+import IntegrationPanel from './integration-settings';
 export default function AdminPanel({
   ws,
   online,
@@ -22,33 +23,16 @@ export default function AdminPanel({
   const admin = ws.unit.role === 'admin';
   return (
     <>
+      <IntegrationPanel ws={ws} online={online} reload={reload} onError={onError} />
       <div className="settings-grid">
         <section className="card">
           <div className="card-heading">
             <div>
               <h2>
-                <Server size={18} /> Integrações
+                <Server size={18} /> Guarda documental
               </h2>
-              <p>Serviços externos do workspace</p>
+              <p>Requisitos de retenção da operação</p>
             </div>
-          </div>
-          <div className="setting-row">
-            <div>
-              <strong>Documenso</strong>
-              <small>Assinatura eletrônica dos documentos</small>
-            </div>
-            <span className="badge">
-              {ws.integrations.documenso
-                ? 'Credenciais informadas · não validado'
-                : 'Aguardando instalação'}
-            </span>
-          </div>
-          <div className="setting-row">
-            <div>
-              <strong>OpenWA</strong>
-              <small>Um número de WhatsApp por empresa</small>
-            </div>
-            <span className="badge">Integração pendente</span>
           </div>
           <div className="setting-row">
             <div>

@@ -519,7 +519,7 @@ export default function DocumentEditor({
                 <h3>Pessoas vinculadas ao trabalho</h3>
                 <p>
                   Selecione usuários cadastrados nesta unidade. Assinaturas individuais serão
-                  integradas ao Documenso.
+                  integradas ao fornecedor de assinatura selecionado.
                 </p>
               </div>
               <fieldset disabled={readOnly}>
@@ -580,7 +580,7 @@ export default function DocumentEditor({
               </div>
               <div className="alert neutral">
                 Fluxo piloto: aprovações em paralelo. A sequência definitiva depende do contratante.
-                A integração com o Documenso ainda não está ativa.
+                A integração com o fornecedor de assinatura ainda não está ativa.
               </div>
               {(d.kind === 'APR'
                 ? aprProfiles

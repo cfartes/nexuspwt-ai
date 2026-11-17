@@ -8,6 +8,7 @@ import { hashPassword } from '../src/lib/security';
 import { aprProfiles } from '../src/lib/forms';
 const db = await PGlite.create();
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/002-integrations.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -39,6 +40,8 @@ const server = spawn(
       APP_URL: base,
       DB_POOL_SIZE: '1',
       COOKIE_SECURE: 'false',
+      INTEGRATIONS_ENCRYPTION_KEY: 'a'.repeat(64),
+      OPENWA_ALLOWED_ORIGINS: 'https://openwa.example.com',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
@@ -59,9 +62,9 @@ try {
     if (i === 99) throw new Error('Servidor não iniciou: ' + logs);
   }
   let cookie = '';
-  const call = async (path: string, body?: unknown, expected = 200) => {
+  const call = async (path: string, body?: unknown, expected = 200, method?: string) => {
     const r = await fetch(base + path, {
-      method: body ? 'POST' : 'GET',
+      method: method || (body ? 'POST' : 'GET'),
       headers: {
         Origin: base,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
@@ -89,6 +92,97 @@ try {
   });
   ws = await call('/api/workspace');
   assert.equal(ws.contractors.length, 1);
+  const integrationPath = `/api/integrations?unit=${unit.id}`;
+  const initialConfig = await call(integrationPath);
+  assert.equal(initialConfig.integrations.length, 0);
+  assert.equal(initialConfig.encryptionReady, true);
+  const signature = {
+    service: 'signature',
+    provider: 'certisign',
+    unitId: unit.id,
+    version: 0,
+    environment: 'sandbox',
+    accountId: '',
+    clientId: '',
+    secret: 'token-certisign-somente-teste',
+  };
+  const configured = await call('/api/integrations', signature);
+  assert.equal(configured.hasSecret, true);
+  assert.equal(configured.version, 1);
+  assert(!JSON.stringify(configured).includes(signature.secret));
+  const {
+    rows: [savedSecret],
+  } = await db.query<{ secret_ciphertext: string }>(
+    "SELECT secret_ciphertext FROM company_integrations WHERE company_id=$1 AND service='signature'",
+    [company.id],
+  );
+  assert(!savedSecret.secret_ciphertext.includes(signature.secret));
+  const safeConfig = await call(integrationPath);
+  assert(!JSON.stringify(safeConfig).includes(savedSecret.secret_ciphertext));
+  await call('/api/integrations', { ...signature, version: 1, secret: '' });
+  const {
+    rows: [preservedSecret],
+  } = await db.query<{ secret_ciphertext: string }>(
+    "SELECT secret_ciphertext FROM company_integrations WHERE company_id=$1 AND service='signature'",
+    [company.id],
+  );
+  assert.equal(preservedSecret.secret_ciphertext, savedSecret.secret_ciphertext);
+  await call('/api/integrations', signature, 409);
+  const changed = await call('/api/integrations', {
+    ...signature,
+    provider: 'docusign',
+    version: 2,
+    secret: '',
+    accountId: 'conta-teste',
+    clientId: 'integracao-teste',
+  });
+  assert.equal(changed.hasSecret, false, 'Trocar o fornecedor não reaproveita o segredo anterior');
+  await call('/api/integrations', { ...signature, version: 3 });
+  const removed = await call('/api/integrations', {
+    ...signature,
+    version: 4,
+    secret: '',
+    clearSecret: true,
+  });
+  assert.equal(removed.hasSecret, false);
+  const whatsapp = {
+    service: 'whatsapp',
+    provider: 'openwa',
+    unitId: unit.id,
+    version: 0,
+    baseUrl: 'https://openwa.example.com/api',
+    sessionId: '',
+    secret: '',
+  };
+  await call('/api/integrations', { ...whatsapp, secret: 'owa_teste…abreviada' }, 400);
+  await call('/api/integrations', whatsapp);
+  await call('/api/integrations', { unitId: unit.id, version: 1 }, 400, 'PUT');
+  const key = 'owa_apenas_teste_sem_envio';
+  const sessionId = randomUUID();
+  await call('/api/integrations', { ...whatsapp, version: 1, secret: key, sessionId });
+  await call(
+    '/api/integrations',
+    { ...whatsapp, version: 2, baseUrl: 'https://outro.example.com/api', sessionId },
+    400,
+  );
+  await call('/api/integrations', {
+    ...whatsapp,
+    version: 2,
+    baseUrl: 'https://outro.example.com/api',
+    sessionId,
+    secret: key,
+  });
+  await call('/api/integrations', { unitId: unit.id, version: 3 }, 400, 'PUT');
+  await call('/api/integrations', { ...whatsapp, version: 3, sessionId, secret: key });
+  await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Empresa isolada' });
+  const allUnits = (await call('/api/workspace')).units;
+  const isolatedUnit = allUnits.find((u: { company_id: string }) => u.company_id !== company.id);
+  assert.equal((await call(`/api/integrations?unit=${isolatedUnit.id}`)).integrations.length, 0);
+  const { rows: audits } = await db.query<{ details: unknown }>(
+    "SELECT details FROM audit_events WHERE action='integracao.configurada'",
+  );
+  assert(!JSON.stringify(audits).includes(signature.secret));
+  assert(!JSON.stringify(audits).includes(key));
   const d = {
     id: randomUUID(),
     unitId: unit.id,
@@ -276,6 +370,18 @@ try {
     role: 'executante',
   });
   await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword });
+  await call(integrationPath, undefined, 403);
+  await call('/api/integrations', { ...signature, version: 5 }, 403);
+  await call('/api/integrations', { unitId: unit.id, version: 4 }, 403, 'PUT');
+  await db.query(
+    "UPDATE memberships SET role='admin' WHERE user_id=(SELECT id FROM users WHERE email='executor@nexus.local') AND unit_id=$1",
+    [unit.id],
+  );
+  await call(integrationPath, undefined, 403);
+  await db.query(
+    "UPDATE memberships SET role='executante' WHERE user_id=(SELECT id FROM users WHERE email='executor@nexus.local') AND unit_id=$1",
+    [unit.id],
+  );
   await call(
     `/api/documents/${d.id}/workflow`,
     { action: 'revise', version: 4, comment: 'Tentativa sem permissão' },
@@ -296,7 +402,7 @@ try {
   });
   assert.equal(foreign.status, 403);
   console.log(
-    'Integração OK: login, acesso por unidade, cadastro, idempotência, conflitos, aprovação, revisão APR, preservação do vínculo PT, histórico, impressão histórica, permissões e CSRF.',
+    'Integração OK: fluxos APR/PT, configuração DocuSign/Certisign/OpenWA, credenciais protegidas, troca e remoção de segredo, isolamento por empresa, permissões e CSRF. Nenhuma chamada a provedores reais.',
   );
 } catch (e) {
   console.error(logs);

@@ -785,6 +785,15 @@ td small {
   color: var(--muted);
   padding: 40px 24px;
 }
+.integration-form {
+  padding: 22px;
+}
+.integration-form .actions {
+  flex-wrap: wrap;
+}
+.integration-form > .muted {
+  margin-top: 18px;
+}
 .admin-form {
   padding: 25px;
   max-width: 900px;

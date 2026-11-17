@@ -55,10 +55,6 @@ export async function GET(request: Request) {
         regions: results[3].rows,
         approvers: results[4].rows,
         approvals: results[5].rows,
-        integrations: {
-          documenso: !!(process.env.DOCUMENSO_URL && process.env.DOCUMENSO_API_TOKEN),
-          openwa: false,
-        },
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );

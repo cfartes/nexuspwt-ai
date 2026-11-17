@@ -460,7 +460,7 @@ export default function Workspace() {
                 <span>
                   <strong>Fase de estruturação do MVP.</strong> PTs podem ser preenchidas; liberação
                   operacional e assinatura eletrônica aguardam as regras do contratante e a
-                  integração com o Documenso.
+                  integração com o fornecedor de assinatura.
                 </span>
               </div>
             </>

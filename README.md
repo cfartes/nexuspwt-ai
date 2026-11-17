@@ -19,7 +19,7 @@ Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e
 - Nova revisão de APR aprovada, com motivo obrigatório, autoria e nova análise. A versão anterior permanece arquivada e cada PT mantém a versão original da APR, incluindo período e terceirizada.
 - Consulta do histórico de atividades e impressão de versões arquivadas. Novas PTs exigem uma APR atualmente aprovada; revisar a APR não revalida nem cancela automaticamente PTs existentes.
 - Prévia de impressão com campos, etapas, decisões e anexo de evidências. Usa impressão do navegador para PDF.
-- Docker Compose do app e configuração separada para instalação própria do Documenso.
+- Docker Compose do app e tela de configuração de assinatura eletrônica (DocuSign ou Certisign) e OpenWA por empresa.
 
 ## Executar com PostgreSQL
 
@@ -70,8 +70,8 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 - Escavação aparece como tipo proposto para alcançar a seção 16; o contratante ainda precisa confirmar esse gatilho.
 - PET, Anexo 1 de LOTOTO e anexos documentais adicionais não estão implementados. Fotos ilustrativas em cada etapa da APR também estão pendentes; a captura atual é para conclusão da PT.
 - Assinaturas de executantes, liberação, revalidação e encerramento não são coletadas nesta versão. Aprovação interna não é assinatura eletrônica.
-- Documenso: instalação será feita pelo usuário; há arquivos de implantação, mas ainda não há integração funcional, webhook ou envio de PDFs. Informar URL/token no ambiente não ativa a integração.
-- OpenWA: instalação já existe, mas contrato da API e credenciais ainda não foram fornecidos. Nenhuma mensagem é enviada.
+- Assinatura eletrônica: a tela permite selecionar DocuSign ou Certisign e salvar a configuração por empresa. DocuSign usa dados da aplicação OAuth; Certisign usa token de integração. Autorização OAuth, envio de PDFs, coleta de assinaturas e webhooks ainda não estão implementados.
+- OpenWA: configuração por empresa com URL, chave completa e UUID da sessão. O teste de conexão consulta apenas o status da sessão. O contrato da API foi fornecido, mas a chave estava abreviada e o UUID ausente; não houve conexão real nem envio de mensagens.
 - Impressão: modelo estruturado inicial, não homologado como reprodução fiel. Ainda faltam modelos originais em branco, papel, folhas de continuação e validação visual com o cliente. Upload e reconstrução automática de modelos não foram implementados.
 - Offline: primeiro login e download do workspace exigem internet. O acesso offline se limita à sessão previamente autenticada na mesma aba. A sincronização requer app aberto/reaberto; não há promessa de envio com app fechado. Fechar sem salvar perde as alterações do formulário.
 - Dados locais são separados por usuário e removidos no logout; logout é bloqueado quando há fila pendente. Limpar dados do navegador ou perder o aparelho pode eliminar itens ainda não sincronizados. Dispositivo compartilhado precisa de proteção local antes do uso operacional.
@@ -81,6 +81,16 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 - IA, cobrança do SaaS e integração com cloud do cliente ficam fora desta primeira etapa.
 - Não houve teste com celular físico ou implantação Linux. A implantação Docker foi validada estruturalmente, sem construir containers nesta estação.
 
-## Próxima integração
+## Configurar integrações
 
-Após instalar o Documenso seguindo `deploy/documenso/README.md`, disponibilize domínio e uma forma segura de configurar o token da equipe. Ainda precisamos mapear campos e signatários por versão, validar o ciclo real de assinatura, autenticar os eventos e arquivar o PDF final sem regenerá-lo.
+1. Atualize o banco com `npm run db:setup` (ou `docker compose exec app node scripts/setup.mjs`). A migração `002-integrations.sql` é aditiva e não remove documentos.
+2. Gere `INTEGRATIONS_ENCRYPTION_KEY` com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e configure no ambiente do servidor. São 64 caracteres hexadecimais. Faça backup seguro dessa chave; substituí-la sem recriptografar as credenciais impede sua leitura.
+3. Configure `OPENWA_ALLOWED_ORIGINS` com a origem HTTPS do gateway autorizado e `OPENWA_DEFAULT_URL` com sua URL raiz ou base `/api`. O valor do guia recebido deve ser configurado no ambiente privado; o guia com senhas do painel não é copiado para o projeto.
+4. Acesse **Configurações** com um administrador da plataforma que também administre a unidade. As integrações pertencem à empresa e afetam todas as suas unidades; um administrador apenas da unidade não pode alterá-las.
+5. Em assinatura, escolha DocuSign ou Certisign, ambiente e identificadores. Informe Client Secret para DocuSign ou token de integração para Certisign. A troca de fornecedor remove a credencial anterior. A seleção ainda não ativa o fluxo de assinatura.
+6. Em OpenWA, informe a URL, o UUID da sessão pareada e a chave `X-API-Key` completa. A senha do painel web não é usada pela API. A chave abreviada do guia não é aceita.
+7. Salve e use **Testar conexão**. O app faz `GET /api/sessions/{id}`, aceita status `READY` ou `CONNECTED`, não segue redirecionamentos e não envia mensagens. A configuração não recebe status de conectado apenas por ter uma chave salva.
+
+Credenciais são criptografadas com AES-256-GCM e vinculadas à empresa e ao serviço. O backend retorna apenas `hasSecret`, nunca o conteúdo; a tela não envia esses dados à fila offline. Campo de senha vazio mantém a credencial do mesmo fornecedor; há opção explícita de removê-la. A troca do gateway exige nova chave ou remoção da anterior. Eventos de configuração e teste não contêm credenciais. As alterações usam controle de versão para evitar sobrescrita concorrente.
+
+Documentação oficial: [DocuSign OAuth](https://developers.docusign.com/platform/auth/), [Certisign: autenticação por token](https://desenvolvedor.certisign.io/docs/guias/assinaturas/autenticacao-autorizacao/). Ainda precisamos mapear campos e signatários por versão, implementar os fluxos de autenticação/envio/eventos, arquivar os PDFs finais e integrar as notificações de aprovação ao OpenWA. Nenhum envio externo acontece automaticamente nesta versão.

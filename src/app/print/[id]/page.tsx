@@ -225,7 +225,7 @@ export default async function PrintPage({
         </section>
         <section className="print-section">
           <h2>Aprovações internas · Revisão {d.version}</h2>
-          <p>Registros de decisão no aplicativo. Não constituem PDF assinado pelo Documenso.</p>
+          <p>Registros de decisão no aplicativo. Não constituem um PDF assinado eletronicamente.</p>
           <table>
             <thead>
               <tr>

@@ -4,5 +4,7 @@ node_modules
 .env*
 data
 tmp
-deploy/documenso
+**/*.p12
+**/*.key
+**/*.crt
 tests

@@ -61,7 +61,6 @@ export type WorkspaceData = {
     region_id: string | null;
   }[];
   approvals: Approval[];
-  integrations: { documenso: boolean; openwa: boolean };
 };
 export const statuses: Record<string, string> = {
   rascunho: 'Rascunho',
