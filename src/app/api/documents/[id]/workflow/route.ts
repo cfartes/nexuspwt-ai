@@ -85,10 +85,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
             [id, d.version, profile, a.user_id],
           );
         }
+        await c.query(
+          `INSERT INTO notification_outbox(document_id,version,user_id)
+          SELECT DISTINCT document_id,version,user_id FROM approvals WHERE document_id=$1 AND version=$2
+          ON CONFLICT DO NOTHING`,
+          [id, d.version],
+        );
         await c.query("UPDATE documents SET status='em_aprovacao',updated_at=now() WHERE id=$1", [
           id,
         ]);
       } else {
+        if (!['admin', 'gestor', 'aprovador'].includes(unit.role))
+          throw new HttpError(403, 'Seu perfil não permite registrar decisões de aprovação.');
         if (d.status !== 'em_aprovacao')
           throw new HttpError(409, 'Documento não está em aprovação.');
         if (input.action === 'reject' && !input.comment)

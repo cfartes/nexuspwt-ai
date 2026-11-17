@@ -77,6 +77,7 @@ export const integrationSchema = z.discriminatedUnion('service', [
       provider: z.literal('openwa'),
       baseUrl: httpsUrl,
       sessionId: z.union([uuid, z.literal('')]),
+      sendNotifications: z.boolean().default(false),
       secret,
       clearSecret: z.boolean().default(false),
     })
@@ -86,7 +87,14 @@ export type IntegrationRow = {
   company_id: string;
   service: 'signature' | 'whatsapp';
   provider: 'docusign' | 'certisign' | 'openwa';
-  settings: Record<string, string>;
+  settings: {
+    environment?: string;
+    accountId?: string;
+    clientId?: string;
+    baseUrl?: string;
+    sessionId?: string;
+    sendNotifications?: boolean;
+  };
   secret_ciphertext: string | null;
   version: number;
   updated_at: string;

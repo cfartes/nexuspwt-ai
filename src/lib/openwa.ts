@@ -84,3 +84,72 @@ export async function checkOpenwaSession(baseUrl: string, sessionId: string, key
     );
   return { connected: ['READY', 'CONNECTED'].includes(status), status };
 }
+
+export function whatsappChatId(phone: string) {
+  if (!/^\+?[\d ()-]+$/.test(phone))
+    throw new HttpError(400, 'Telefone do aprovador inválido. Informe DDI e DDD no cadastro.');
+  const digits = phone.replace(/\D/g, '');
+  if (!/^[1-9]\d{7,14}$/.test(digits))
+    throw new HttpError(400, 'Telefone do aprovador inválido. Informe DDI e DDD no cadastro.');
+  return `${digits}@c.us`;
+}
+export async function sendOpenwaText(
+  baseUrl: string,
+  sessionId: string,
+  key: string,
+  chatId: string,
+  text: string,
+): Promise<{ status: 'sent' | 'blocked' | 'uncertain'; error: string | null }> {
+  const base = openwaBaseUrl(baseUrl);
+  if (
+    !/^[a-f\d-]{36}$/i.test(sessionId) ||
+    !/^\d{8,15}@c\.us$/.test(chatId) ||
+    !text ||
+    text.length > 4096
+  )
+    throw new HttpError(400, 'Dados inválidos para envio pelo OpenWA.');
+  let response: Response;
+  try {
+    response = await fetch(`${base}/sessions/${sessionId}/messages/send-text`, {
+      method: 'POST',
+      headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, text, linkPreview: false }),
+      redirect: 'error',
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    return {
+      status: 'uncertain',
+      error:
+        'Não houve confirmação do envio. Confira o painel do OpenWA antes de tentar novamente.',
+    };
+  }
+  if ([400, 401, 403, 404, 422, 429].includes(response.status))
+    return {
+      status: 'blocked',
+      error: 'OpenWA recusou o envio. Confira chave, sessão, telefone e limites do gateway.',
+    };
+  if (!response.ok)
+    return {
+      status: 'uncertain',
+      error: 'OpenWA retornou erro após a tentativa. Confira o painel antes de reenviar.',
+    };
+  try {
+    const body = await response.json();
+    if (
+      body &&
+      body.success !== false &&
+      !body.error &&
+      (body.success === true ||
+        typeof body.messageId === 'string' ||
+        typeof body.id === 'string' ||
+        typeof body.data?.messageId === 'string' ||
+        typeof body.data?.id === 'string')
+    )
+      return { status: 'sent', error: null };
+  } catch {}
+  return {
+    status: 'uncertain',
+    error: 'O gateway não retornou uma confirmação reconhecida. Verifique o envio no OpenWA.',
+  };
+}

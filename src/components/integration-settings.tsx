@@ -88,7 +88,9 @@ export default function IntegrationPanel({
     await api('/api/integrations', body);
     await load();
     await reload();
-    setNotice('Configuração salva. Assinaturas e envio de notificações ainda não estão ativos.');
+    setNotice(
+      'Configuração salva. O envio de avisos depende da habilitação da empresa e do processo de notificações.',
+    );
   }
   return (
     <>
@@ -331,6 +333,7 @@ function WhatsappSettings({
               provider: 'openwa',
               baseUrl: data.get('baseUrl'),
               sessionId: data.get('sessionId') || '',
+              sendNotifications: data.get('sendNotifications') === 'on',
               secret,
               clearSecret,
             });
@@ -397,6 +400,18 @@ function WhatsappSettings({
               Remover a chave salva
             </label>
           )}
+          <label className="checkbox-line span-2">
+            <input
+              type="checkbox"
+              name="sendNotifications"
+              defaultChecked={row?.settings.sendNotifications === true}
+            />
+            Habilitar avisos de aprovação pelo WhatsApp para esta empresa
+          </label>
+          <p className="muted span-2">
+            Ao habilitar e iniciar o processo de notificações, os avisos ainda pendentes desta
+            empresa serão enviados.
+          </p>
         </fieldset>
         <p className="muted">
           Salve antes de testar. O teste consulta o status da sessão; não envia mensagens e não
@@ -417,7 +432,9 @@ function WhatsappSettings({
                 secret ||
                 clearSecret ||
                 fields.get('baseUrl') !== row?.settings.baseUrl ||
-                fields.get('sessionId') !== row?.settings.sessionId
+                fields.get('sessionId') !== row?.settings.sessionId ||
+                (fields.get('sendNotifications') === 'on') !==
+                  (row?.settings.sendNotifications === true)
               ) {
                 onError('Salve as alterações do OpenWA antes de testar a conexão.');
                 return;

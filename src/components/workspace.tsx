@@ -27,6 +27,7 @@ import { asInput, dateLabel, statuses, type WorkspaceData, type DocumentRow } fr
 import * as offline from '@/lib/offline';
 import DocumentEditor from './document-editor';
 import AdminPanel from './admin-panel';
+import NotificationPanel from './notification-panel';
 type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'contractors' | 'people' | 'settings';
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
@@ -56,11 +57,16 @@ export default function Workspace() {
     [editor, setEditor] = useState<DocumentInput | null>(null),
     [syncing, setSyncing] = useState(false);
   const busy = useRef(false);
+  const openedLink = useRef(false);
   const workspace = useRef(ws);
   workspace.current = ws;
   const load = useCallback(async (unitId?: string) => {
     try {
-      const data = await api('/api/workspace' + (unitId ? '?unit=' + unitId : ''));
+      const target = new URLSearchParams(window.location.search).get('document');
+      const data = await api(
+        '/api/workspace' +
+          (unitId ? '?unit=' + unitId : target ? '?document=' + encodeURIComponent(target) : ''),
+      );
       setWs(data);
       sessionStorage.setItem(
         'nexus-offline-session',
@@ -108,6 +114,28 @@ export default function Workspace() {
       window.removeEventListener('offline', update);
     };
   }, [load]);
+  useEffect(() => {
+    if (!ws || openedLink.current) return;
+    const params = new URLSearchParams(window.location.search),
+      id = params.get('document');
+    if (!id) return;
+    openedLink.current = true;
+    setTab('approvals');
+    const document = ws.documents.find((d) => d.id === id);
+    if (!document) {
+      setNotice('Documento indisponível para seu perfil nesta unidade.');
+      return;
+    }
+    if (Number(params.get('version')) !== document.version) {
+      setNotice(
+        'O aviso corresponde a uma versão anterior. Confira a versão atual e o histórico antes de decidir.',
+      );
+      return;
+    }
+    if (document.status !== 'em_aprovacao')
+      setNotice('Esta solicitação não está mais aguardando aprovação.');
+    setEditor(asInput(document));
+  }, [ws]);
   const sync = useCallback(async () => {
     const current = workspace.current;
     if (!current || busy.current || !navigator.onLine) return;
@@ -600,6 +628,7 @@ export default function Workspace() {
               )}
             </section>
           )}
+          {tab === 'approvals' && <NotificationPanel unitId={unit.id} online={online} />}
           {tab === 'people' && (
             <section className="card">
               <div className="card-heading">

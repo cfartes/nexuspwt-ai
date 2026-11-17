@@ -18,6 +18,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
+      target: app
     restart: unless-stopped
     depends_on:
       database:
@@ -31,5 +32,21 @@ services:
       INTEGRATIONS_ENCRYPTION_KEY: ${INTEGRATIONS_ENCRYPTION_KEY:-}
       OPENWA_ALLOWED_ORIGINS: ${OPENWA_ALLOWED_ORIGINS:-}
       OPENWA_DEFAULT_URL: ${OPENWA_DEFAULT_URL:-}
+  notifications:
+    profiles: [notifications]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: notifications
+    restart: unless-stopped
+    stop_grace_period: 40s
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL com host database}
+      APP_URL: ${APP_URL:?Configure APP_URL com HTTPS}
+      INTEGRATIONS_ENCRYPTION_KEY: ${INTEGRATIONS_ENCRYPTION_KEY:-}
+      OPENWA_ALLOWED_ORIGINS: ${OPENWA_ALLOWED_ORIGINS:-}
 volumes:
   database:

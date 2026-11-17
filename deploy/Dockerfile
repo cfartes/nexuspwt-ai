@@ -6,7 +6,12 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:24-alpine
+FROM build AS notifications
+RUN npm prune --omit=dev
+USER node
+CMD ["node","--import","tsx","scripts/notifications.ts"]
+
+FROM node:24-alpine AS app
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
 COPY --from=build --chown=node:node /app/.next/standalone ./

@@ -20,6 +20,7 @@ Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e
 - Consulta do histórico de atividades e impressão de versões arquivadas. Novas PTs exigem uma APR atualmente aprovada; revisar a APR não revalida nem cancela automaticamente PTs existentes.
 - Prévia de impressão com campos, etapas, decisões e anexo de evidências. Usa impressão do navegador para PDF.
 - Docker Compose do app e tela de configuração de assinatura eletrônica (DocuSign ou Certisign) e OpenWA por empresa.
+- Fila transacional de avisos de aprovação pelo OpenWA: um aviso por destinatário e versão, processo de envio separado e painel de acompanhamento em Aprovações. Links exigem login e abrem a unidade/documento corretos; links antigos não abrem automaticamente uma revisão diferente para decisão.
 
 ## Executar com PostgreSQL
 
@@ -45,7 +46,7 @@ npm run build
 npm run test:integration
 ```
 
-O teste de integração abre temporariamente um PostgreSQL embarcado na porta local 55439 e o app na porta 3109, cria credenciais aleatórias somente na memória e encerra os dois ao finalizar. Não utiliza a VPS nem dados reais.
+O teste de integração abre temporariamente um PostgreSQL embarcado na porta local 55439 e o app na porta 3109, cria credenciais aleatórias somente na memória e encerra os dois ao finalizar. O teste do processo de notificações usa a porta local 55440 e respostas simuladas do OpenWA; também inicia o script real com envios desativados para conferir a execução. Não utiliza a VPS, dados reais nem envia mensagens a provedores reais.
 
 ## Subir o app na VPS
 
@@ -71,7 +72,7 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 - PET, Anexo 1 de LOTOTO e anexos documentais adicionais não estão implementados. Fotos ilustrativas em cada etapa da APR também estão pendentes; a captura atual é para conclusão da PT.
 - Assinaturas de executantes, liberação, revalidação e encerramento não são coletadas nesta versão. Aprovação interna não é assinatura eletrônica.
 - Assinatura eletrônica: a tela permite selecionar DocuSign ou Certisign e salvar a configuração por empresa. DocuSign usa dados da aplicação OAuth; Certisign usa token de integração. Autorização OAuth, envio de PDFs, coleta de assinaturas e webhooks ainda não estão implementados.
-- OpenWA: configuração por empresa com URL, chave completa e UUID da sessão. O teste de conexão consulta apenas o status da sessão. O contrato da API foi fornecido, mas a chave estava abreviada e o UUID ausente; não houve conexão real nem envio de mensagens.
+- OpenWA: configuração por empresa com URL, chave completa e UUID da sessão. O teste de conexão consulta apenas o status da sessão. Há envio de avisos por processo separado, desativado por padrão; o contrato foi implementado e testado com respostas simuladas. A chave recebida estava abreviada e o UUID ausente; não houve conexão real nem envio real de mensagens.
 - Impressão: modelo estruturado inicial, não homologado como reprodução fiel. Ainda faltam modelos originais em branco, papel, folhas de continuação e validação visual com o cliente. Upload e reconstrução automática de modelos não foram implementados.
 - Offline: primeiro login e download do workspace exigem internet. O acesso offline se limita à sessão previamente autenticada na mesma aba. A sincronização requer app aberto/reaberto; não há promessa de envio com app fechado. Fechar sem salvar perde as alterações do formulário.
 - Dados locais são separados por usuário e removidos no logout; logout é bloqueado quando há fila pendente. Limpar dados do navegador ou perder o aparelho pode eliminar itens ainda não sincronizados. Dispositivo compartilhado precisa de proteção local antes do uso operacional.
@@ -83,7 +84,7 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 
 ## Configurar integrações
 
-1. Atualize o banco com `npm run db:setup` (ou `docker compose exec app node scripts/setup.mjs`). A migração `002-integrations.sql` é aditiva e não remove documentos.
+1. Atualize o banco com `npm run db:setup` (ou `docker compose exec app node scripts/setup.mjs`). As migrações `002-integrations.sql` e `003-notifications.sql` são aditivas e não removem documentos.
 2. Gere `INTEGRATIONS_ENCRYPTION_KEY` com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e configure no ambiente do servidor. São 64 caracteres hexadecimais. Faça backup seguro dessa chave; substituí-la sem recriptografar as credenciais impede sua leitura.
 3. Configure `OPENWA_ALLOWED_ORIGINS` com a origem HTTPS do gateway autorizado e `OPENWA_DEFAULT_URL` com sua URL raiz ou base `/api`. O valor do guia recebido deve ser configurado no ambiente privado; o guia com senhas do painel não é copiado para o projeto.
 4. Acesse **Configurações** com um administrador da plataforma que também administre a unidade. As integrações pertencem à empresa e afetam todas as suas unidades; um administrador apenas da unidade não pode alterá-las.
@@ -93,4 +94,20 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 
 Credenciais são criptografadas com AES-256-GCM e vinculadas à empresa e ao serviço. O backend retorna apenas `hasSecret`, nunca o conteúdo; a tela não envia esses dados à fila offline. Campo de senha vazio mantém a credencial do mesmo fornecedor; há opção explícita de removê-la. A troca do gateway exige nova chave ou remoção da anterior. Eventos de configuração e teste não contêm credenciais. As alterações usam controle de versão para evitar sobrescrita concorrente.
 
-Documentação oficial: [DocuSign OAuth](https://developers.docusign.com/platform/auth/), [Certisign: autenticação por token](https://desenvolvedor.certisign.io/docs/guias/assinaturas/autenticacao-autorizacao/). Ainda precisamos mapear campos e signatários por versão, implementar os fluxos de autenticação/envio/eventos, arquivar os PDFs finais e integrar as notificações de aprovação ao OpenWA. Nenhum envio externo acontece automaticamente nesta versão.
+Documentação oficial: [DocuSign OAuth](https://developers.docusign.com/platform/auth/), [Certisign: autenticação por token](https://desenvolvedor.certisign.io/docs/guias/assinaturas/autenticacao-autorizacao/). Ainda precisamos mapear campos e signatários por versão, implementar os fluxos de autenticação/envio/eventos e arquivar os PDFs finais. O envio de WhatsApp só é executado quando a empresa o habilita e o processo abaixo está ativo.
+
+## Ativar avisos pelo WhatsApp
+
+1. Atualize o banco antes de iniciar o processo de envio.
+2. Configure URL, chave completa, UUID da sessão e a origem autorizada conforme a seção anterior. Os usuários aprovadores precisam de telefone internacional com DDI e DDD no cadastro. Use **Testar conexão** primeiro.
+3. Marque **Habilitar avisos de aprovação pelo WhatsApp** em Configurações. Essa opção começa desmarcada; uma atualização de configuração que não informe a opção mantém o envio desativado por segurança.
+4. Em desenvolvimento, execute `npm run notifications:work` em um terminal separado. Em produção, na pasta `deploy`, execute `docker compose --profile notifications up -d --build notifications`. O serviço é opcional e não inicia no `docker compose up` padrão.
+5. Use **Aprovações → Avisos de aprovação** para consultar a fila. Administradores e gestores veem a unidade; os demais usuários veem somente seus próprios avisos. Atualize a lista para acompanhar o processamento.
+
+O envio usa `POST /api/sessions/{id}/messages/send-text`, após conferir a sessão. A mensagem contém somente tipo/número/versão do documento e link para o Nexus; não contém descrição dos riscos nem credenciais. O registro da fila ocorre na mesma transação da submissão para análise. Vários perfis atribuídos ao mesmo usuário geram um único aviso. O processo revalida versão, pendência, usuário ativo e acesso antes de enviar e cancela avisos obsoletos.
+
+O processo trata um aviso a cada cinco segundos e usa uma trava global no PostgreSQL para impedir processamento simultâneo entre instâncias. Configuração ausente, telefone inválido ou sessão desconectada deixam o aviso bloqueado, com nova avaliação após um minuto. Ajustar a configuração libera avisos bloqueados para reavaliação. Habilitar a empresa pode enviar avisos antigos que ainda estiverem pendentes; documentos já decididos são descartados pelo processo.
+
+Timeout, resposta sem confirmação ou interrupção durante envio deixam o resultado **incerto**, sem repetição automática. Isso evita duplicar mensagens quando o gateway pode ter aceitado a primeira tentativa. Administrador/gestor pode solicitar nova tentativa, confirmando o risco de duplicidade após conferir o painel do OpenWA. Essa ação fica no histórico do documento. Avisos aceitos pelo gateway não são reenviados automaticamente; não há confirmação de entrega ou leitura, pois os webhooks ainda não foram integrados.
+
+Nenhuma aprovação é executada pelo link ou pela mensagem. O usuário precisa entrar no app e registrar sua decisão. Desabilitar o envio afeta as próximas preparações; uma requisição já em andamento pode terminar. Mensagens ao solicitante após a decisão, lembretes periódicos, grupos e anexos não fazem parte desta etapa.

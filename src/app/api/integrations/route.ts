@@ -11,7 +11,7 @@ import {
   publicIntegration,
   type IntegrationRow,
 } from '@/lib/integrations';
-import { checkOpenwaSession } from '@/lib/openwa';
+import { checkOpenwaSession, openwaBaseUrl } from '@/lib/openwa';
 
 async function access(unitId: string) {
   const user = await currentUser();
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       if (
         input.service === 'whatsapp' &&
         existing?.secret_ciphertext &&
-        new URL(existing.settings.baseUrl).origin !== new URL(input.baseUrl).origin &&
+        new URL(String(existing.settings.baseUrl)).origin !== new URL(input.baseUrl).origin &&
         !input.secret &&
         !input.clearSecret
       )
@@ -79,7 +79,19 @@ export async function POST(request: Request) {
       const settings =
         input.service === 'signature'
           ? { environment: input.environment, accountId: input.accountId, clientId: input.clientId }
-          : { baseUrl: input.baseUrl.replace(/\/$/, ''), sessionId: input.sessionId };
+          : {
+              baseUrl: input.baseUrl.replace(/\/$/, ''),
+              sessionId: input.sessionId,
+              sendNotifications: input.sendNotifications,
+            };
+      if (input.service === 'whatsapp' && input.sendNotifications) {
+        if (!encrypted || !input.sessionId)
+          throw new HttpError(
+            400,
+            'Informe a chave completa e a sessão antes de habilitar notificações.',
+          );
+        openwaBaseUrl(input.baseUrl);
+      }
       const {
         rows: [saved],
       } = await c.query<IntegrationRow>(
@@ -94,6 +106,12 @@ export async function POST(request: Request) {
           user.id,
         ],
       );
+      if (input.service === 'whatsapp')
+        await c.query(
+          `UPDATE notification_outbox n SET status='pending',available_at=now(),last_error=NULL,updated_at=now()
+        FROM documents d WHERE d.id=n.document_id AND d.company_id=$1 AND n.status='blocked'`,
+          [unit.company_id],
+        );
       await c.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [
         user.id,
         'integracao.configurada',
@@ -132,8 +150,8 @@ export async function PUT(request: Request) {
     if (row.version !== input.version)
       throw new HttpError(409, 'Configuração desatualizada. Recarregue antes de testar.');
     const result = await checkOpenwaSession(
-      row.settings.baseUrl,
-      row.settings.sessionId,
+      String(row.settings.baseUrl),
+      String(row.settings.sessionId),
       decryptSecret(row.secret_ciphertext, unit.company_id, 'whatsapp'),
     );
     await db.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [

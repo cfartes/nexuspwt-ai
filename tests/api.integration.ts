@@ -9,6 +9,7 @@ import { aprProfiles } from '../src/lib/forms';
 const db = await PGlite.create();
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/002-integrations.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/003-notifications.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -154,6 +155,7 @@ try {
     sessionId: '',
     secret: '',
   };
+  await call('/api/integrations', { ...whatsapp, sendNotifications: true }, 400);
   await call('/api/integrations', { ...whatsapp, secret: 'owa_teste…abreviada' }, 400);
   await call('/api/integrations', whatsapp);
   await call('/api/integrations', { unitId: unit.id, version: 1 }, 400, 'PUT');
@@ -174,6 +176,14 @@ try {
   });
   await call('/api/integrations', { unitId: unit.id, version: 3 }, 400, 'PUT');
   await call('/api/integrations', { ...whatsapp, version: 3, sessionId, secret: key });
+  const enabled = await call('/api/integrations', {
+    ...whatsapp,
+    version: 4,
+    sessionId,
+    sendNotifications: true,
+  });
+  assert.equal(enabled.settings.sendNotifications, true);
+  await call('/api/integrations', { ...whatsapp, version: 5, sessionId, sendNotifications: false });
   await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Empresa isolada' });
   const allUnits = (await call('/api/workspace')).units;
   const isolatedUnit = allUnits.find((u: { company_id: string }) => u.company_id !== company.id);
@@ -233,6 +243,21 @@ try {
       scope: 'unit',
     });
   await call(`/api/documents/${d.id}/workflow`, { action: 'submit', version: 2 });
+  const queued = (await call(`/api/notifications?unit=${unit.id}`)).notifications;
+  assert.equal(queued.length, 1, 'Quatro perfis do mesmo aprovador geram um único aviso');
+  assert.equal(queued[0].status, 'pending');
+  assert.equal((await call(`/api/notifications?unit=${isolatedUnit.id}`)).notifications.length, 0);
+  await call('/api/notifications', { unitId: isolatedUnit.id, id: queued[0].id }, 404);
+  assert.equal((await call(`/api/workspace?document=${d.id}`)).unit.id, unit.id);
+  await call(`/api/workspace?document=${randomUUID()}`, undefined, 403);
+  await call('/api/notifications', { unitId: unit.id, id: queued[0].id }, 409);
+  await db.query("UPDATE notification_outbox SET status='uncertain' WHERE id=$1", [queued[0].id]);
+  await call('/api/notifications', { unitId: unit.id, id: queued[0].id }, 409);
+  await call('/api/notifications', {
+    unitId: unit.id,
+    id: queued[0].id,
+    confirmDuplicateRisk: true,
+  });
   await call('/api/documents', { ...d, version: 2 }, 409);
   await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 2 });
   ws = await call('/api/workspace');
@@ -371,6 +396,13 @@ try {
   });
   await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword });
   await call(integrationPath, undefined, 403);
+  const personalNotifications = await call(`/api/notifications?unit=${unit.id}`);
+  assert.equal(personalNotifications.notifications.length, 0);
+  await call(
+    '/api/notifications',
+    { unitId: unit.id, id: queued[0].id, confirmDuplicateRisk: true },
+    403,
+  );
   await call('/api/integrations', { ...signature, version: 5 }, 403);
   await call('/api/integrations', { unitId: unit.id, version: 4 }, 403, 'PUT');
   await db.query(
