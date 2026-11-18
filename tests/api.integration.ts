@@ -95,6 +95,8 @@ try {
   await call('/api/auth', { email: 'test@nexus.local', password });
   let ws = await call('/api/workspace');
   assert.equal(ws.unit.id, unit.id);
+  assert(ws.companies.some((c: { id: string }) => c.id === company.id));
+  assert(ws.registeredUnits.some((u: { id: string }) => u.id === unit.id));
   await call('/api/workspace?unit=' + randomUUID(), undefined, 403);
   await call('/api/admin', {
     action: 'contractor',
@@ -198,6 +200,18 @@ try {
   await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Empresa isolada' });
   const allUnits = (await call('/api/workspace')).units;
   const isolatedUnit = allUnits.find((u: { company_id: string }) => u.company_id !== company.id);
+  const companyRegistrations = await call(`/api/workspace?unit=${unit.id}`);
+  assert(
+    companyRegistrations.companies.some((c: { id: string }) => c.id === isolatedUnit.company_id),
+  );
+  assert(
+    companyRegistrations.registeredUnits.every(
+      (u: { company_id: string }) => u.company_id === company.id,
+    ),
+  );
+  assert(
+    !companyRegistrations.registeredUnits.some((u: { id: string }) => u.id === isolatedUnit.id),
+  );
   assert.equal(
     (await call(`/api/workspace?unit=${isolatedUnit.id}`)).unit.company_name,
     'Empresa isolada',
@@ -775,7 +789,33 @@ try {
     decryptSecret(encryptedBinding.secret_ciphertext, company.id, 'whatsapp'),
     'chave-global-teste-rotacionada',
   );
+  const {
+    rows: [unassignedUnit],
+  } = await db.query<{ id: string }>(
+    "INSERT INTO units(company_id,name,kind) VALUES($1,'Unidade sem acesso atribuído','CDD') RETURNING id",
+    [company.id],
+  );
+  assert(
+    (await call(`/api/workspace?unit=${unit.id}`)).registeredUnits.some(
+      (u: { id: string }) => u.id === unassignedUnit.id,
+    ),
+  );
   await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  const unitAdminRegistrations = await call(`/api/workspace?unit=${unit.id}`);
+  assert(
+    !unitAdminRegistrations.registeredUnits.some((u: { id: string }) => u.id === unassignedUnit.id),
+    'Admin local só consulta unidades com acesso ativo',
+  );
+  assert.equal(
+    unitAdminRegistrations.companies.length,
+    0,
+    'Admin de unidade não lista empresas da plataforma',
+  );
+  assert(
+    unitAdminRegistrations.registeredUnits.every(
+      (u: { company_id: string }) => u.company_id === company.id,
+    ),
+  );
   await call('/api/whatsapp/gateway', undefined, 403);
   await call(
     '/api/whatsapp/gateway',
@@ -788,6 +828,9 @@ try {
   assert(!('baseUrl' in companyConnection));
   cookie = contractorCookie;
   await call(`/api/whatsapp?unit=${unit.id}`, undefined, 403);
+  const restrictedRegistrations = await call(`/api/workspace?unit=${unit.id}`);
+  assert.equal(restrictedRegistrations.companies.length, 0);
+  assert.equal(restrictedRegistrations.registeredUnits.length, 0);
   cookie = adminCookie;
   await call('/api/admin', editRegional, 403);
   await db.query('UPDATE users SET platform_admin=true WHERE id=$1', [user.id]);

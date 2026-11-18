@@ -36,9 +36,11 @@ Requer Node.js 24 e PostgreSQL 17. O Docker instalado nesta estação estava sem
 
 Não há senha padrão, conta pública ou demonstração com dados simulados no aplicativo.
 
-No menu Cadastros, cadastre primeiro terceirizada, usuários e aprovadores. Para aproveitar aprovador regional, crie uma regional, cadastre a unidade nessa regional, dê acesso ao aprovador e atribua o perfil regional. Integrações e ajustes de aprovação permanecem em Configurações. Convites e recuperação de senha ainda não estão implementados.
+Os cadastros possuem menus próprios: **Empresas**, **Regionais**, **Unidades**, **Terceirizadas**, **Pessoas e acessos** e **Aprovadores**, com listagem e botão **Novo cadastro**. Empresas é exclusivo do superadmin. Administradores consultam as unidades e regionais da empresa ativa; terceirizadas, usuários e aprovadores seguem o contexto da unidade. As listas de empresas, regionais, unidades e terceirizadas possuem busca e contagem. Em Pessoas, o formulário permite criar usuário ou vincular uma conta existente. Para aproveitar aprovador regional, crie uma regional e uma unidade nessa regional, dê acesso ao aprovador e atribua o perfil regional. Integrações permanecem em Configurações. Convites e recuperação de senha ainda não estão implementados.
 
 ## Validação
+
+Nas listagens de cadastros, o admin local consulta somente unidades com acesso ativo; o superadmin pode consultar todas as unidades da empresa selecionada. A lista geral de empresas é exclusiva do superadmin. Consultar um cadastro não concede acesso operacional a outras unidades.
 
 ```powershell
 npm test
@@ -120,6 +122,6 @@ No cadastro de usuário ou vínculo de uma conta existente, escolha **Equipe pr�
 
 Administrador da unidade precisa pertencer à equipe própria. Aprovador regional também permanece na equipe própria; para alterar esse vínculo, é preciso desativar ou substituir sua atribuição regional antes. A desativação do próprio acesso deve ser feita por outro administrador; o último administrador ativo não pode ser removido ou rebaixado, inclusive pelo cadastro de vínculo de conta existente.
 
-Em Configurações → Aprovação por perfil, o administrador pode substituir, desativar e reativar atribuições locais, informando o motivo. Atribuições regionais compartilhadas são gerenciadas pelo administrador da plataforma. As alterações valem para novas submissões e não removem acessos já concedidos às unidades. Para transferir uma aprovação ainda pendente, use a opção de substituição no documento e registre o motivo; decisões concluídas permanecem intactas. O histórico registra cada transferência. A fila de avisos é ajustada por responsável, preservando envios em andamento ou de resultado incerto para revisão manual. Execute `npm run db:setup` antes de iniciar a versão atualizada para aplicar a migração `005-approver-management.sql`.
+Em Aprovadores → Aprovação por perfil, o administrador pode substituir, desativar e reativar atribuições locais, informando o motivo. Atribuições regionais compartilhadas são gerenciadas pelo administrador da plataforma. As alterações valem para novas submissões e não removem acessos já concedidos às unidades. Para transferir uma aprovação ainda pendente, use a opção de substituição no documento e registre o motivo; decisões concluídas permanecem intactas. O histórico registra cada transferência. A fila de avisos é ajustada por responsável, preservando envios em andamento ou de resultado incerto para revisão manual. Execute `npm run db:setup` antes de iniciar a versão atualizada para aplicar a migração `005-approver-management.sql`.
 
 A desativação impede novas requisições online e cancela avisos pendentes quando o processo os reavalia. Não apaga assinaturas, fotos, decisões nem cópias já baixadas em dispositivos offline. Mudanças só passam pela validação do servidor após reconectar. PTs com fotos não podem trocar de terceirizada ou APR; crie uma nova PT para preservar o contexto das evidências. O envio de foto e a alteração da PT usam a mesma trava do documento para evitar troca de vínculo durante uma captura em trânsito.

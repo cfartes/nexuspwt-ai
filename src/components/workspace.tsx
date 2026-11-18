@@ -26,12 +26,10 @@ import type { DocumentInput } from '@/lib/validation';
 import { asInput, dateLabel, statuses, type WorkspaceData, type DocumentRow } from '@/lib/types';
 import * as offline from '@/lib/offline';
 import DocumentEditor from './document-editor';
-import AdminPanel from './admin-panel';
+import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
-import PeoplePanel from './people-panel';
-type Tab =
-  'overview' | 'APR' | 'PT' | 'approvals' | 'contractors' | 'people' | 'registrations' | 'settings';
+type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
     method: method || (body ? 'POST' : 'GET'),
@@ -261,7 +259,16 @@ export default function Workspace() {
     ['approvals', 'Aprovações', CheckCircle2],
     ['contractors', 'Terceirizadas', Building2],
     ['people', 'Pessoas e acessos', Users],
-    ['registrations', 'Cadastros', Plus],
+    ['approvers', 'Aprovadores', ShieldCheck],
+    ...(unit.role === 'admin'
+      ? [
+          ['regions', 'Regionais', MapPin] as [Tab, string, typeof LayoutDashboard],
+          ['units', 'Unidades', Building2] as [Tab, string, typeof LayoutDashboard],
+        ]
+      : []),
+    ...(ws.user.platform_admin && unit.role === 'admin'
+      ? [['companies', 'Empresas', Building2] as [Tab, string, typeof LayoutDashboard]]
+      : []),
     ['settings', 'Configurações', Settings2],
   ];
   const title = nav.find((n) => n[0] === tab)?.[1];
@@ -277,11 +284,12 @@ export default function Workspace() {
           </span>
         </a>
         <div className="workspace-label">SEGURANÇA DO TRABALHO</div>
-        <nav>
+        <nav aria-label="Menu principal">
           {nav.map(([id, label, Icon]) => (
             <button
               key={id}
               className={tab === id ? 'nav active' : 'nav'}
+              aria-current={tab === id ? 'page' : undefined}
               onClick={() => {
                 setTab(id);
                 setSearch('');
@@ -591,58 +599,17 @@ export default function Workspace() {
               )}
             </section>
           )}
-          {tab === 'contractors' && (
-            <section className="card">
-              <div className="card-heading">
-                <div>
-                  <h2>Terceirizadas autorizadas</h2>
-                  <p>O vínculo é específico para esta unidade.</p>
-                </div>
-              </div>
-              {ws.contractors.length ? (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Empresa</th>
-                        <th>CNPJ</th>
-                        <th>Vínculo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ws.contractors.map((c) => (
-                        <tr key={c.id}>
-                          <td>
-                            <strong>{c.name}</strong>
-                          </td>
-                          <td>{c.cnpj}</td>
-                          <td>
-                            <span className="badge aprovado">Autorizada</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <Empty
-                  title="Cadastre a primeira terceirizada"
-                  text="Use Cadastros para autorizar uma empresa nesta unidade."
-                />
-              )}
-            </section>
-          )}
           {tab === 'approvals' && <NotificationPanel unitId={unit.id} online={online} />}
-          {tab === 'people' && (
-            <PeoplePanel key={unit.id} ws={ws} online={online} reload={() => load(unit.id)} />
-          )}
-          {tab === 'registrations' && (
-            <AdminPanel
+          {(
+            ['companies', 'regions', 'units', 'contractors', 'people', 'approvers'] as string[]
+          ).includes(tab) && (
+            <RegistrationPanel
+              key={`${unit.id}:${tab}`}
+              type={tab as RegistrationTab}
               ws={ws}
               online={online}
               reload={() => load(unit.id)}
               onError={setError}
-              onManagePeople={() => setTab('people')}
             />
           )}
           {tab === 'settings' && (

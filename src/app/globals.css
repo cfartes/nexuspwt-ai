@@ -178,6 +178,8 @@ p {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .nav {
   display: flex;
@@ -1352,7 +1354,7 @@ fieldset {
     flex-direction: row;
     gap: 0;
     overflow-x: auto;
-    justify-content: space-around;
+    justify-content: flex-start;
   }
   .nav {
     flex-direction: column;
@@ -1369,9 +1371,6 @@ fieldset {
   .nav span {
     max-width: 85px;
     white-space: nowrap;
-  }
-  .nav:nth-child(n + 5):not(:last-child) {
-    display: none;
   }
   .nav.active {
     background: #ecf7f3;

@@ -9,15 +9,15 @@ export default function AdminPanel({
   online,
   reload,
   onError,
-  onManagePeople,
+  action: initialAction,
 }: {
   ws: WorkspaceData;
   online: boolean;
   reload: () => Promise<unknown>;
   onError: (s: string) => void;
-  onManagePeople: () => void;
+  action: 'contractor' | 'company' | 'region' | 'unit' | 'user' | 'approver';
 }) {
-  const [action, setAction] = useState('contractor'),
+  const [action, setAction] = useState<string>(initialAction),
     [busy, setBusy] = useState(false),
     [kind, setKind] = useState('APR'),
     [success, setSuccess] = useState('');
@@ -27,13 +27,14 @@ export default function AdminPanel({
       <div className="card-heading">
         <div>
           <h2>
-            <Building2 size={19} /> Cadastros da operação
+            <Building2 size={19} /> Novo cadastro
           </h2>
-          <p>Empresa, regionais, unidades, terceirizadas e acessos.</p>
+          <p>
+            {initialAction === 'company'
+              ? 'Cadastro de empresa na plataforma.'
+              : `Cadastro em ${ws.unit.company_name} · ${ws.unit.name}.`}
+          </p>
         </div>
-        <button type="button" className="secondary" onClick={onManagePeople}>
-          Gerenciar pessoas e acessos
-        </button>
       </div>
       {!admin ? (
         <div className="settings-empty">Seu perfil não permite gerenciar cadastros.</div>
@@ -65,24 +66,21 @@ export default function AdminPanel({
             }
           }}
         >
-          <label>
-            O que deseja cadastrar?
-            <select
-              value={action}
-              onChange={(e) => {
-                setAction(e.target.value);
-                setSuccess('');
-              }}
-            >
-              <option value="contractor">Terceirizada / autorizar CNPJ nesta unidade</option>
-              <option value="user">Novo usuário</option>
-              <option value="membership">Vincular usuário existente da empresa</option>
-              <option value="approver">Aprovador local ou regional</option>
-              <option value="region">Regional</option>
-              <option value="unit">Unidade</option>
-              {ws.user.platform_admin && <option value="company">Empresa</option>}
-            </select>
-          </label>
+          {initialAction === 'user' && (
+            <label>
+              Tipo de acesso
+              <select
+                value={action}
+                onChange={(e) => {
+                  setAction(e.target.value);
+                  setSuccess('');
+                }}
+              >
+                <option value="user">Novo usuário</option>
+                <option value="membership">Vincular usuário existente da empresa</option>
+              </select>
+            </label>
+          )}
           <fieldset disabled={!online || busy} key={action} className="form-grid">
             {['contractor', 'user', 'region', 'unit', 'company'].includes(action) && (
               <label>

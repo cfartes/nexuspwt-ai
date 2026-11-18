@@ -2,7 +2,6 @@
 import { Server } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import IntegrationPanel from './integration-settings';
-import ApproverSettings from './approver-settings';
 
 export default function SettingsPanel({
   ws,
@@ -36,7 +35,6 @@ export default function SettingsPanel({
             <span className="badge">5 anos · backup a configurar</span>
           </div>
         </section>
-        <ApproverSettings ws={ws} online={online} reload={reload} />
       </div>
     </>
   );

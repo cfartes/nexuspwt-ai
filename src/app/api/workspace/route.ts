@@ -65,6 +65,16 @@ export async function GET(request: Request) {
         'SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND a.version=d.version AND ($2::uuid IS NULL OR d.contractor_id=$2)',
         [unit.id, unit.contractor_id],
       ),
+      unit.role === 'admin' && user.platform_admin
+        ? db.query('SELECT id,name FROM companies ORDER BY name')
+        : Promise.resolve({ rows: [] }),
+      unit.role === 'admin'
+        ? db.query(
+            `SELECT u.id,u.company_id,u.name,u.kind,u.region_id FROM units u WHERE u.company_id=$1
+             AND ($2 OR EXISTS(SELECT 1 FROM memberships m WHERE m.unit_id=u.id AND m.user_id=$3 AND m.active)) ORDER BY u.name`,
+            [unit.company_id, user.platform_admin, user.id],
+          )
+        : Promise.resolve({ rows: [] }),
     ]);
     return Response.json(
       {
@@ -77,6 +87,8 @@ export async function GET(request: Request) {
         regions: results[3].rows,
         approvers: results[4].rows,
         approvals: results[5].rows,
+        companies: results[6].rows,
+        registeredUnits: results[7].rows,
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );
