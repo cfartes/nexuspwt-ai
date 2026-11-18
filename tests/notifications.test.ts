@@ -166,6 +166,26 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
     const count = request.mock.callCount();
     assert.equal(await processNotification(pool), false);
     assert.equal(request.mock.callCount(), count);
+    await db.query(
+      'UPDATE company_integrations SET settings=settings || \'{"phone":"5511999999999"}\'::jsonb WHERE company_id=$1',
+      [company.id],
+    );
+    await reset();
+    await processNotification(pool);
+    assert.equal(
+      (await row()).status,
+      'blocked',
+      'Sem identidade confirmada, não envia pelo número de outra empresa',
+    );
+    assert.equal(
+      request.mock.callCount(),
+      count + 1,
+      'Consulta a sessão sem fazer POST de mensagem',
+    );
+    await db.query(
+      "UPDATE company_integrations SET settings=settings-'phone' WHERE company_id=$1",
+      [company.id],
+    );
     request.mock.mockImplementation(async (url: unknown) => {
       if (String(url).endsWith('send-text')) throw new Error('timeout');
       return Response.json({ status: 'READY' });

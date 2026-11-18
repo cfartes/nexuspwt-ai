@@ -1,5 +1,91 @@
 import { HttpError } from './security';
 
+export function sessionPhone(value: unknown, depth = 0): string | null {
+  if (!value || typeof value !== 'object' || depth > 2) return null;
+  const item = value as Record<string, unknown>;
+  for (const field of [
+    'phone',
+    'phoneNumber',
+    'phone_number',
+    'number',
+    'user',
+    '_serialized',
+    'id',
+  ]) {
+    const raw = item[field];
+    if (typeof raw !== 'string') continue;
+    let phone = raw;
+    if (phone.includes('@')) {
+      const [number, suffix] = phone.split('@');
+      if (!['c.us', 's.whatsapp.net'].includes(suffix)) continue;
+      phone = number.split(':')[0];
+    } else if (['id', '_serialized'].includes(field)) continue;
+    try {
+      return whatsappChatId(phone).split('@')[0];
+    } catch {}
+  }
+  for (const field of ['me', 'wid', 'account', 'data', 'session']) {
+    const phone = sessionPhone(item[field], depth + 1);
+    if (phone) return phone;
+  }
+  return null;
+}
+
+export function safeQr(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value !== 'string' || value.length > 800000)
+    throw new HttpError(502, 'QR Code inválido recebido do OpenWA.');
+  const encoded = value.replace(/^data:image\/png;base64,/, '');
+  const bytes = Buffer.from(encoded, 'base64');
+  if (
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) ||
+    bytes.toString('base64') !== encoded ||
+    !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  )
+    throw new HttpError(502, 'QR Code inválido recebido do OpenWA.');
+  return `data:image/png;base64,${encoded}`;
+}
+
+export async function openwaRequest(
+  baseUrl: string,
+  key: string,
+  path: string,
+  payload?: unknown,
+): Promise<unknown> {
+  const base = openwaBaseUrl(baseUrl);
+  if (!key || /[\r\n…]/.test(key) || key.includes('...'))
+    throw new HttpError(503, 'Configure a chave completa do OpenWA no servidor.');
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method: payload === undefined ? 'GET' : 'POST',
+      headers: {
+        'X-API-Key': key,
+        Accept: 'application/json',
+        ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      body: payload === undefined ? undefined : JSON.stringify(payload),
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw new HttpError(502, 'Não foi possível conectar ao OpenWA. Tente novamente.');
+  }
+  if (!response.ok)
+    throw new HttpError(
+      502,
+      response.status === 401 || response.status === 403
+        ? 'OpenWA recusou a credencial configurada no servidor.'
+        : 'OpenWA indisponível para esta operação. Tente novamente.',
+    );
+  try {
+    return await response.json();
+  } catch {
+    throw new HttpError(502, 'OpenWA retornou uma resposta inválida.');
+  }
+}
+
 export function openwaBaseUrl(value: string) {
   const url = new URL(value);
   const origins = (process.env.OPENWA_ALLOWED_ORIGINS || '')
@@ -76,13 +162,15 @@ export async function checkOpenwaSession(baseUrl: string, sessionId: string, key
     'QR',
     'PAIRING',
     'FAILED',
+    'CREATED',
+    'QR_READY',
   ];
   if (!known.includes(status))
     throw new HttpError(
       502,
       'Formato do status da sessão não reconhecido. Confira o contrato da API do gateway.',
     );
-  return { connected: ['READY', 'CONNECTED'].includes(status), status };
+  return { connected: ['READY', 'CONNECTED'].includes(status), status, phone: sessionPhone(body) };
 }
 
 export function whatsappChatId(phone: string) {

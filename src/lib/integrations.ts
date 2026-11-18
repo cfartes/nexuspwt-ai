@@ -94,6 +94,8 @@ export type IntegrationRow = {
     baseUrl?: string;
     sessionId?: string;
     sendNotifications?: boolean;
+    phone?: string;
+    connectionStatus?: string;
   };
   secret_ciphertext: string | null;
   version: number;

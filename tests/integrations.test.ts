@@ -68,6 +68,7 @@ test('teste OpenWA consulta somente a sessão autorizada, sem enviar mensagens',
     assert.deepEqual(await checkOpenwaSession('https://openwa.example.com', session, key), {
       connected: true,
       status: 'READY',
+      phone: null,
     });
     assert.equal(request.mock.callCount(), 1);
     const [url, options] = request.mock.calls[0].arguments as [string, RequestInit];

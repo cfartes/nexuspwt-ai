@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import { hashPassword } from '../src/lib/security';
+import { decryptSecret } from '../src/lib/integrations';
 import { aprProfiles } from '../src/lib/forms';
 const db = await PGlite.create();
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
@@ -16,6 +17,7 @@ await db.exec(
 await db.exec(
   await readFile(new URL('../db/005-approver-management.sql', import.meta.url), 'utf8'),
 );
+await db.exec(await readFile(new URL('../db/006-whatsapp-gateway.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -746,7 +748,47 @@ try {
     active: false,
     reason: 'Encerramento da cobertura regional',
   };
+  const gatewayInput = {
+    version: 0,
+    baseUrl: 'https://openwa.example.com/api',
+    secret: 'chave-global-teste-sem-envio',
+  };
+  await call('/api/whatsapp/gateway', gatewayInput);
+  await call('/api/whatsapp/gateway', gatewayInput, 409);
+  const gatewayPublic = await call('/api/whatsapp/gateway');
+  assert.equal(gatewayPublic.hasSecret, true);
+  assert(!JSON.stringify(gatewayPublic).includes(gatewayInput.secret));
+  await call('/api/whatsapp/gateway', { ...gatewayInput, version: 1, secret: '' });
+  await call('/api/whatsapp/gateway', {
+    ...gatewayInput,
+    version: 2,
+    secret: 'chave-global-teste-rotacionada',
+  });
+  const encryptedBinding = (
+    await db.query<{ secret_ciphertext: string }>(
+      "SELECT secret_ciphertext FROM company_integrations WHERE company_id=$1 AND service='whatsapp'",
+      [company.id],
+    )
+  ).rows[0];
+  process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);
+  assert.equal(
+    decryptSecret(encryptedBinding.secret_ciphertext, company.id, 'whatsapp'),
+    'chave-global-teste-rotacionada',
+  );
   await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  await call('/api/whatsapp/gateway', undefined, 403);
+  await call(
+    '/api/whatsapp/gateway',
+    { version: 0, baseUrl: 'https://openwa.example.com', secret: 'chave-teste' },
+    403,
+  );
+  const companyConnection = await call(`/api/whatsapp?unit=${unit.id}`);
+  assert(!('sessionId' in companyConnection));
+  assert(!('secret' in companyConnection));
+  assert(!('baseUrl' in companyConnection));
+  cookie = contractorCookie;
+  await call(`/api/whatsapp?unit=${unit.id}`, undefined, 403);
+  cookie = adminCookie;
   await call('/api/admin', editRegional, 403);
   await db.query('UPDATE users SET platform_admin=true WHERE id=$1', [user.id]);
   person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(

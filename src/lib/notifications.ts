@@ -103,6 +103,11 @@ export async function processNotification(pool: Pool) {
       );
       if (!session.connected)
         return await finish('blocked', 'A sessão do WhatsApp não está conectada.');
+      if (config.settings.phone && session.phone !== config.settings.phone)
+        return await finish(
+          'blocked',
+          'O número conectado não corresponde ao WhatsApp da empresa.',
+        );
     } catch (error) {
       return await finish(
         'blocked',
