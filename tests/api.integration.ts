@@ -906,6 +906,11 @@ try {
   await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
   await call(
     '/api/admin',
+    { action: 'deleteRegistration', unitId: unit.id, kind: 'account', id: person.id },
+    403,
+  );
+  await call(
+    '/api/admin',
     { action: 'setUnitLimit', unitId: unit.id, limit: 5, version: quotaAfter.version },
     403,
   );
@@ -1101,6 +1106,60 @@ try {
   });
   assert.equal(removedPrint.status, 200);
   assert((await removedPrint.text()).includes('APR REMOVIDA DA OPERAÇÃO'));
+  const globalAccount = {
+    action: 'user',
+    unitId: unit.id,
+    name: 'Usuário para excluir globalmente',
+    email: 'global-remove@nexus.local',
+    phone: '+55 11 99999-9999',
+    password: 'senha-teste-exclusao-123',
+    role: 'executante',
+  };
+  await call('/api/admin', globalAccount);
+  const excludedGlobalUser = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { email: string }) => p.email === globalAccount.email,
+  );
+  await call('/api/admin', {
+    action: 'membership',
+    unitId: secondUnit.id,
+    email: globalAccount.email,
+    role: 'executante',
+  });
+  await call('/api/admin', {
+    action: 'deleteRegistration',
+    unitId: unit.id,
+    kind: 'user',
+    id: excludedGlobalUser.id,
+    version: excludedGlobalUser.membership_version,
+  });
+  assert(
+    (await call(`/api/workspace?unit=${unit.id}`)).companyPeople.some(
+      (p: { id: string }) => p.id === excludedGlobalUser.id,
+    ),
+  );
+  await call('/api/admin', {
+    action: 'deleteRegistration',
+    unitId: unit.id,
+    kind: 'account',
+    id: excludedGlobalUser.id,
+  });
+  assert(
+    !(await call(`/api/workspace?unit=${unit.id}`)).companyPeople.some(
+      (p: { id: string }) => p.id === excludedGlobalUser.id,
+    ),
+  );
+  assert(
+    !(await call(`/api/workspace?unit=${secondUnit.id}`)).people.some(
+      (p: { id: string }) => p.id === excludedGlobalUser.id,
+    ),
+  );
+  await call(
+    '/api/admin',
+    { action: 'membership', unitId: unit.id, email: globalAccount.email, role: 'executante' },
+    404,
+  );
+  await call('/api/admin', globalAccount, 409);
+  await call('/api/auth', { email: globalAccount.email, password: globalAccount.password }, 401);
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {

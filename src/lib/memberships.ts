@@ -19,6 +19,14 @@ export async function saveMembership(
   await client.query('SELECT id FROM units WHERE id=$1 FOR UPDATE', [unitId]);
   await unitAccess(actor, unitId, ['admin'], client);
   const {
+    rows: [account],
+  } = await client.query('SELECT active FROM users WHERE id=$1', [userId]);
+  if (!account?.active)
+    throw new HttpError(
+      409,
+      'A conta foi excluída ou desativada na plataforma e não pode receber vínculos.',
+    );
+  const {
     rows: [existing],
   } = await client.query('SELECT * FROM memberships WHERE user_id=$1 AND unit_id=$2 FOR UPDATE', [
     userId,

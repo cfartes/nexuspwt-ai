@@ -3,7 +3,8 @@ import { unitAccess, type User } from './auth';
 import { saveMembership } from './memberships';
 import { HttpError } from './security';
 
-export type RegistrationKind = 'company' | 'region' | 'unit' | 'contractor' | 'user' | 'approver';
+export type RegistrationKind =
+  'company' | 'region' | 'unit' | 'contractor' | 'user' | 'approver' | 'account';
 export async function deleteRegistration(
   c: PoolClient,
   actor: User,
@@ -19,6 +20,69 @@ export async function deleteRegistration(
   };
   try {
     switch (input.kind) {
+      case 'account': {
+        if (!actor.platform_admin)
+          throw new HttpError(403, 'Somente o superadmin pode excluir usuários da plataforma.');
+        if (input.id === actor.id)
+          throw new HttpError(409, 'Não é possível excluir sua própria conta.');
+        await c.query(
+          'SELECT un.id FROM units un JOIN memberships m ON m.unit_id=un.id WHERE m.user_id=$1 ORDER BY un.id FOR UPDATE OF un',
+          [input.id],
+        );
+        await unitAccess(actor, unit.id, ['admin'], c);
+        const {
+          rows: [row],
+        } = await c.query(
+          `SELECT u.id,u.name,u.active FROM users u WHERE u.id=$1
+          AND EXISTS(SELECT 1 FROM memberships m JOIN units un ON un.id=m.unit_id WHERE m.user_id=u.id AND un.company_id=$2) FOR UPDATE OF u`,
+          [input.id, unit.company_id],
+        );
+        if (!row) missing();
+        if (!row.active) throw new HttpError(409, 'Esta conta já foi excluída ou desativada.');
+        name = row.name;
+        const { rowCount: pending } = await c.query(
+          `SELECT 1 FROM approvals a JOIN documents d ON d.id=a.document_id WHERE a.user_id=$1
+          AND d.removed_at IS NULL AND d.status='em_aprovacao' AND a.version=d.version AND a.decision IS NULL
+          UNION ALL SELECT 1 FROM approvers WHERE user_id=$1 AND active LIMIT 1`,
+          [input.id],
+        );
+        if (pending)
+          throw new HttpError(
+            409,
+            'Substitua as aprovações pendentes e as atribuições ativas antes de excluir o usuário da plataforma.',
+          );
+        const { rowCount: lastAdmin } = await c.query(
+          `SELECT 1 FROM memberships m WHERE m.user_id=$1 AND m.active AND m.role='admin'
+          AND NOT EXISTS(SELECT 1 FROM memberships other JOIN users u ON u.id=other.user_id AND u.active
+            WHERE other.unit_id=m.unit_id AND other.user_id<>$1 AND other.active AND other.role='admin')`,
+          [input.id],
+        );
+        if (lastAdmin)
+          throw new HttpError(
+            409,
+            'O usuário é o único administrador ativo de uma unidade. Defina outro administrador antes de excluir.',
+          );
+        await c.query('UPDATE users SET active=false WHERE id=$1', [input.id]);
+        await c.query('UPDATE memberships SET active=false,version=version+1 WHERE user_id=$1', [
+          input.id,
+        ]);
+        await c.query('DELETE FROM sessions WHERE user_id=$1', [input.id]);
+        await c.query(
+          `UPDATE notification_outbox SET status='cancelled',last_error='Usuário excluído da plataforma.',updated_at=now()
+          WHERE id IN (SELECT id FROM notification_outbox WHERE user_id=$1 AND status IN ('pending','blocked') FOR UPDATE SKIP LOCKED)`,
+          [input.id],
+        );
+        await c.query(
+          'UPDATE user_invitations SET consumed_at=now(),token_ciphertext=NULL WHERE user_id=$1 AND consumed_at IS NULL',
+          [input.id],
+        );
+        await c.query(
+          `UPDATE invitation_deliveries d SET status='cancelled',last_error='Usuário excluído da plataforma.' FROM user_invitations i
+          WHERE i.id=d.invitation_id AND i.user_id=$1 AND d.status IN ('pending','blocked')`,
+          [input.id],
+        );
+        break;
+      }
       case 'company': {
         if (!actor.platform_admin)
           throw new HttpError(403, 'Somente o superadmin pode excluir empresas.');
@@ -77,7 +141,7 @@ export async function deleteRegistration(
             );
         }
         const { rowCount: members } = await c.query(
-          'SELECT 1 FROM memberships WHERE unit_id=$1 AND user_id<>$2',
+          'SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id AND u.active WHERE m.unit_id=$1 AND m.user_id<>$2',
           [input.id, actor.id],
         );
         if (members)
@@ -233,6 +297,7 @@ export async function deleteRegistration(
             'A contratada possui usuários vinculados nesta unidade. Ajuste os vínculos antes de excluir.',
           user: 'A conta possui histórico ou vínculos que precisam ser preservados. Desative o acesso em Editar acesso.',
           approver: 'A atribuição possui vínculos que impedem a exclusão.',
+          account: 'A conta possui vínculos que impedem a exclusão.',
         }[input.kind],
       );
     throw error;

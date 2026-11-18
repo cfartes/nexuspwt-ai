@@ -45,7 +45,7 @@ const schema = z.discriminatedUnion('action', [
     .object({
       action: z.literal('deleteRegistration'),
       unitId: uuid,
-      kind: z.enum(['company', 'region', 'unit', 'contractor', 'user', 'approver']),
+      kind: z.enum(['company', 'region', 'unit', 'contractor', 'user', 'approver', 'account']),
       id: uuid,
       version: z.number().int().positive().optional(),
     })
@@ -245,10 +245,17 @@ export async function POST(request: Request) {
           break;
         }
         case 'user': {
-          const { rowCount: known } = await c.query(
-            'SELECT 1 FROM users u WHERE u.email=$1 AND EXISTS(SELECT 1 FROM memberships m JOIN units un ON un.id=m.unit_id WHERE m.user_id=u.id AND un.company_id=$2)',
+          const {
+            rows: [known],
+          } = await c.query(
+            'SELECT u.active FROM users u WHERE u.email=$1 AND EXISTS(SELECT 1 FROM memberships m JOIN units un ON un.id=m.unit_id WHERE m.user_id=u.id AND un.company_id=$2)',
             [input.email, company],
           );
+          if (known && !known.active)
+            throw new HttpError(
+              409,
+              'Este e-mail pertence a uma conta excluída ou desativada. A identificação está reservada para preservar o histórico.',
+            );
           if (known)
             throw new HttpError(
               409,
@@ -273,11 +280,12 @@ export async function POST(request: Request) {
           break;
         }
         case 'membership': {
+          await c.query('SELECT id FROM units WHERE id=$1 FOR UPDATE', [unit.id]);
           // Existing accounts must already belong to this company; prevents inviting an unrelated account by guessing its email.
           const {
             rows: [u],
           } = await c.query(
-            'SELECT u.id FROM users u WHERE u.email=$1 AND EXISTS(SELECT 1 FROM memberships m JOIN units un ON un.id=m.unit_id WHERE m.user_id=u.id AND un.company_id=$2)',
+            'SELECT u.id FROM users u WHERE u.email=$1 AND u.active AND EXISTS(SELECT 1 FROM memberships m JOIN units un ON un.id=m.unit_id WHERE m.user_id=u.id AND un.company_id=$2) FOR KEY SHARE OF u',
             [input.email, company],
           );
           if (!u) throw new HttpError(404, 'Usuário não encontrado nesta empresa.');

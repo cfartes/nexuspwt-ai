@@ -92,6 +92,19 @@ export default function PeoplePanel({
                       >
                         Vincular à unidade
                       </button>
+                      {ws.user.platform_admin && person.id !== ws.user.id && (
+                        <DeleteRegistration
+                          unitId={ws.unit.id}
+                          kind="account"
+                          id={person.id}
+                          name={person.name}
+                          online={online}
+                          onDeleted={async () => {
+                            await reload();
+                            setNotice('Usuário excluído da plataforma e da lista de vinculação.');
+                          }}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -333,6 +346,19 @@ export default function PeoplePanel({
                           setNotice('Acesso excluído desta unidade.');
                         }}
                       />
+                      {ws.user.platform_admin && person.id !== ws.user.id && (
+                        <DeleteRegistration
+                          unitId={ws.unit.id}
+                          kind="account"
+                          id={person.id}
+                          name={person.name}
+                          online={online}
+                          onDeleted={async () => {
+                            await reload();
+                            setNotice('Usuário excluído da plataforma em todas as unidades.');
+                          }}
+                        />
+                      )}
                     </div>
                   </td>
                 )}

@@ -272,6 +272,45 @@ test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões 
       ).rows.length,
       1,
     );
+    await assert.rejects(remove('account', used, undefined, local), status(403));
+    await assert.rejects(remove('account', rootId), status(409));
+    await db.query(
+      "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES('session-used',$1,now()+interval '1 hour')",
+      [used],
+    );
+    await remove('account', used);
+    assert.equal(
+      (await db.query<{ active: boolean }>('SELECT active FROM users WHERE id=$1', [used])).rows[0]
+        .active,
+      false,
+    );
+    assert.equal(
+      (await db.query('SELECT 1 FROM sessions WHERE user_id=$1', [used])).rows.length,
+      0,
+    );
+    assert.equal(
+      (await db.query('SELECT 1 FROM memberships WHERE user_id=$1 AND active', [used])).rows.length,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query("SELECT 1 FROM audit_events WHERE actor_id=$1 AND action='ação_histórica'", [
+          used,
+        ])
+      ).rows.length,
+      1,
+      'Exclusão global preserva autoria',
+    );
+    const lastAdmin = await user('lastAdmin');
+    const soleUnit = await insert(
+      "INSERT INTO units(company_id,name,kind) VALUES($1,'Único admin','CDD') RETURNING id",
+      [company],
+    );
+    await db.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
+      lastAdmin,
+      soleUnit,
+    ]);
+    await assert.rejects(remove('account', lastAdmin), status(409));
 
     const assignment = await insert(
       "INSERT INTO approvers(company_id,unit_id,user_id,kind,profile) VALUES($1,$2,$3,'APR','Perfil teste') RETURNING id",

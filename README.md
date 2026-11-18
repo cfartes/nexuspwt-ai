@@ -64,6 +64,8 @@ Os testes rodam com até dois arquivos simultâneos para limitar os bancos PGlit
 
 ### Exclusão de cadastros
 
+Em Pessoas, **Remover acesso desta unidade** preserva a conta nas demais unidades e ela pode aparecer entre usuários disponíveis para vinculação. O superadmin também possui **Excluir usuário da plataforma**, inclusive nessa lista de usuários disponíveis. Esse comando retira a conta das listagens e da vinculação em todas as unidades, impede login, encerra sessões e invalida convites. A identificação permanece inativa para preservar documentos e auditoria; seu e-mail continua reservado. Aprovações pendentes, atribuições ativas ou uma unidade sem outro administrador impedem a exclusão global. Não é possível excluir a própria conta, e contas excluídas não podem receber novos vínculos.
+
 Empresas, Regionais, Unidades, Terceirizadas, Pessoas e Aprovadores possuem **Excluir**, com confirmação em popup, validação de permissão no servidor e auditoria. Empresas e atribuições regionais são exclusivas do superadmin. Cadastros com dependências ou histórico protegido retornam um motivo; não há exclusão em cascata de documentos, decisões ou fotos. Alterações concorrentes de contratadas, acessos e atribuições são detectadas pela versão.
 
 Em Pessoas, a operação remove o acesso da unidade selecionada e invalida seus convites pendentes. Outras unidades e a conta compartilhada permanecem. Sem outros vínculos, a conta só é apagada quando não possui referências históricas; caso contrário, use **Editar acesso → desativar**. Não é possível excluir o próprio acesso, remover o último administrador ativo ou excluir o acesso de um aprovador com pendências/atribuições ativas sem ajustá-las antes. Somente superadmin pode excluir acesso de outra conta da plataforma.
