@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ShieldCheck, Save } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import { api } from './workspace';
+import Popup from './popup';
 type Assignment = WorkspaceData['approvers'][number];
 export default function ApproverSettings({
   ws,
@@ -28,7 +29,7 @@ export default function ApproverSettings({
           <p>Alterações de configuração valem para novas submissões.</p>
         </div>
       </div>
-      {error && (
+      {error && !selected && (
         <div className="alert error" role="alert">
           {error}
         </div>
@@ -39,88 +40,105 @@ export default function ApproverSettings({
         </div>
       )}
       {selected && (
-        <form
-          key={`${selected.id}:${selected.version}`}
-          className="integration-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const fields = new FormData(e.currentTarget);
-            setBusy(true);
+        <Popup
+          title="Editar cadastro"
+          onClose={() => {
+            setSelected(null);
             setError('');
-            setNotice('');
-            try {
-              await api('/api/admin', {
-                action: 'updateApprover',
-                unitId: ws.unit.id,
-                id: selected.id,
-                version: selected.version,
-                userId: fields.get('userId'),
-                active: fields.get('active') === 'on',
-                reason: fields.get('reason'),
-              });
-              setSelected(null);
-              await reload();
-              setNotice(
-                'Atribuição atualizada. Decisões e responsáveis de documentos já enviados foram preservados.',
-              );
-            } catch (error) {
-              setError((error as Error).message);
-            } finally {
-              setBusy(false);
-            }
           }}
+          busy={busy}
         >
-          <h3>
-            {selected.kind} · {selected.profile}
-          </h3>
-          <p className="muted">
-            {selected.region_id ? 'Todas as unidades da regional' : 'Somente esta unidade'}.
-            Desativar a atribuição não desativa o acesso da pessoa e não substitui pendências
-            existentes.
-          </p>
-          <fieldset disabled={!online || busy} className="form-grid">
-            <label className="span-2">
-              Responsável
-              <select name="userId" defaultValue={selected.user_id}>
-                <option value={selected.user_id}>{selected.user_name} (atual)</option>
-                {ws.people
-                  .filter(
-                    (p) =>
-                      p.active &&
-                      p.role !== 'executante' &&
-                      p.id !== selected.user_id &&
-                      (!selected.region_id || !p.contractor_id),
-                  )
-                  .map((p) => (
-                    <option value={p.id} key={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="span-2">
-              Motivo *<textarea name="reason" required minLength={3} maxLength={2000} />
-            </label>
-            <label className="checkbox-line span-2">
-              <input name="active" type="checkbox" defaultChecked={selected.active} />
-              Atribuição ativa para novas submissões
-            </label>
-          </fieldset>
-          <div className="actions">
-            <button className="primary" disabled={!online || busy}>
-              <Save size={16} />
-              {busy ? 'Salvando…' : 'Salvar atribuição'}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => setSelected(null)}
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+          <form
+            key={`${selected.id}:${selected.version}`}
+            className="integration-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fields = new FormData(e.currentTarget);
+              setBusy(true);
+              setError('');
+              setNotice('');
+              try {
+                await api('/api/admin', {
+                  action: 'updateApprover',
+                  unitId: ws.unit.id,
+                  id: selected.id,
+                  version: selected.version,
+                  userId: fields.get('userId'),
+                  active: fields.get('active') === 'on',
+                  reason: fields.get('reason'),
+                });
+                setSelected(null);
+                await reload();
+                setNotice(
+                  'Atribuição atualizada. Decisões e responsáveis de documentos já enviados foram preservados.',
+                );
+              } catch (error) {
+                setError((error as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {error && (
+              <div className="alert error" role="alert">
+                {error}
+              </div>
+            )}
+            <h3>
+              {selected.kind} · {selected.profile}
+            </h3>
+            <p className="muted">
+              {selected.region_id ? 'Todas as unidades da regional' : 'Somente esta unidade'}.
+              Desativar a atribuição não desativa o acesso da pessoa e não substitui pendências
+              existentes.
+            </p>
+            <fieldset disabled={!online || busy} className="form-grid">
+              <label className="span-2">
+                Responsável
+                <select name="userId" defaultValue={selected.user_id}>
+                  <option value={selected.user_id}>{selected.user_name} (atual)</option>
+                  {ws.people
+                    .filter(
+                      (p) =>
+                        p.active &&
+                        p.role !== 'executante' &&
+                        p.id !== selected.user_id &&
+                        (!selected.region_id || !p.contractor_id),
+                    )
+                    .map((p) => (
+                      <option value={p.id} key={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="span-2">
+                Motivo *<textarea name="reason" required minLength={3} maxLength={2000} />
+              </label>
+              <label className="checkbox-line span-2">
+                <input name="active" type="checkbox" defaultChecked={selected.active} />
+                Atribuição ativa para novas submissões
+              </label>
+            </fieldset>
+            <div className="actions">
+              <button className="primary" disabled={!online || busy}>
+                <Save size={16} />
+                {busy ? 'Salvando…' : 'Salvar atribuição'}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => {
+                  setSelected(null);
+                  setError('');
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </Popup>
       )}
       {!ws.approvers.length ? (
         <div className="settings-empty">Nenhum aprovador configurado.</div>

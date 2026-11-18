@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import AdminPanel from './admin-panel';
 import PeoplePanel from './people-panel';
 import ApproverSettings from './approver-settings';
+import Popup from './popup';
+import ContractorEditor from './contractor-editor';
 
 export type RegistrationTab =
   'companies' | 'regions' | 'units' | 'contractors' | 'people' | 'approvers';
@@ -42,16 +44,16 @@ export default function RegistrationPanel({
   ws,
   online,
   reload,
-  onError,
 }: {
   type: RegistrationTab;
   ws: WorkspaceData;
   online: boolean;
   reload: () => Promise<unknown>;
-  onError: (message: string) => void;
 }) {
   const [creating, setCreating] = useState(false),
-    [search, setSearch] = useState('');
+    [search, setSearch] = useState(''),
+    [notice, setNotice] = useState(''),
+    [contractor, setContractor] = useState<WorkspaceData['contractors'][number] | null>(null);
   const section = sections[type];
   const canManage = ws.unit.role === 'admin' && (type !== 'companies' || ws.user.platform_admin);
   const rows =
@@ -79,6 +81,11 @@ export default function RegistrationPanel({
   );
   return (
     <>
+      {notice && (
+        <p className="alert" role="status">
+          {notice}
+        </p>
+      )}
       <section className="card">
         <div className="card-heading">
           <div>
@@ -86,21 +93,34 @@ export default function RegistrationPanel({
             <p>{section.description}</p>
           </div>
           {canManage && (
-            <button className="primary" disabled={!online} onClick={() => setCreating(!creating)}>
-              {creating ? <X size={17} /> : <Plus size={17} />}{' '}
-              {creating ? 'Fechar cadastro' : 'Novo cadastro'}
+            <button className="primary" disabled={!online} onClick={() => setCreating(true)}>
+              <Plus size={17} /> Novo cadastro
             </button>
           )}
         </div>
       </section>
       {creating && canManage && (
-        <AdminPanel
-          key={`${ws.unit.id}:${section.action}`}
-          action={section.action}
+        <Popup title={`Novo cadastro · ${section.title}`} onClose={() => setCreating(false)}>
+          <AdminPanel
+            key={`${ws.unit.id}:${section.action}`}
+            action={section.action}
+            ws={ws}
+            online={online}
+            reload={reload}
+            onSaved={() => {
+              setCreating(false);
+              setNotice('Cadastro salvo. A listagem foi atualizada.');
+            }}
+          />
+        </Popup>
+      )}
+      {contractor && (
+        <ContractorEditor
           ws={ws}
+          contractor={contractor}
           online={online}
           reload={reload}
-          onError={onError}
+          onClose={() => setContractor(null)}
         />
       )}
       {type !== 'people' && type !== 'approvers' && (
@@ -132,6 +152,7 @@ export default function RegistrationPanel({
                           ? 'CNPJ e vínculo'
                           : 'Vínculo'}
                     </th>
+                    {type === 'contractors' && canManage && <th>Ação</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -141,6 +162,19 @@ export default function RegistrationPanel({
                         <strong>{row.name}</strong>
                       </td>
                       <td>{row.detail}</td>
+                      {type === 'contractors' && canManage && (
+                        <td>
+                          <button
+                            className="secondary"
+                            disabled={!online}
+                            onClick={() =>
+                              setContractor(ws.contractors.find((c) => c.id === row.id)!)
+                            }
+                          >
+                            Ver / editar cadastro
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

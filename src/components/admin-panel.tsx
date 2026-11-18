@@ -4,23 +4,29 @@ import { Building2, Plus } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { api } from './workspace';
+import ContractorFields from './contractor-fields';
+import { contractorDetails } from '@/lib/contractors';
 export default function AdminPanel({
   ws,
   online,
   reload,
-  onError,
+  onSaved,
+  initialEmail = '',
+  initialMode,
   action: initialAction,
 }: {
   ws: WorkspaceData;
   online: boolean;
   reload: () => Promise<unknown>;
-  onError: (s: string) => void;
+  onSaved: () => void;
+  initialEmail?: string;
+  initialMode?: 'membership';
   action: 'contractor' | 'company' | 'region' | 'unit' | 'user' | 'approver';
 }) {
-  const [action, setAction] = useState<string>(initialAction),
+  const [action, setAction] = useState<string>(initialMode || initialAction),
     [busy, setBusy] = useState(false),
     [kind, setKind] = useState('APR'),
-    [success, setSuccess] = useState('');
+    [error, setError] = useState('');
   const admin = ws.unit.role === 'admin';
   return (
     <section className="card">
@@ -50,22 +56,33 @@ export default function AdminPanel({
               data[key] = value;
             });
             if (action === 'unit') data.regionId = data.regionId || null;
+            if (action === 'contractor') {
+              data.details = Object.fromEntries(
+                Object.keys(contractorDetails.shape).map((key) => [key, fd.get(key) || '']),
+              );
+              for (const key of Object.keys(contractorDetails.shape)) delete data[key];
+            }
             if (['user', 'membership'].includes(action))
               data.contractorId = data.contractorId || null;
             setBusy(true);
-            setSuccess('');
+            setError('');
             try {
               await api('/api/admin', data);
               await reload();
               form.reset();
-              setSuccess('Cadastro salvo.');
+              onSaved();
             } catch (err) {
-              onError((err as Error).message);
+              setError((err as Error).message);
             } finally {
               setBusy(false);
             }
           }}
         >
+          {error && (
+            <div className="alert error" role="alert">
+              {error}
+            </div>
+          )}
           {initialAction === 'user' && (
             <label>
               Tipo de acesso
@@ -73,7 +90,7 @@ export default function AdminPanel({
                 value={action}
                 onChange={(e) => {
                   setAction(e.target.value);
-                  setSuccess('');
+                  setError('');
                 }}
               >
                 <option value="user">Novo usuário</option>
@@ -84,7 +101,8 @@ export default function AdminPanel({
           <fieldset disabled={!online || busy} key={action} className="form-grid">
             {['contractor', 'user', 'region', 'unit', 'company'].includes(action) && (
               <label>
-                Nome *<input name="name" required minLength={2} maxLength={200} />
+                {action === 'contractor' ? 'Razão social' : 'Nome'} *
+                <input name="name" required minLength={2} maxLength={200} />
               </label>
             )}
             {action === 'contractor' && (
@@ -104,12 +122,13 @@ export default function AdminPanel({
                   Se o CNPJ já existir nesta empresa, será criado somente o vínculo com a unidade
                   atual.
                 </p>
+                <ContractorFields unitId={ws.unit.id} />
               </>
             )}
             {['user', 'membership'].includes(action) && (
               <>
                 <label>
-                  E-mail *<input name="email" type="email" required />
+                  E-mail *<input name="email" type="email" required defaultValue={initialEmail} />
                 </label>
                 <label>
                   Perfil nesta unidade
@@ -221,11 +240,6 @@ export default function AdminPanel({
               </>
             )}
           </fieldset>
-          {success && (
-            <p role="status" className="success">
-              {success}
-            </p>
-          )}
           <button className="primary" disabled={!online || busy}>
             <Plus size={17} />
             {busy ? 'Salvando…' : 'Salvar cadastro'}

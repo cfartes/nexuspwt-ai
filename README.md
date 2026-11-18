@@ -40,6 +40,10 @@ Os cadastros possuem menus próprios: **Empresas**, **Regionais**, **Unidades**,
 
 ## Validação
 
+Cadastros novos e edição de usuários, aprovadores e contratadas usam popup com foco contido, fechamento por Escape e erros dentro do formulário. Avisos gerais são limpos ao mudar de menu. Em Pessoas, o administrador também vê contas da mesma empresa sem vínculo com a unidade atual e pode vinculá-las explicitamente, escolhendo o perfil e a terceirizada; isso não altera a senha nem os acessos das outras unidades.
+
+Contratadas possuem razão social, CNPJ, nome fantasia, contato responsável, telefone, e-mail e endereço completo. A edição de dados é compartilhada entre as unidades da empresa que usam o mesmo CNPJ, com controle de versão. Cadastrar um CNPJ existente apenas autoriza o vínculo, sem sobrescrever os dados. A migração `007-contractor-details.sql` preserva registros antigos e permite completar os campos opcionais. A busca automática usa [ViaCEP](https://viacep.com.br/), ao informar oito dígitos, sem enviar dados da contratada ao serviço. Preenche logradouro, bairro, cidade e UF; número e complemento são manuais. Falhas permitem preenchimento manual e respostas antigas não sobrescrevem um CEP novo nem alterações manuais feitas durante a consulta.
+
 Nas listagens de cadastros, o admin local consulta somente unidades com acesso ativo; o superadmin pode consultar todas as unidades da empresa selecionada. A lista geral de empresas é exclusiva do superadmin. Consultar um cadastro não concede acesso operacional a outras unidades.
 
 ```powershell

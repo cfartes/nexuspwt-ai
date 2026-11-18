@@ -293,6 +293,8 @@ export default function Workspace() {
               onClick={() => {
                 setTab(id);
                 setSearch('');
+                setError('');
+                setNotice('');
               }}
             >
               <Icon size={19} />
@@ -609,7 +611,6 @@ export default function Workspace() {
               ws={ws}
               online={online}
               reload={() => load(unit.id)}
-              onError={setError}
             />
           )}
           {tab === 'settings' && (

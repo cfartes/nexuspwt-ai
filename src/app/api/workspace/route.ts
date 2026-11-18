@@ -70,6 +70,14 @@ export async function GET(request: Request) {
         : Promise.resolve({ rows: [] }),
       unit.role === 'admin'
         ? db.query(
+            `SELECT u.id,u.name,u.email,array_agg(DISTINCT un.name ORDER BY un.name) units
+          FROM users u JOIN memberships m ON m.user_id=u.id JOIN units un ON un.id=m.unit_id
+          WHERE un.company_id=$1 AND u.active GROUP BY u.id ORDER BY u.name`,
+            [unit.company_id],
+          )
+        : Promise.resolve({ rows: [] }),
+      unit.role === 'admin'
+        ? db.query(
             `SELECT u.id,u.company_id,u.name,u.kind,u.region_id FROM units u WHERE u.company_id=$1
              AND ($2 OR EXISTS(SELECT 1 FROM memberships m WHERE m.unit_id=u.id AND m.user_id=$3 AND m.active)) ORDER BY u.name`,
             [unit.company_id, user.platform_admin, user.id],
@@ -88,7 +96,8 @@ export async function GET(request: Request) {
         approvers: results[4].rows,
         approvals: results[5].rows,
         companies: results[6].rows,
-        registeredUnits: results[7].rows,
+        registeredUnits: results[8].rows,
+        companyPeople: results[7].rows,
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );

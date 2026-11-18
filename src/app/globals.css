@@ -962,6 +962,20 @@ fieldset {
   justify-content: center;
   padding: 25px;
 }
+.registration-popup {
+  width: min(900px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 13px;
+  color: var(--navy);
+  background: white;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.registration-popup::backdrop { background: #102b4280; }
+.registration-popup > .card { border: 0; margin: 0; }
 .document-modal {
   background: white;
   border-radius: 13px;

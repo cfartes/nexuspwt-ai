@@ -1,4 +1,5 @@
 import type { DocumentInput } from './validation';
+import type { ContractorDetails } from './contractors';
 export type Unit = {
   id: string;
   company_id: string;
@@ -63,7 +64,14 @@ export type WorkspaceData = {
   registeredUnits: Pick<Unit, 'id' | 'company_id' | 'name' | 'kind' | 'region_id'>[];
   unit: Unit;
   documents: DocumentRow[];
-  contractors: { id: string; name: string; cnpj: string }[];
+  contractors: {
+    id: string;
+    name: string;
+    cnpj: string;
+    details?: Partial<ContractorDetails>;
+    version: number;
+  }[];
+  companyPeople: { id: string; name: string; email: string; units: string[] }[];
   people: Person[];
   regions: { id: string; name: string }[];
   approvers: {

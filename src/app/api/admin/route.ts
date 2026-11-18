@@ -7,6 +7,7 @@ import { uuid } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { saveMembership } from '@/lib/memberships';
 import { whatsappChatId } from '@/lib/openwa';
+import { contractorDetails } from '@/lib/contractors';
 import {
   eligibleApprover,
   grantRegionalAccess,
@@ -42,7 +43,18 @@ const schema = z.discriminatedUnion('action', [
     unitId: uuid,
     name,
     cnpj: z.string().regex(/^\d{14}$/, 'Informe 14 dígitos.'),
+    details: contractorDetails.default(() => contractorDetails.parse({})),
   }),
+  z
+    .object({
+      action: z.literal('updateContractor'),
+      unitId: uuid,
+      id: uuid,
+      version: z.number().int().positive(),
+      name,
+      details: contractorDetails,
+    })
+    .strict(),
   z.object({ action: z.literal('linkContractor'), unitId: uuid, contractorId: uuid }),
   z.object({
     action: z.literal('user'),
@@ -165,8 +177,8 @@ export async function POST(request: Request) {
           const {
             rows: [co],
           } = await c.query(
-            'INSERT INTO contractors(company_id,name,cnpj) VALUES($1,$2,$3) ON CONFLICT(company_id,cnpj) DO UPDATE SET name=contractors.name RETURNING id',
-            [company, input.name, input.cnpj],
+            'INSERT INTO contractors(company_id,name,cnpj,details) VALUES($1,$2,$3,$4) ON CONFLICT(company_id,cnpj) DO UPDATE SET name=contractors.name RETURNING id',
+            [company, input.name, input.cnpj, JSON.stringify(input.details)],
           );
           await c.query('INSERT INTO contractor_units VALUES($1,$2,$3) ON CONFLICT DO NOTHING', [
             company,
@@ -182,7 +194,33 @@ export async function POST(request: Request) {
             unit.id,
           ]);
           break;
+        case 'updateContractor': {
+          const {
+            rows: [existing],
+          } = await c.query(
+            'SELECT c.* FROM contractors c JOIN contractor_units cu ON cu.contractor_id=c.id WHERE c.id=$1 AND c.company_id=$2 AND cu.unit_id=$3 FOR UPDATE OF c',
+            [input.id, company, unit.id],
+          );
+          if (!existing) throw new HttpError(404, 'Contratada não encontrada nesta unidade.');
+          if (existing.version !== input.version)
+            throw new HttpError(409, 'Cadastro alterado. Recarregue antes de salvar.');
+          await c.query('UPDATE contractors SET name=$2,details=$3,version=version+1 WHERE id=$1', [
+            input.id,
+            input.name,
+            JSON.stringify(input.details),
+          ]);
+          break;
+        }
         case 'user': {
+          const { rowCount: known } = await c.query(
+            'SELECT 1 FROM users u WHERE u.email=$1 AND EXISTS(SELECT 1 FROM memberships m JOIN units un ON un.id=m.unit_id WHERE m.user_id=u.id AND un.company_id=$2)',
+            [input.email, company],
+          );
+          if (known)
+            throw new HttpError(
+              409,
+              'Usuário já cadastrado nesta empresa. Use “Vincular usuário existente” para dar acesso a esta unidade.',
+            );
           const {
             rows: [u],
           } = await c.query(

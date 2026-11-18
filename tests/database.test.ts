@@ -26,6 +26,12 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
     );
     await db.exec(approverSql);
     await db.exec(approverSql);
+    const contractorSql = await readFile(
+      new URL('../db/007-contractor-details.sql', import.meta.url),
+      'utf8',
+    );
+    await db.exec(contractorSql);
+    await db.exec(contractorSql);
     const { rows: companies } = await db.query<{ id: string }>(
       "INSERT INTO companies(name) VALUES('Empresa A'),('Empresa B') RETURNING id",
     );

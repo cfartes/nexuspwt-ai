@@ -1,0 +1,2 @@
+ALTER TABLE contractors ADD COLUMN IF NOT EXISTS details jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE contractors ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1;

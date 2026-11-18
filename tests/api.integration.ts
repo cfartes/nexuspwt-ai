@@ -18,6 +18,7 @@ await db.exec(
   await readFile(new URL('../db/005-approver-management.sql', import.meta.url), 'utf8'),
 );
 await db.exec(await readFile(new URL('../db/006-whatsapp-gateway.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/007-contractor-details.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -97,6 +98,7 @@ try {
   assert.equal(ws.unit.id, unit.id);
   assert(ws.companies.some((c: { id: string }) => c.id === company.id));
   assert(ws.registeredUnits.some((u: { id: string }) => u.id === unit.id));
+  await call(`/api/address?unit=${unit.id}&cep=invalido`, undefined, 400);
   await call('/api/workspace?unit=' + randomUUID(), undefined, 403);
   await call('/api/admin', {
     action: 'contractor',
@@ -106,6 +108,50 @@ try {
   });
   ws = await call('/api/workspace');
   assert.equal(ws.contractors.length, 1);
+  const contractorRegistration = ws.contractors[0];
+  const contractorAddress = {
+    tradeName: 'Terceira Serviços',
+    contactName: 'Responsável',
+    phone: '+55 11 99999-9999',
+    email: 'contato@terceira.example',
+    cep: '01001000',
+    street: 'Praça da Sé',
+    number: '100',
+    complement: 'Sala 2',
+    district: 'Sé',
+    city: 'São Paulo',
+    state: 'SP',
+  };
+  const editContractor = {
+    action: 'updateContractor',
+    unitId: unit.id,
+    id: contractorRegistration.id,
+    version: contractorRegistration.version,
+    name: contractorRegistration.name,
+    details: contractorAddress,
+  };
+  await call(
+    '/api/admin',
+    { ...editContractor, details: { ...contractorAddress, email: 'invalido' } },
+    400,
+  );
+  await call('/api/admin', editContractor);
+  await call('/api/admin', editContractor, 409);
+  await call('/api/admin', {
+    action: 'contractor',
+    unitId: unit.id,
+    name: 'Não substituir',
+    cnpj: contractorRegistration.cnpj,
+    details: { city: 'Outra cidade' },
+  });
+  const savedContractor = (await call(`/api/workspace?unit=${unit.id}`)).contractors[0];
+  assert.equal(savedContractor.details.street, contractorAddress.street);
+  assert.equal(
+    savedContractor.details.city,
+    contractorAddress.city,
+    'Vincular CNPJ existente não sobrescreve os dados compartilhados',
+  );
+  assert.equal(savedContractor.version, contractorRegistration.version + 1);
   const integrationPath = `/api/integrations?unit=${unit.id}`;
   const initialConfig = await call(integrationPath);
   assert.equal(initialConfig.integrations.length, 0);
@@ -200,6 +246,11 @@ try {
   await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Empresa isolada' });
   const allUnits = (await call('/api/workspace')).units;
   const isolatedUnit = allUnits.find((u: { company_id: string }) => u.company_id !== company.id);
+  await call(
+    '/api/admin',
+    { ...editContractor, unitId: isolatedUnit.id, version: savedContractor.version },
+    404,
+  );
   const companyRegistrations = await call(`/api/workspace?unit=${unit.id}`);
   assert(
     companyRegistrations.companies.some((c: { id: string }) => c.id === isolatedUnit.company_id),
@@ -423,6 +474,26 @@ try {
     password: executorPassword,
     role: 'executante',
   });
+  const duplicateUser = await call(
+    '/api/admin',
+    {
+      action: 'user',
+      unitId: unit.id,
+      name: 'Outro executante',
+      email: 'executor@nexus.local',
+      phone: '+55 11 99999-9999',
+      password: executorPassword,
+      role: 'executante',
+    },
+    409,
+  );
+  assert.match(duplicateUser.error, /Vincular usuário existente/);
+  assert(
+    !(await call(`/api/workspace?unit=${isolatedUnit.id}`)).companyPeople.some(
+      (p: { email: string }) => p.email === 'executor@nexus.local',
+    ),
+    'Usuários disponíveis não atravessam empresas',
+  );
   await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword });
   await call(integrationPath, undefined, 403);
   const personalNotifications = await call(`/api/notifications?unit=${unit.id}`);
@@ -823,6 +894,11 @@ try {
     403,
   );
   const companyConnection = await call(`/api/whatsapp?unit=${unit.id}`);
+  assert(
+    (await call(`/api/workspace?unit=${secondUnit.id}`)).companyPeople.some(
+      (p: { id: string }) => p.id === person.id,
+    ),
+  );
   assert(!('sessionId' in companyConnection));
   assert(!('secret' in companyConnection));
   assert(!('baseUrl' in companyConnection));
@@ -831,6 +907,9 @@ try {
   const restrictedRegistrations = await call(`/api/workspace?unit=${unit.id}`);
   assert.equal(restrictedRegistrations.companies.length, 0);
   assert.equal(restrictedRegistrations.registeredUnits.length, 0);
+  assert.equal(restrictedRegistrations.companyPeople.length, 0);
+  await call(`/api/address?unit=${unit.id}&cep=01001000`, undefined, 403);
+  await call('/api/admin', { ...editContractor, version: savedContractor.version }, 403);
   cookie = adminCookie;
   await call('/api/admin', editRegional, 403);
   await db.query('UPDATE users SET platform_admin=true WHERE id=$1', [user.id]);
