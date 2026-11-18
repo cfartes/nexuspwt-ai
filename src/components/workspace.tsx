@@ -27,9 +27,11 @@ import { asInput, dateLabel, statuses, type WorkspaceData, type DocumentRow } fr
 import * as offline from '@/lib/offline';
 import DocumentEditor from './document-editor';
 import AdminPanel from './admin-panel';
+import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
 import PeoplePanel from './people-panel';
-type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'contractors' | 'people' | 'settings';
+type Tab =
+  'overview' | 'APR' | 'PT' | 'approvals' | 'contractors' | 'people' | 'registrations' | 'settings';
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
     method: method || (body ? 'POST' : 'GET'),
@@ -259,6 +261,7 @@ export default function Workspace() {
     ['approvals', 'Aprovações', CheckCircle2],
     ['contractors', 'Terceirizadas', Building2],
     ['people', 'Pessoas e acessos', Users],
+    ['registrations', 'Cadastros', Plus],
     ['settings', 'Configurações', Settings2],
   ];
   const title = nav.find((n) => n[0] === tab)?.[1];
@@ -624,7 +627,7 @@ export default function Workspace() {
               ) : (
                 <Empty
                   title="Cadastre a primeira terceirizada"
-                  text="Use Configurações para autorizar uma empresa nesta unidade."
+                  text="Use Cadastros para autorizar uma empresa nesta unidade."
                 />
               )}
             </section>
@@ -633,13 +636,21 @@ export default function Workspace() {
           {tab === 'people' && (
             <PeoplePanel key={unit.id} ws={ws} online={online} reload={() => load(unit.id)} />
           )}
-          {tab === 'settings' && (
+          {tab === 'registrations' && (
             <AdminPanel
               ws={ws}
               online={online}
               reload={() => load(unit.id)}
               onError={setError}
               onManagePeople={() => setTab('people')}
+            />
+          )}
+          {tab === 'settings' && (
+            <SettingsPanel
+              ws={ws}
+              online={online}
+              reload={() => load(unit.id)}
+              onError={setError}
             />
           )}
           <footer className="page-footer">

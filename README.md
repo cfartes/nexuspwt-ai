@@ -36,7 +36,7 @@ Requer Node.js 24 e PostgreSQL 17. O Docker instalado nesta estação estava sem
 
 Não há senha padrão, conta pública ou demonstração com dados simulados no aplicativo.
 
-Em Configurações, cadastre primeiro terceirizada, usuários e aprovadores. Para aproveitar aprovador regional, crie uma regional, cadastre a unidade nessa regional, dê acesso ao aprovador e atribua o perfil regional. Convites e recuperação de senha ainda não estão implementados.
+No menu Cadastros, cadastre primeiro terceirizada, usuários e aprovadores. Para aproveitar aprovador regional, crie uma regional, cadastre a unidade nessa regional, dê acesso ao aprovador e atribua o perfil regional. Integrações e ajustes de aprovação permanecem em Configurações. Convites e recuperação de senha ainda não estão implementados.
 
 ## Validação
 
