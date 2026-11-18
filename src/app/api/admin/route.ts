@@ -6,7 +6,7 @@ import { apiError } from '@/lib/http';
 import { uuid } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { saveMembership } from '@/lib/memberships';
-import { whatsappChatId } from '@/lib/openwa';
+import { whatsappChatId, businessPhone } from '@/lib/openwa';
 import { contractorDetails } from '@/lib/contractors';
 import { randomBytes } from 'node:crypto';
 import { createInvitation } from '@/lib/invitations';
@@ -84,14 +84,10 @@ const schema = z.discriminatedUnion('action', [
       name,
       email: z.email().transform((v) => v.toLowerCase()),
       phone,
-      password: z.string().min(12).max(256).optional(),
       role,
       contractorId: uuid.nullable().default(null),
     })
-    .refine((input) => input.role === 'aprovador' || !!input.password, {
-      path: ['password'],
-      message: 'Informe a senha inicial para este perfil.',
-    }),
+    .strict(),
   z.object({
     action: z.literal('membership'),
     unitId: uuid,
@@ -245,6 +241,7 @@ export async function POST(request: Request) {
           break;
         }
         case 'user': {
+          const normalizedPhone = businessPhone(input.phone);
           const {
             rows: [known],
           } = await c.query(
@@ -268,15 +265,13 @@ export async function POST(request: Request) {
             [
               input.name,
               input.email,
-              input.phone,
-              hashPassword(
-                input.role === 'aprovador' ? randomBytes(32).toString('hex') : input.password!,
-              ),
-              input.role === 'aprovador',
+              normalizedPhone,
+              hashPassword(randomBytes(32).toString('hex')),
+              true,
             ],
           );
-          await saveMembership(c, user, unit.id, u.id, input);
-          if (input.role === 'aprovador') await createInvitation(c, user.id, u.id, unit.id);
+          await saveMembership(c, user, unit.id, u.id, { ...input, phone: normalizedPhone });
+          await createInvitation(c, user.id, u.id, unit.id);
           break;
         }
         case 'membership': {

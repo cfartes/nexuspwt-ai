@@ -26,7 +26,6 @@ export default function AdminPanel({
   const [action, setAction] = useState<string>(initialMode || initialAction),
     [busy, setBusy] = useState(false),
     [kind, setKind] = useState('APR'),
-    [profile, setProfile] = useState('executante'),
     [error, setError] = useState('');
   const admin = ws.unit.role === 'admin';
   return (
@@ -133,7 +132,7 @@ export default function AdminPanel({
                 </label>
                 <label>
                   Perfil nesta unidade
-                  <select name="role" value={profile} onChange={(e) => setProfile(e.target.value)}>
+                  <select name="role">
                     <option value="executante">Executante</option>
                     <option value="aprovador">Aprovador</option>
                     <option value="gestor">Gestor</option>
@@ -159,23 +158,9 @@ export default function AdminPanel({
                   Telefone com DDI e DDD *
                   <input name="phone" type="tel" placeholder="+55 11 99999-9999" required />
                 </label>
-                {profile !== 'aprovador' && (
-                  <label>
-                    Senha inicial *
-                    <input
-                      name="password"
-                      type="password"
-                      autoComplete="new-password"
-                      minLength={12}
-                      maxLength={256}
-                      required
-                    />
-                  </label>
-                )}
                 <p className="muted span-2">
-                  {profile === 'aprovador'
-                    ? 'O aprovador receberá um link por e-mail e WhatsApp para definir a própria senha. O convite expira em 24 horas.'
-                    : 'Para este perfil, informe uma senha inicial de pelo menos 12 caracteres.'}
+                  O usuário receberá um link por e-mail e WhatsApp para definir a própria senha,
+                  independentemente do perfil. O convite expira em 24 horas.
                 </p>
               </>
             )}

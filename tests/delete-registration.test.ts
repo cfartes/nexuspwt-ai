@@ -7,6 +7,7 @@ import pg from 'pg';
 import { deleteRegistration, type RegistrationKind } from '../src/lib/delete-registration';
 import { createInvitation } from '../src/lib/invitations';
 import type { User } from '../src/lib/auth';
+import { saveMembership } from '../src/lib/memberships';
 
 test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões e preservação do histórico', async () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'f'.repeat(64);
@@ -310,6 +311,24 @@ test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões 
       lastAdmin,
       soleUnit,
     ]);
+    const pendingAdmin = await user('pendingAdmin');
+    await db.query('UPDATE users SET password_pending=true WHERE id=$1', [pendingAdmin]);
+    await db.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
+      pendingAdmin,
+      soleUnit,
+    ]);
+    await assert.rejects(
+      tx((c) =>
+        saveMembership(c, actor(lastAdmin), soleUnit, lastAdmin, {
+          role: 'executante',
+          contractorId: null,
+          active: true,
+          version: 1,
+        }),
+      ),
+      status(409),
+      'Convite de admin pendente não substitui um administrador capaz de entrar',
+    );
     await assert.rejects(remove('account', lastAdmin), status(409));
 
     const assignment = await insert(

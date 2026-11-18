@@ -8,6 +8,7 @@ import { hashPassword } from '../src/lib/security';
 import { decryptSecret } from '../src/lib/integrations';
 import { aprProfiles } from '../src/lib/forms';
 const db = await PGlite.create();
+process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/002-integrations.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/003-notifications.sql', import.meta.url), 'utf8'));
@@ -468,13 +469,25 @@ try {
   );
   const adminCookie = cookie;
   const executorPassword = randomUUID();
+  await call(
+    '/api/admin',
+    {
+      action: 'user',
+      unitId: unit.id,
+      name: 'Outro executante',
+      email: 'executor@nexus.local',
+      phone: '11999999999',
+      role: 'executante',
+      password: executorPassword,
+    },
+    400,
+  );
   await call('/api/admin', {
     action: 'user',
     unitId: unit.id,
     name: 'Outro executante',
     email: 'executor@nexus.local',
     phone: '+55 11 99999-9999',
-    password: executorPassword,
     role: 'executante',
   });
   const duplicateUser = await call(
@@ -485,7 +498,6 @@ try {
       name: 'Outro executante',
       email: 'executor@nexus.local',
       phone: '+55 11 99999-9999',
-      password: executorPassword,
       role: 'executante',
     },
     409,
@@ -497,6 +509,16 @@ try {
     ),
     'Usuários disponíveis não atravessam empresas',
   );
+  const executorInvitation = (
+    await db.query<{ id: string; token_ciphertext: string }>(
+      "SELECT i.id,i.token_ciphertext FROM user_invitations i JOIN users u ON u.id=i.user_id WHERE u.email='executor@nexus.local' AND i.consumed_at IS NULL",
+    )
+  ).rows[0];
+  await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword }, 401);
+  await call('/api/invitations/accept', {
+    token: decryptSecret(executorInvitation.token_ciphertext, executorInvitation.id, 'invitation'),
+    password: executorPassword,
+  });
   await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword });
   await call(integrationPath, undefined, 403);
   const personalNotifications = await call(`/api/notifications?unit=${unit.id}`);
@@ -624,7 +646,7 @@ try {
     (await call(`/api/workspace?unit=${secondUnit.id}`)).people.find(
       (p: { id: string }) => p.id === person.id,
     ).phone,
-    '+55 11 99999-9999',
+    '5511999999999',
   );
   const photoPayload = {
     caption: 'Evidência de teste',
@@ -710,7 +732,7 @@ try {
     (await call(`/api/workspace?unit=${secondUnit.id}`)).people.find(
       (p: { id: string }) => p.id === person.id,
     ).phone,
-    '+55 11 99999-9999',
+    '5511999999999',
   );
   await call('/api/documents', {
     ...pt,
@@ -749,7 +771,7 @@ try {
   const {
     rows: [globalUser],
   } = await db.query<{ phone: string }>('SELECT phone FROM users WHERE id=$1', [person.id]);
-  assert.equal(globalUser.phone, '+55 11 99999-9999');
+  assert.equal(globalUser.phone, '5511999999999');
   person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
     (p: { id: string }) => p.id === person.id,
   );
@@ -1112,7 +1134,6 @@ try {
     name: 'Usuário para excluir globalmente',
     email: 'global-remove@nexus.local',
     phone: '+55 11 99999-9999',
-    password: 'senha-teste-exclusao-123',
     role: 'executante',
   };
   await call('/api/admin', globalAccount);
@@ -1159,7 +1180,30 @@ try {
     404,
   );
   await call('/api/admin', globalAccount, 409);
-  await call('/api/auth', { email: globalAccount.email, password: globalAccount.password }, 401);
+  await call(
+    '/api/auth',
+    { email: globalAccount.email, password: 'senha-teste-exclusao-123' },
+    401,
+  );
+  for (const invitedRole of ['gestor', 'admin']) {
+    const email = `convite-${invitedRole}@nexus.local`;
+    await call('/api/admin', {
+      action: 'user',
+      unitId: unit.id,
+      name: `Convidado ${invitedRole}`,
+      email,
+      phone: '47999595207',
+      role: invitedRole,
+    });
+    const pendingPerson = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+      (p: { email: string }) => p.email === email,
+    );
+    assert.equal(pendingPerson.password_pending, true);
+    assert.equal(pendingPerson.phone, '5547999595207');
+    assert.equal(pendingPerson.invitation_status.email.status, 'pending');
+    assert.equal(pendingPerson.invitation_status.whatsapp.status, 'pending');
+    await call('/api/auth', { email, password: 'senha-definida-por-admin' }, 401);
+  }
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {

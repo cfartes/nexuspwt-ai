@@ -61,7 +61,7 @@ export async function saveMembership(
     const {
       rows: [count],
     } = await client.query(
-      "SELECT count(*)::int total FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.unit_id=$1 AND m.active AND m.role='admin' AND u.active AND m.user_id<>$2",
+      "SELECT count(*)::int total FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.unit_id=$1 AND m.active AND m.role='admin' AND u.active AND NOT u.password_pending AND m.user_id<>$2",
       [unitId, userId],
     );
     if (count.total === 0)

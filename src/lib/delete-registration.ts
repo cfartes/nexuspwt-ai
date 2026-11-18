@@ -53,7 +53,7 @@ export async function deleteRegistration(
           );
         const { rowCount: lastAdmin } = await c.query(
           `SELECT 1 FROM memberships m WHERE m.user_id=$1 AND m.active AND m.role='admin'
-          AND NOT EXISTS(SELECT 1 FROM memberships other JOIN users u ON u.id=other.user_id AND u.active
+          AND NOT EXISTS(SELECT 1 FROM memberships other JOIN users u ON u.id=other.user_id AND u.active AND NOT u.password_pending
             WHERE other.unit_id=m.unit_id AND other.user_id<>$1 AND other.active AND other.role='admin')`,
           [input.id],
         );
