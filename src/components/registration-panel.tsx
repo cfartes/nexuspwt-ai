@@ -7,6 +7,7 @@ import PeoplePanel from './people-panel';
 import ApproverSettings from './approver-settings';
 import Popup from './popup';
 import ContractorEditor from './contractor-editor';
+import DeleteRegistration from './delete-registration';
 
 export type RegistrationTab =
   'companies' | 'regions' | 'units' | 'contractors' | 'people' | 'approvers';
@@ -48,7 +49,7 @@ export default function RegistrationPanel({
   type: RegistrationTab;
   ws: WorkspaceData;
   online: boolean;
-  reload: () => Promise<unknown>;
+  reload: (unitId?: string) => Promise<unknown>;
 }) {
   const [creating, setCreating] = useState(false),
     [search, setSearch] = useState(''),
@@ -152,7 +153,7 @@ export default function RegistrationPanel({
                           ? 'CNPJ e vínculo'
                           : 'Vínculo'}
                     </th>
-                    {type === 'contractors' && canManage && <th>Ação</th>}
+                    {canManage && <th>Ação</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -162,17 +163,41 @@ export default function RegistrationPanel({
                         <strong>{row.name}</strong>
                       </td>
                       <td>{row.detail}</td>
-                      {type === 'contractors' && canManage && (
+                      {canManage && (
                         <td>
-                          <button
-                            className="secondary"
-                            disabled={!online}
-                            onClick={() =>
-                              setContractor(ws.contractors.find((c) => c.id === row.id)!)
-                            }
-                          >
-                            Ver / editar cadastro
-                          </button>
+                          <div className="actions">
+                            {type === 'contractors' && (
+                              <button
+                                className="secondary"
+                                disabled={!online}
+                                onClick={() =>
+                                  setContractor(ws.contractors.find((c) => c.id === row.id)!)
+                                }
+                              >
+                                Ver / editar cadastro
+                              </button>
+                            )}
+                            <DeleteRegistration
+                              unitId={ws.unit.id}
+                              kind={section.action}
+                              id={row.id}
+                              name={row.name}
+                              online={online}
+                              version={
+                                type === 'contractors'
+                                  ? ws.contractors.find((c) => c.id === row.id)?.version
+                                  : undefined
+                              }
+                              onDeleted={async () => {
+                                await reload(
+                                  type === 'units' && row.id === ws.unit.id
+                                    ? ws.units.find((u) => u.id !== row.id)?.id
+                                    : undefined,
+                                );
+                                setNotice('Cadastro excluído deste contexto.');
+                              }}
+                            />
+                          </div>
                         </td>
                       )}
                     </tr>

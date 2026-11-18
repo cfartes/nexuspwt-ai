@@ -610,7 +610,7 @@ export default function Workspace() {
               type={tab as RegistrationTab}
               ws={ws}
               online={online}
-              reload={() => load(unit.id)}
+              reload={(nextUnitId?: string) => load(nextUnitId || unit.id)}
             />
           )}
           {tab === 'settings' && (

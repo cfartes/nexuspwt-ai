@@ -9,9 +9,16 @@ export async function POST(request: Request) {
     assertOrigin(request);
     const user = await currentUser();
     const d = documentSchema.parse(await request.json());
-    const unit = await unitAccess(user, d.unitId, ['admin', 'gestor', 'aprovador', 'executante']);
-    assertContractorAccess(unit, d.contractorId);
     const result = await transaction(async (c) => {
+      // Keep deletion/access changes from invalidating associations while a document is saved.
+      await c.query('SELECT id FROM units WHERE id=$1 FOR KEY SHARE', [d.unitId]);
+      const unit = await unitAccess(
+        user,
+        d.unitId,
+        ['admin', 'gestor', 'aprovador', 'executante'],
+        c,
+      );
+      assertContractorAccess(unit, d.contractorId);
       // Serialize creates and retries by client-generated UUID; synchronization is idempotent.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [d.id]);
       const {
@@ -37,8 +44,9 @@ export async function POST(request: Request) {
         throw new HttpError(403, 'Somente o autor ou gestor pode editar.');
       if (existing && existing.status === 'em_aprovacao')
         throw new HttpError(409, 'Documento em aprovação. Não pode ser alterado.');
+      await c.query('SELECT id FROM contractors WHERE id=$1 FOR KEY SHARE', [d.contractorId]);
       const { rowCount: linked } = await c.query(
-        'SELECT 1 FROM contractor_units WHERE contractor_id=$1 AND unit_id=$2',
+        'SELECT 1 FROM contractor_units WHERE contractor_id=$1 AND unit_id=$2 FOR KEY SHARE',
         [d.contractorId, unit.id],
       );
       if (!linked) throw new HttpError(400, 'Terceirizada não autorizada nesta unidade.');
@@ -76,7 +84,7 @@ export async function POST(request: Request) {
       }
       for (const executor of d.data.executors) {
         const { rowCount } = await c.query(
-          'SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.unit_id=$2 AND u.active AND m.active AND (m.contractor_id IS NULL OR m.contractor_id=$3)',
+          'SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.unit_id=$2 AND u.active AND m.active AND (m.contractor_id IS NULL OR m.contractor_id=$3) FOR KEY SHARE OF u',
           [executor.userId, unit.id, d.contractorId],
         );
         if (!rowCount) throw new HttpError(400, 'Executante sem acesso à unidade.');

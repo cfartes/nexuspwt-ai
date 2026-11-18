@@ -4,6 +4,7 @@ import { ShieldCheck, Save } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import { api } from './workspace';
 import Popup from './popup';
+import DeleteRegistration from './delete-registration';
 type Assignment = WorkspaceData['approvers'][number];
 export default function ApproverSettings({
   ws,
@@ -160,17 +161,33 @@ export default function ApproverSettings({
               </small>
             </div>
             {ws.unit.role === 'admin' && (!a.region_id || ws.user.platform_admin) && (
-              <button
-                className="secondary"
-                disabled={!online || busy}
-                onClick={() => {
-                  setSelected(a);
-                  setError('');
-                  setNotice('');
-                }}
-              >
-                {a.active ? 'Editar / desativar' : 'Reativar'}
-              </button>
+              <div className="actions">
+                <button
+                  className="secondary"
+                  disabled={!online || busy}
+                  onClick={() => {
+                    setSelected(a);
+                    setError('');
+                    setNotice('');
+                  }}
+                >
+                  {a.active ? 'Editar / desativar' : 'Reativar'}
+                </button>
+                <DeleteRegistration
+                  unitId={ws.unit.id}
+                  kind="approver"
+                  id={a.id}
+                  version={a.version}
+                  name={`${a.kind} · ${a.profile} · ${a.user_name}`}
+                  online={online}
+                  onDeleted={async () => {
+                    await reload();
+                    setNotice(
+                      'Atribuição excluída. Decisões e pendências anteriores foram preservadas.',
+                    );
+                  }}
+                />
+              </div>
             )}
           </div>
         ))

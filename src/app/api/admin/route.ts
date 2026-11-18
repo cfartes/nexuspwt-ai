@@ -10,6 +10,7 @@ import { whatsappChatId } from '@/lib/openwa';
 import { contractorDetails } from '@/lib/contractors';
 import { randomBytes } from 'node:crypto';
 import { createInvitation } from '@/lib/invitations';
+import { deleteRegistration } from '@/lib/delete-registration';
 import {
   eligibleApprover,
   grantRegionalAccess,
@@ -31,6 +32,15 @@ const phone = z
   }, 'Informe telefone internacional com DDI e DDD.');
 const role = z.enum(['admin', 'gestor', 'aprovador', 'executante']);
 const schema = z.discriminatedUnion('action', [
+  z
+    .object({
+      action: z.literal('deleteRegistration'),
+      unitId: uuid,
+      kind: z.enum(['company', 'region', 'unit', 'contractor', 'user', 'approver']),
+      id: uuid,
+      version: z.number().int().positive().optional(),
+    })
+    .strict(),
   z.object({ action: z.literal('company'), unitId: uuid, name }),
   z.object({ action: z.literal('region'), unitId: uuid, name }),
   z.object({
@@ -131,11 +141,14 @@ export async function POST(request: Request) {
     await transaction(async (c) => {
       // Serialize shared access/configuration changes before taking individual unit or membership locks.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-        `company-access:${unit.company_id}`,
+        `company-access:${input.action === 'deleteRegistration' && input.kind === 'company' ? input.id : unit.company_id}`,
       ]);
       await unitAccess(user, unit.id, ['admin'], c);
       const company = unit.company_id;
       switch (input.action) {
+        case 'deleteRegistration':
+          await deleteRegistration(c, user, input);
+          break;
         case 'company': {
           if (!user.platform_admin)
             throw new HttpError(

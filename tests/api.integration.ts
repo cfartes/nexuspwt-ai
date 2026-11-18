@@ -991,8 +991,38 @@ try {
   await call('/api/auth', { email: 'convidado@nexus.local', password: 'nova-senha-aprovador-123' });
   assert.equal((await call(`/api/workspace?unit=${unit.id}`)).user.id, invited.id);
   await call('/api/invitations', { unitId: unit.id, userId: user.id }, 403);
+  await call(
+    '/api/admin',
+    { action: 'deleteRegistration', unitId: unit.id, kind: 'unit', id: unit.id },
+    403,
+  );
   cookie = adminCookie;
   await call('/api/invitations', { unitId: unit.id, userId: invited.id }, 409);
+  await call('/api/admin', { action: 'region', unitId: unit.id, name: 'Regional para excluir' });
+  const removableRegion = (await call(`/api/workspace?unit=${unit.id}`)).regions.find(
+    (r: { name: string }) => r.name === 'Regional para excluir',
+  );
+  await call('/api/admin', {
+    action: 'deleteRegistration',
+    unitId: unit.id,
+    kind: 'region',
+    id: removableRegion.id,
+  });
+  assert(
+    !(await call(`/api/workspace?unit=${unit.id}`)).regions.some(
+      (r: { id: string }) => r.id === removableRegion.id,
+    ),
+  );
+  await call(
+    '/api/admin',
+    { action: 'deleteRegistration', unitId: unit.id, kind: 'region', id: removableRegion.id },
+    404,
+  );
+  await call(
+    '/api/admin',
+    { action: 'deleteRegistration', unitId: unit.id, kind: 'unit', id: unit.id },
+    409,
+  );
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {

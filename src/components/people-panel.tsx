@@ -5,6 +5,7 @@ import type { Person, WorkspaceData } from '@/lib/types';
 import { api } from './workspace';
 import Popup from './popup';
 import AdminPanel from './admin-panel';
+import DeleteRegistration from './delete-registration';
 
 export default function PeoplePanel({
   ws,
@@ -308,17 +309,31 @@ export default function PeoplePanel({
                 )}
                 {canManage && (
                   <td>
-                    <button
-                      className="secondary"
-                      disabled={!online || busy}
-                      onClick={() => {
-                        setSelected(person);
-                        setError('');
-                        setNotice('');
-                      }}
-                    >
-                      Editar acesso
-                    </button>
+                    <div className="actions">
+                      <button
+                        className="secondary"
+                        disabled={!online || busy}
+                        onClick={() => {
+                          setSelected(person);
+                          setError('');
+                          setNotice('');
+                        }}
+                      >
+                        Editar acesso
+                      </button>
+                      <DeleteRegistration
+                        unitId={ws.unit.id}
+                        kind="user"
+                        id={person.id}
+                        version={person.membership_version}
+                        name={person.name}
+                        online={online}
+                        onDeleted={async () => {
+                          await reload();
+                          setNotice('Acesso excluído desta unidade.');
+                        }}
+                      />
+                    </div>
                   </td>
                 )}
               </tr>
