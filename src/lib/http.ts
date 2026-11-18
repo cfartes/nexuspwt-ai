@@ -2,7 +2,18 @@ import { ZodError } from 'zod';
 import { HttpError } from './security';
 export function apiError(error: unknown) {
   if (error instanceof HttpError)
-    return Response.json({ error: error.message }, { status: error.status });
+    return Response.json(
+      {
+        error: error.message,
+        ...(error.retryAfterSeconds ? { retryAfterSeconds: error.retryAfterSeconds } : {}),
+      },
+      {
+        status: error.status,
+        ...(error.retryAfterSeconds
+          ? { headers: { 'Retry-After': String(error.retryAfterSeconds) } }
+          : {}),
+      },
+    );
   if (error instanceof ZodError)
     return Response.json(
       { error: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') },

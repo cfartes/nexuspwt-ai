@@ -6,7 +6,81 @@ import {
   integrationSchema,
   publicIntegration,
 } from '../src/lib/integrations';
-import { checkOpenwaSession, openwaBaseUrl } from '../src/lib/openwa';
+import {
+  checkOpenwaSession,
+  openwaBaseUrl,
+  openwaRetryAfter,
+  openwaRequest,
+  sendOpenwaText,
+  OpenwaError,
+} from '../src/lib/openwa';
+import { apiError } from '../src/lib/http';
+
+test('OpenWA 429: respeita a janela esgotada, preserva Retry-After e suspende novas chamadas', async () => {
+  process.env.OPENWA_ALLOWED_ORIGINS = 'https://rate-openwa.example.com';
+  assert.equal(openwaRetryAfter(new Headers({ 'Retry-After': '12' })), 12);
+  assert.equal(
+    openwaRetryAfter(
+      new Headers({ 'Retry-After': 'Wed, 18 Nov 2026 21:01:00 GMT' }),
+      Date.parse('2026-11-18T21:00:00Z'),
+    ),
+    60,
+  );
+  const headers = new Headers({
+    'x-ratelimit-remaining-short': '0',
+    'x-ratelimit-reset-short': '2',
+    'x-ratelimit-remaining-medium': '0',
+    'x-ratelimit-reset-medium': '40',
+    'x-ratelimit-remaining-long': '900',
+    'x-ratelimit-reset-long': '3500',
+  });
+  assert.equal(
+    openwaRetryAfter(headers),
+    40,
+    'Não usa o reset de uma janela que ainda possui cota',
+  );
+  assert.equal(openwaRetryAfter(new Headers()), 60);
+  const request = mock.method(globalThis, 'fetch', async () =>
+    Response.json({ statusCode: 429 }, { status: 429, headers }),
+  );
+  const base = 'https://rate-openwa.example.com',
+    key = 'chave-exclusiva-para-limite',
+    id = crypto.randomUUID();
+  try {
+    let captured: unknown;
+    try {
+      await openwaRequest(base, key, '/sessions');
+    } catch (error) {
+      captured = error;
+    }
+    assert(captured instanceof OpenwaError);
+    assert.equal(captured.providerStatus, 429);
+    const result = apiError(captured);
+    assert.equal(result.status, 429);
+    assert.equal(result.headers.get('Retry-After'), '40');
+    assert.equal((await result.json()).retryAfterSeconds, 40);
+    await assert.rejects(
+      openwaRequest(base, key, '/sessions'),
+      (error: unknown) => error instanceof OpenwaError && error.status === 429,
+    );
+    await assert.rejects(
+      checkOpenwaSession(base, id, key),
+      (error: unknown) => error instanceof OpenwaError && error.status === 429,
+    );
+    assert.equal(
+      (await sendOpenwaText(base, id, key, '5511999999999@c.us', 'Não deve enviar')).status,
+      'blocked',
+    );
+    assert.equal(
+      request.mock.callCount(),
+      1,
+      'Consulta e envio respeitam o mesmo cooldown, sem POST nem repetição imediata',
+    );
+  } finally {
+    request.mock.restore();
+    delete process.env.OPENWA_ALLOWED_ORIGINS;
+  }
+});
 
 test('credenciais criptografadas são vinculadas à empresa e serviço e não aparecem na resposta', () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);

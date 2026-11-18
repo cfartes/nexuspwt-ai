@@ -1,16 +1,58 @@
-import { HttpError } from './security';
+import { HttpError, digest } from './security';
 
 export class OpenwaError extends HttpError {
-  constructor(public providerStatus: number) {
+  constructor(
+    public providerStatus: number,
+    retryAfterSeconds = 60,
+  ) {
     super(
-      502,
-      providerStatus === 401 || providerStatus === 403
-        ? 'OpenWA recusou a credencial configurada no servidor.'
-        : providerStatus === 404
-          ? 'A sessão ou o QR Code não foi encontrado no OpenWA. Atualize a conexão.'
-          : `OpenWA não concluiu a operação (HTTP ${providerStatus}). Tente novamente.`,
+      providerStatus === 429 ? 429 : 502,
+      providerStatus === 429
+        ? `O OpenWA atingiu o limite temporário de requisições. Aguarde ${retryAfterSeconds} segundos antes de tentar novamente.`
+        : providerStatus === 401 || providerStatus === 403
+          ? 'OpenWA recusou a credencial configurada no servidor.'
+          : providerStatus === 404
+            ? 'A sessão ou o QR Code não foi encontrado no OpenWA. Atualize a conexão.'
+            : `OpenWA não concluiu a operação (HTTP ${providerStatus}). Tente novamente.`,
+      providerStatus === 429 ? retryAfterSeconds : undefined,
     );
   }
+}
+// shortcut: cooldown is per process; share it in PostgreSQL if cross-process coordination is needed.
+const rateLimits = new Map<string, number>();
+export function openwaRetryAfter(headers: Headers, now = Date.now()) {
+  const retry = headers.get('retry-after');
+  if (retry) {
+    const seconds = /^\d+$/.test(retry)
+      ? Number(retry)
+      : Math.ceil((Date.parse(retry) - now) / 1000);
+    if (Number.isFinite(seconds) && seconds > 0) return Math.min(86400, Math.ceil(seconds));
+  }
+  const waits: number[] = [];
+  for (const [name, value] of headers) {
+    if (
+      !/^x-ratelimit-remaining(?:-.*)?$/.test(name) ||
+      !value.trim() ||
+      !Number.isFinite(Number(value)) ||
+      Number(value) > 0
+    )
+      continue;
+    const reset = Number(headers.get(name.replace('remaining', 'reset')));
+    const seconds = reset > 1000000000 ? Math.ceil(reset - now / 1000) : Math.ceil(reset);
+    if (Number.isFinite(seconds) && seconds > 0) waits.push(seconds);
+  }
+  return waits.length ? Math.min(86400, Math.max(...waits)) : 60;
+}
+function checkCooldown(base: string, key: string) {
+  const id = `${base}:${digest(key)}`,
+    until = rateLimits.get(id) || 0;
+  if (until > Date.now()) throw new OpenwaError(429, Math.ceil((until - Date.now()) / 1000));
+  rateLimits.delete(id);
+}
+function rateLimitError(response: Response, base: string, key: string) {
+  const seconds = openwaRetryAfter(response.headers);
+  rateLimits.set(`${base}:${digest(key)}`, Date.now() + seconds * 1000);
+  return new OpenwaError(429, seconds);
 }
 export function businessPhone(value: string) {
   const digits = whatsappChatId(value).split('@')[0];
@@ -72,6 +114,7 @@ export async function openwaRequest(
   const base = openwaBaseUrl(baseUrl);
   if (!key || /[\r\n…]/.test(key) || key.includes('...'))
     throw new HttpError(503, 'Configure a chave completa do OpenWA no servidor.');
+  checkCooldown(base, key);
   let response: Response;
   try {
     response = await fetch(`${base}${path}`, {
@@ -89,6 +132,7 @@ export async function openwaRequest(
   } catch {
     throw new HttpError(502, 'Não foi possível conectar ao OpenWA. Tente novamente.');
   }
+  if (response.status === 429) throw rateLimitError(response, base, key);
   if (!response.ok) throw new OpenwaError(response.status);
   try {
     return await response.json();
@@ -125,6 +169,7 @@ export async function checkOpenwaSession(baseUrl: string, sessionId: string, key
     throw new HttpError(400, 'Informe o UUID da sessão do WhatsApp.');
   if (!key || /[\r\n…]/.test(key) || key.includes('...'))
     throw new HttpError(400, 'Informe a chave de API completa.');
+  checkCooldown(base, key);
   let response: Response;
   try {
     response = await fetch(`${base}/sessions/${sessionId}`, {
@@ -139,6 +184,7 @@ export async function checkOpenwaSession(baseUrl: string, sessionId: string, key
       'Não foi possível conectar ao OpenWA. Confira o gateway, HTTPS e a rede.',
     );
   }
+  if (response.status === 429) throw rateLimitError(response, base, key);
   if (!response.ok) {
     const messages: Record<number, string> = {
       401: 'OpenWA recusou a chave de API.',
@@ -209,6 +255,7 @@ export async function sendOpenwaText(
     throw new HttpError(400, 'Dados inválidos para envio pelo OpenWA.');
   let response: Response;
   try {
+    checkCooldown(base, key);
     response = await fetch(`${base}/sessions/${sessionId}/messages/send-text`, {
       method: 'POST',
       headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
@@ -216,14 +263,18 @@ export async function sendOpenwaText(
       redirect: 'error',
       signal: AbortSignal.timeout(10000),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof OpenwaError && error.providerStatus === 429)
+      return { status: 'blocked', error: error.message };
     return {
       status: 'uncertain',
       error:
         'Não houve confirmação do envio. Confira o painel do OpenWA antes de tentar novamente.',
     };
   }
-  if ([400, 401, 403, 404, 422, 429].includes(response.status))
+  if (response.status === 429)
+    return { status: 'blocked', error: rateLimitError(response, base, key).message };
+  if ([400, 401, 403, 404, 422].includes(response.status))
     return {
       status: 'blocked',
       error: 'OpenWA recusou o envio. Confira chave, sessão, telefone e limites do gateway.',

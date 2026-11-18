@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MessageCircle, RefreshCw, Save } from 'lucide-react';
 import { api } from './workspace';
 
@@ -34,6 +34,25 @@ export default function WhatsappSettings({
     [phone, setPhone] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const [retryAt, setRetryAt] = useState(0),
+    [now, setNow] = useState(Date.now());
+  const inFlight = useRef(false);
+  const waiting = Math.max(0, Math.ceil((retryAt - now) / 1000));
+  useEffect(() => {
+    if (retryAt <= Date.now()) return;
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      if (Date.now() >= retryAt) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [retryAt]);
+  useEffect(() => {
+    const visible = () => {
+      if (document.visibilityState === 'visible') setNow(Date.now());
+    };
+    document.addEventListener('visibilitychange', visible);
+    return () => document.removeEventListener('visibilitychange', visible);
+  }, []);
   const [gateway, setGateway] = useState<{
       version: number;
       baseUrl: string;
@@ -66,7 +85,8 @@ export default function WhatsappSettings({
     };
   }, [unitId, superadmin]);
   async function update(action: 'connect' | 'refresh' | 'notifications', enabled?: boolean) {
-    if (!connection) return;
+    if (!connection || inFlight.current || Date.now() < retryAt) return;
+    inFlight.current = true;
     setBusy(true);
     setError('');
     setNotice('');
@@ -85,6 +105,11 @@ export default function WhatsappSettings({
       });
       const result = await response.json();
       if (!response.ok) {
+        if (response.status === 429) {
+          const seconds = Math.max(1, Math.min(86400, Number(result.retryAfterSeconds) || 60));
+          setNow(Date.now());
+          setRetryAt(Date.now() + seconds * 1000);
+        }
         if (response.status === 409) {
           const latest = await api(`/api/whatsapp?unit=${unitId}`);
           setConnection(latest);
@@ -107,20 +132,23 @@ export default function WhatsappSettings({
             : current,
         );
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
   useEffect(() => {
     if (
       busy ||
+      waiting > 0 ||
+      document.visibilityState === 'hidden' ||
       !connection ||
       !['starting', 'qr_ready', 'identity_pending'].includes(connection.status) ||
       error
     )
       return;
     const timer = setTimeout(() => {
-      void update('refresh');
-    }, 5000);
+      if (document.visibilityState !== 'hidden') void update('refresh');
+    }, 20000);
     return () => clearTimeout(timer);
   });
   return (
@@ -133,7 +161,11 @@ export default function WhatsappSettings({
           <p>Um número por empresa · conexão pelo QR Code</p>
         </div>
         <span className="badge" role="status">
-          {connection ? labels[connection.status] || 'Aguardando conexão' : 'Carregando…'}
+          {waiting > 0
+            ? `Limite temporário · aguarde ${waiting}s`
+            : connection
+              ? labels[connection.status] || 'Aguardando conexão'
+              : 'Carregando…'}
         </span>
       </div>
       <div className="integration-form">
@@ -199,6 +231,12 @@ export default function WhatsappSettings({
             {error}
           </div>
         )}
+        {waiting > 0 && (
+          <p className="muted" role="status">
+            Aguarde {waiting}s. As consultas estão pausadas; depois use Conectar WhatsApp ou
+            Atualizar conexão.
+          </p>
+        )}
         {notice && (
           <p role="status" className="success">
             {notice}
@@ -222,7 +260,7 @@ export default function WhatsappSettings({
               placeholder="+55 11 99999-9999"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              disabled={busy || !connection?.gatewayReady}
+              disabled={busy || waiting > 0 || !connection?.gatewayReady}
             />
           </label>
           <p className="muted">
@@ -230,7 +268,7 @@ export default function WhatsappSettings({
             informe + e o código do país.
           </p>
           <div className="actions">
-            <button className="primary" disabled={busy || !connection?.gatewayReady}>
+            <button className="primary" disabled={busy || waiting > 0 || !connection?.gatewayReady}>
               {busy
                 ? 'Aguarde…'
                 : connection?.status === 'connected'
@@ -241,7 +279,7 @@ export default function WhatsappSettings({
               <button
                 type="button"
                 className="secondary"
-                disabled={busy || !connection.gatewayReady}
+                disabled={busy || waiting > 0 || !connection.gatewayReady}
                 onClick={() => void update('refresh')}
               >
                 <RefreshCw size={16} /> Atualizar conexão
@@ -249,7 +287,7 @@ export default function WhatsappSettings({
             )}
           </div>
         </form>
-        {connection?.qrCode && (
+        {connection?.qrCode && waiting === 0 && (
           <div style={{ textAlign: 'center' }}>
             <img
               src={connection.qrCode}
@@ -295,6 +333,7 @@ export default function WhatsappSettings({
               checked={connection.sendNotifications}
               disabled={
                 busy ||
+                waiting > 0 ||
                 connection.status !== 'connected' ||
                 phone.replace(/\D/g, '') !== connection.phone
               }
