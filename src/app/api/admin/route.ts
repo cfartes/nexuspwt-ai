@@ -11,6 +11,7 @@ import { contractorDetails } from '@/lib/contractors';
 import { randomBytes } from 'node:crypto';
 import { createInvitation } from '@/lib/invitations';
 import { deleteRegistration } from '@/lib/delete-registration';
+import { assertUnitCapacity, setUnitLimit } from '@/lib/unit-limit';
 import {
   eligibleApprover,
   grantRegionalAccess,
@@ -32,6 +33,14 @@ const phone = z
   }, 'Informe telefone internacional com DDI e DDD.');
 const role = z.enum(['admin', 'gestor', 'aprovador', 'executante']);
 const schema = z.discriminatedUnion('action', [
+  z
+    .object({
+      action: z.literal('setUnitLimit'),
+      unitId: uuid,
+      limit: z.number().int().min(1).max(2147483647),
+      version: z.number().int().positive(),
+    })
+    .strict(),
   z
     .object({
       action: z.literal('deleteRegistration'),
@@ -146,6 +155,9 @@ export async function POST(request: Request) {
       await unitAccess(user, unit.id, ['admin'], c);
       const company = unit.company_id;
       switch (input.action) {
+        case 'setUnitLimit':
+          await setUnitLimit(c, user, company, input.limit, input.version);
+          break;
         case 'deleteRegistration':
           await deleteRegistration(c, user, input);
           break;
@@ -177,6 +189,7 @@ export async function POST(request: Request) {
           ]);
           break;
         case 'unit': {
+          await assertUnitCapacity(c, company);
           const {
             rows: [u],
           } = await c.query(

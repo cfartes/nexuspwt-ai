@@ -21,6 +21,7 @@ await db.exec(await readFile(new URL('../db/006-whatsapp-gateway.sql', import.me
 await db.exec(await readFile(new URL('../db/007-contractor-details.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/008-user-invitations.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/009-apr-removal.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/010-company-unit-limit.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -574,13 +575,42 @@ try {
   await call('/api/admin', change(person, { role: 'admin' }), 400);
   await call('/api/admin', change(person, { phone: '123' }), 400);
   await call('/api/admin', change(person, { contractorId: randomUUID() }), 400);
-  await call('/api/admin', {
+  const quotaBefore = (await call(`/api/workspace?unit=${unit.id}`)).unitQuota;
+  assert.equal(quotaBefore.limit, 1);
+  assert.equal(quotaBefore.used, 1);
+  const secondUnitInput = {
     action: 'unit',
     unitId: unit.id,
     name: 'Segunda unidade',
     kind: 'CDD',
     regionId: null,
+  };
+  await call('/api/admin', secondUnitInput, 409);
+  await call(
+    '/api/admin',
+    { action: 'setUnitLimit', unitId: unit.id, limit: 0, version: quotaBefore.version },
+    400,
+  );
+  await call('/api/admin', {
+    action: 'setUnitLimit',
+    unitId: unit.id,
+    limit: 3,
+    version: quotaBefore.version,
   });
+  await call(
+    '/api/admin',
+    { action: 'setUnitLimit', unitId: unit.id, limit: 4, version: quotaBefore.version },
+    409,
+  );
+  await call('/api/admin', secondUnitInput);
+  const quotaAfter = (await call(`/api/workspace?unit=${unit.id}`)).unitQuota;
+  assert.equal(quotaAfter.used, 2);
+  assert.equal(quotaAfter.limit, 3);
+  await call(
+    '/api/admin',
+    { action: 'setUnitLimit', unitId: unit.id, limit: 1, version: quotaAfter.version },
+    409,
+  );
   const secondUnit = (await call('/api/workspace')).units.find(
     (u: { id: string; company_id: string }) => u.id !== unit.id && u.company_id === company.id,
   );
@@ -874,6 +904,12 @@ try {
     ),
   );
   await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  await call(
+    '/api/admin',
+    { action: 'setUnitLimit', unitId: unit.id, limit: 5, version: quotaAfter.version },
+    403,
+  );
+  await call('/api/admin', { ...secondUnitInput, name: 'Não ultrapassar limite' }, 409);
   await call('/api/email-gateway', undefined, 403);
   await call(
     '/api/email-gateway',
@@ -916,6 +952,7 @@ try {
   assert.equal(restrictedRegistrations.companies.length, 0);
   assert.equal(restrictedRegistrations.registeredUnits.length, 0);
   assert.equal(restrictedRegistrations.companyPeople.length, 0);
+  assert.equal(restrictedRegistrations.unitQuota, null);
   await call(`/api/address?unit=${unit.id}&cep=01001000`, undefined, 403);
   await call('/api/admin', { ...editContractor, version: savedContractor.version }, 403);
   cookie = adminCookie;

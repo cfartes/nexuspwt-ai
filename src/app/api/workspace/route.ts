@@ -85,6 +85,12 @@ export async function GET(request: Request) {
             [unit.company_id, user.platform_admin, user.id],
           )
         : Promise.resolve({ rows: [] }),
+      unit.role === 'admin'
+        ? db.query(
+            'SELECT c.unit_limit "limit",c.unit_limit_version version,(SELECT count(*)::int FROM units u WHERE u.company_id=c.id) used FROM companies c WHERE c.id=$1',
+            [unit.company_id],
+          )
+        : Promise.resolve({ rows: [] }),
     ]);
     return Response.json(
       {
@@ -100,6 +106,7 @@ export async function GET(request: Request) {
         companies: results[6].rows,
         registeredUnits: results[8].rows,
         companyPeople: results[7].rows,
+        unitQuota: results[9].rows[0] || null,
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );

@@ -52,6 +52,12 @@ O link abre `/definir-senha`, tem validade de 24 horas e só funciona uma vez. O
 
 ## Validação
 
+### Limite comercial de unidades por empresa
+
+Em **Configurações → Limite de unidades**, o superadmin que administra a unidade selecionada define a quantidade máxima de unidades da empresa. A unidade inicial ocupa uma vaga. Novas empresas começam com uma vaga; a migração `010-company-unit-limit.sql` preserva empresas existentes, liberando inicialmente pelo menos o número de unidades já cadastradas. Reexecutar as migrações não modifica limites configurados.
+
+Em **Unidades**, administradores veem o total usado/permitido e o botão de cadastro fica bloqueado ao atingir o limite. O servidor aplica a mesma regra, inclusive para o superadmin, serializando o cadastro e a alteração do limite por empresa. Não é permitido reduzir o limite abaixo do total cadastrado. Excluir uma unidade permitida libera sua vaga, sem alterar o limite contratado. Usuários, terceiros, APRs e PTs não consomem vagas. A alteração fica na auditoria e possui controle de versão. Este recurso controla licenças de unidades; não calcula mensalidades nem emite cobranças, que continuam fora do app.
+
 **Remover APR** aparece nas listagens para administradores da unidade. A operação exige a versão atual e não permite nenhuma PT vinculada, inclusive rascunhos e PTs que apontam para revisões anteriores. A APR sai da operação, mas permanece arquivada com autoria, decisões, versões e auditoria. Não pode ser editada, aprovada ou usada em novas PTs. Avisos ainda pendentes são cancelados; uma chamada já enviada ao gateway pode terminar. Impressões históricas recebem o aviso de APR removida. A migração `009-apr-removal.sql` é aplicada por `npm run db:setup`. A autorização exige administrador da própria unidade; ser superadmin sem esse perfil na unidade não basta.
 
 Os testes rodam com até dois arquivos simultâneos para limitar os bancos PGlite em memória durante a execução da suíte.

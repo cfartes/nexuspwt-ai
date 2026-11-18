@@ -57,6 +57,8 @@ export default function RegistrationPanel({
     [contractor, setContractor] = useState<WorkspaceData['contractors'][number] | null>(null);
   const section = sections[type];
   const canManage = ws.unit.role === 'admin' && (type !== 'companies' || ws.user.platform_admin);
+  const limitReached =
+    type === 'units' && !!ws.unitQuota && ws.unitQuota.used >= ws.unitQuota.limit;
   const rows =
     type === 'companies'
       ? (ws.companies || []).map((c) => ({ id: c.id, name: c.name, detail: 'Empresa cadastrada' }))
@@ -92,9 +94,19 @@ export default function RegistrationPanel({
           <div>
             <h2>{section.title}</h2>
             <p>{section.description}</p>
+            {type === 'units' && ws.unitQuota && (
+              <p>
+                {ws.unitQuota.used} de {ws.unitQuota.limit} unidades contratadas cadastradas.
+                {limitReached ? ' Limite atingido; solicite ampliação ao superadmin.' : ''}
+              </p>
+            )}
           </div>
           {canManage && (
-            <button className="primary" disabled={!online} onClick={() => setCreating(true)}>
+            <button
+              className="primary"
+              disabled={!online || limitReached}
+              onClick={() => setCreating(true)}
+            >
               <Plus size={17} /> Novo cadastro
             </button>
           )}

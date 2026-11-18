@@ -74,6 +74,7 @@ export type WorkspaceData = {
     version: number;
   }[];
   companyPeople: { id: string; name: string; email: string; units: string[] }[];
+  unitQuota: { limit: number; used: number; version: number } | null;
   people: Person[];
   regions: { id: string; name: string }[];
   approvers: {

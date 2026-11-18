@@ -3,6 +3,7 @@ import { Server } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import IntegrationPanel from './integration-settings';
 import ResendSettings from './resend-settings';
+import UnitLimitSettings from './unit-limit-settings';
 
 export default function SettingsPanel({
   ws,
@@ -17,6 +18,9 @@ export default function SettingsPanel({
 }) {
   return (
     <>
+      {ws.user.platform_admin && ws.unit.role === 'admin' && (
+        <UnitLimitSettings key={ws.unit.company_id} ws={ws} online={online} reload={reload} />
+      )}
       <IntegrationPanel ws={ws} online={online} reload={reload} onError={onError} />
       {ws.user.platform_admin && ws.unit.role === 'admin' && online && <ResendSettings />}
       <div className="settings-grid">
