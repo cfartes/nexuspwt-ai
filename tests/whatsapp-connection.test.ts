@@ -6,11 +6,14 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
 import { encryptSecret } from '../src/lib/integrations';
 import { connectWhatsapp, connectionInput, connectionView } from '../src/lib/whatsapp-connection';
-import { safeQr, sessionPhone } from '../src/lib/openwa';
+import { safeQr, sessionPhone, businessPhone } from '../src/lib/openwa';
 
 const png =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
 test('identidade da sessão e QR: apenas PNG, sem inferir telefone de nome ou UUID', () => {
+  assert.equal(businessPhone('47999595207'), '5547999595207');
+  assert.equal(businessPhone('+1 415 555 1234'), '14155551234');
+  assert.equal(businessPhone('5547999595207'), '5547999595207');
   assert.equal(safeQr(png), `data:image/png;base64,${png}`);
   assert.equal(safeQr(null), null);
   for (const value of ['https://externo.test/qr', 'data:image/svg+xml;base64,PHN2Zz4=', png + '!'])
@@ -64,8 +67,8 @@ test('pareamento por empresa: recupera criação incerta, confere número, isola
     connectionString: 'postgresql://postgres:postgres@127.0.0.1:55441/postgres',
     max: 1,
   });
-  const id = crypto.randomUUID(),
-    phone = '5511999999999',
+  let id = crypto.randomUUID();
+  const phone = '5511999999999',
     unitId = crypto.randomUUID();
   let created = false,
     failStart = true,
@@ -82,11 +85,18 @@ test('pareamento por empresa: recupera criação incerta, confere número, isola
       return Response.json({ data: { id } });
     }
     if (path === '/api/sessions')
-      return Response.json({ data: created ? [{ id, name: `nexus-ptw-${companies[0].id}` }] : [] });
+      return Response.json({
+        data: [
+          ...(created ? [{ id, name: `nexus-ptw-${companies[0].id}` }] : []),
+          { id: crypto.randomUUID(), name: 'rotafy-outra-empresa' },
+        ],
+      });
+    if (!created || !path.startsWith('/api/sessions/' + id))
+      return Response.json({ error: 'Not Found' }, { status: 404 });
     if (path.endsWith('/start')) {
       if (failStart) throw new Error('timeout');
       state = 'QR_READY';
-      return Response.json({ status: 'STARTING' });
+      return Response.json({ status: 'qr_ready' });
     }
     if (path.endsWith('/qr')) return Response.json({ data: { qrCode: png } });
     return Response.json({ data: { status: state, me: { id: actualPhone + '@c.us' } } });
@@ -120,11 +130,23 @@ test('pareamento por empresa: recupera criação incerta, confere número, isola
     failStart = false;
     let result = await run(companies[0].id, 0, 'connect', { phone });
     assert.equal(posts, 1, 'Recupera sessão criada antes de falha sem duplicar');
+    assert.equal(
+      result.status,
+      'qr_ready',
+      'Aproveita o QR retornado após iniciar, sem aguardar outra consulta',
+    );
     result = await run(companies[0].id, result.version, 'refresh');
     assert.equal(result.status, 'qr_ready');
     assert.equal(result.qrCode, `data:image/png;base64,${png}`);
     await assert.rejects(run(companies[0].id, 0, 'connect', { phone }), /alterada/);
     state = 'READY';
+    actualPhone = '';
+    result = await run(companies[0].id, result.version, 'refresh');
+    assert.equal(
+      result.status,
+      'identity_pending',
+      'Identidade ausente não significa número incorreto',
+    );
     actualPhone = '5511888888888';
     result = await run(companies[0].id, result.version, 'refresh');
     assert.equal(result.status, 'wrong_number');
@@ -156,6 +178,23 @@ test('pareamento por empresa: recupera criação incerta, confere número, isola
     result = await run(companies[0].id, result.version, 'refresh');
     assert.equal(result.sendNotifications, false);
     assert.equal(result.status, 'disconnected');
+    created = false;
+    id = crypto.randomUUID();
+    state = 'created';
+    result = await run(companies[0].id, result.version, 'refresh');
+    assert.equal(result.status, 'missing_session', '404 limpa a indicação antiga de conexão');
+    result = await run(companies[0].id, result.version, 'connect', { phone });
+    assert.equal(result.status, 'qr_ready');
+    assert.equal(posts, 2, 'Cria somente a sessão própria do PTW quando a anterior foi removida');
+    assert.equal(
+      (
+        await db.query<{ settings: { sessionId: string } }>(
+          "SELECT settings FROM company_integrations WHERE company_id=$1 AND service='whatsapp'",
+          [companies[0].id],
+        )
+      ).rows[0].settings.sessionId,
+      id,
+    );
   } finally {
     request.mock.restore();
     await pool.end();

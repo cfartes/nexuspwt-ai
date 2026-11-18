@@ -1,7 +1,14 @@
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import { decryptSecret, encryptSecret, type IntegrationRow } from './integrations';
-import { openwaBaseUrl, openwaRequest, safeQr, sessionPhone, whatsappChatId } from './openwa';
+import {
+  openwaBaseUrl,
+  openwaRequest,
+  safeQr,
+  sessionPhone,
+  businessPhone,
+  OpenwaError,
+} from './openwa';
 import { HttpError } from './security';
 
 type Gateway = { base_url: string; secret_ciphertext: string; version: number };
@@ -63,9 +70,7 @@ export async function connectWhatsapp(
   const request = (path: string, payload?: unknown) =>
     openwaRequest(baseUrl, gateway.key, path, payload);
   const phone =
-    input.action === 'connect'
-      ? whatsappChatId(input.phone || '').split('@')[0]
-      : existing?.settings.phone;
+    input.action === 'connect' ? businessPhone(input.phone || '') : existing?.settings.phone;
   if (!phone) throw new HttpError(400, 'Informe o telefone do WhatsApp Business com DDI e DDD.');
   const { rowCount: phoneInUse } = await client.query(
     "SELECT 1 FROM company_integrations WHERE service='whatsapp' AND company_id<>$1 AND settings->>'phone'=$2",
@@ -78,8 +83,7 @@ export async function connectWhatsapp(
       409,
       'O gateway mudou. O superadmin precisa migrar o vínculo antes de reconectar.',
     );
-  if (!sessionId) {
-    if (input.action !== 'connect') throw new HttpError(400, 'Conecte o WhatsApp primeiro.');
+  async function ensureSession() {
     const name = `nexus-ptw-${companyId}`;
     const result = await request('/sessions');
     const envelope = Array.isArray(result) ? null : body(result);
@@ -101,7 +105,21 @@ export async function connectWhatsapp(
       .safeParse(matches[0]?.id || body(await request('/sessions', { name })).id);
     if (!parsed.success)
       throw new HttpError(502, 'OpenWA retornou um identificador de sessão inválido.');
-    sessionId = parsed.data;
+    return parsed.data;
+  }
+  if (!sessionId) {
+    if (input.action !== 'connect') throw new HttpError(400, 'Conecte o WhatsApp primeiro.');
+    sessionId = await ensureSession();
+  }
+  let state: Record<string, unknown>;
+  try {
+    state = body(await request(`/sessions/${sessionId}`));
+  } catch (error) {
+    if (!(error instanceof OpenwaError) || error.providerStatus !== 404) throw error;
+    if (input.action === 'connect') {
+      sessionId = await ensureSession();
+      state = body(await request(`/sessions/${sessionId}`));
+    } else state = { status: 'MISSING' };
   }
   const { rowCount } = await client.query(
     `SELECT 1 FROM company_integrations WHERE service='whatsapp' AND company_id<>$1
@@ -110,29 +128,38 @@ export async function connectWhatsapp(
   );
   if (rowCount)
     throw new HttpError(409, 'Este número ou sessão já está vinculado a outra empresa.');
-  const state = body(await request(`/sessions/${sessionId}`));
   let status = String(state.status || '').toUpperCase();
   if (
     input.action === 'connect' &&
     ['CREATED', 'STOPPED', 'DISCONNECTED', 'FAILED'].includes(status)
   ) {
-    await request(`/sessions/${sessionId}/start`, {});
-    status = 'STARTING';
+    state = body(await request(`/sessions/${sessionId}/start`, {}));
+    status = String(state.status || 'STARTING').toUpperCase();
   }
+  const detectedPhone = sessionPhone(state);
   const connectionStatus = ['READY', 'CONNECTED'].includes(status)
-    ? sessionPhone(state) === phone
-      ? 'connected'
-      : 'wrong_number'
+    ? !detectedPhone
+      ? 'identity_pending'
+      : detectedPhone === phone
+        ? 'connected'
+        : 'wrong_number'
     : ['QR_READY', 'QR'].includes(status)
       ? 'qr_ready'
-      : ['CREATED', 'STOPPED', 'DISCONNECTED', 'FAILED'].includes(status)
-        ? 'disconnected'
-        : 'starting';
+      : status === 'MISSING'
+        ? 'missing_session'
+        : ['CREATED', 'STOPPED', 'DISCONNECTED', 'FAILED'].includes(status)
+          ? 'disconnected'
+          : 'starting';
   if (input.action === 'notifications' && input.enabled && connectionStatus !== 'connected')
     throw new HttpError(409, 'Confirme o número conectado antes de habilitar os avisos.');
   let qrCode: string | null = null;
-  if (connectionStatus === 'qr_ready')
-    qrCode = safeQr(body(await request(`/sessions/${sessionId}/qr`)).qrCode);
+  if (connectionStatus === 'qr_ready') {
+    try {
+      qrCode = safeQr(body(await request(`/sessions/${sessionId}/qr`)).qrCode);
+    } catch (error) {
+      if (!(error instanceof OpenwaError) || error.providerStatus !== 404) throw error;
+    }
+  }
   const enabled =
     connectionStatus === 'connected' &&
     (input.action === 'notifications'

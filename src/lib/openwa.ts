@@ -1,5 +1,22 @@
 import { HttpError } from './security';
 
+export class OpenwaError extends HttpError {
+  constructor(public providerStatus: number) {
+    super(
+      502,
+      providerStatus === 401 || providerStatus === 403
+        ? 'OpenWA recusou a credencial configurada no servidor.'
+        : providerStatus === 404
+          ? 'A sessão ou o QR Code não foi encontrado no OpenWA. Atualize a conexão.'
+          : `OpenWA não concluiu a operação (HTTP ${providerStatus}). Tente novamente.`,
+    );
+  }
+}
+export function businessPhone(value: string) {
+  const digits = whatsappChatId(value).split('@')[0];
+  return !value.trim().startsWith('+') && [10, 11].includes(digits.length) ? `55${digits}` : digits;
+}
+
 export function sessionPhone(value: unknown, depth = 0): string | null {
   if (!value || typeof value !== 'object' || depth > 2) return null;
   const item = value as Record<string, unknown>;
@@ -72,13 +89,7 @@ export async function openwaRequest(
   } catch {
     throw new HttpError(502, 'Não foi possível conectar ao OpenWA. Tente novamente.');
   }
-  if (!response.ok)
-    throw new HttpError(
-      502,
-      response.status === 401 || response.status === 403
-        ? 'OpenWA recusou a credencial configurada no servidor.'
-        : 'OpenWA indisponível para esta operação. Tente novamente.',
-    );
+  if (!response.ok) throw new OpenwaError(response.status);
   try {
     return await response.json();
   } catch {

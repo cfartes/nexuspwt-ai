@@ -19,6 +19,9 @@ const labels: Record<string, string> = {
   qr_ready: 'Leia o QR Code',
   starting: 'Preparando conexão',
   disconnected: 'Desconectado',
+  missing_session: 'Sessão removida · conectar novamente',
+  identity_pending: 'Aguardando confirmação do número',
+  unavailable: 'Gateway indisponível · atualizar conexão',
 };
 export default function WhatsappSettings({
   unitId,
@@ -86,18 +89,34 @@ export default function WhatsappSettings({
           const latest = await api(`/api/whatsapp?unit=${unitId}`);
           setConnection(latest);
         }
-        throw new Error(result.error || 'Não foi possível atualizar a conexão.');
+        throw Object.assign(new Error(result.error || 'Não foi possível atualizar a conexão.'), {
+          status: response.status,
+        });
       }
       setConnection({ ...result, gatewayReady: true });
       setPhone(result.phone);
     } catch (e) {
       setError((e as Error).message);
+      if (
+        ((e as { status?: number }).status || 0) >= 500 ||
+        ['TimeoutError', 'TypeError'].includes((e as Error).name)
+      )
+        setConnection((current) =>
+          current
+            ? { ...current, status: 'unavailable', qrCode: null, sendNotifications: false }
+            : current,
+        );
     } finally {
       setBusy(false);
     }
   }
   useEffect(() => {
-    if (busy || !connection || !['starting', 'qr_ready'].includes(connection.status) || error)
+    if (
+      busy ||
+      !connection ||
+      !['starting', 'qr_ready', 'identity_pending'].includes(connection.status) ||
+      error
+    )
       return;
     const timer = setTimeout(() => {
       void update('refresh');
@@ -206,6 +225,10 @@ export default function WhatsappSettings({
               disabled={busy || !connection?.gatewayReady}
             />
           </label>
+          <p className="muted">
+            Para números brasileiros com DDD e sem DDI, o app acrescenta 55. Para outros países,
+            informe + e o código do país.
+          </p>
           <div className="actions">
             <button className="primary" disabled={busy || !connection?.gatewayReady}>
               {busy
@@ -246,6 +269,18 @@ export default function WhatsappSettings({
             O aparelho conectado possui outro número ou o gateway não confirmou sua identidade.
             Desvincule esta sessão em Aparelhos conectados e conecte novamente com o número
             informado. Os avisos estão desativados.
+          </p>
+        )}
+        {connection?.status === 'missing_session' && (
+          <p className="muted" role="status">
+            A sessão anterior não existe no gateway. Clique em Conectar WhatsApp para recuperar ou
+            criar uma sessão exclusiva desta empresa no Nexus PTW.
+          </p>
+        )}
+        {connection?.status === 'identity_pending' && (
+          <p className="muted" role="status">
+            O gateway ainda não informou o número do aparelho. A conexão será confirmada assim que
+            essa informação estiver disponível.
           </p>
         )}
         {connection?.status === 'connected' && (
