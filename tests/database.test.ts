@@ -20,6 +20,12 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
     );
     await db.exec(membershipSql);
     await db.exec(membershipSql);
+    const approverSql = await readFile(
+      new URL('../db/005-approver-management.sql', import.meta.url),
+      'utf8',
+    );
+    await db.exec(approverSql);
+    await db.exec(approverSql);
     const { rows: companies } = await db.query<{ id: string }>(
       "INSERT INTO companies(name) VALUES('Empresa A'),('Empresa B') RETURNING id",
     );

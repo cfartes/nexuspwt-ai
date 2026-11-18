@@ -656,6 +656,10 @@ export default function Workspace() {
           online={online}
           onClose={() => setEditor(null)}
           onSave={save}
+          onReassigned={async () => {
+            await load(unit.id);
+            setNotice('Responsável pendente substituído. O motivo foi registrado no histórico.');
+          }}
           onRevise={async (reason) => {
             if (busy.current || pending.some((job) => job.id === editor.id))
               throw new Error('Aguarde a sincronização antes de criar uma revisão.');

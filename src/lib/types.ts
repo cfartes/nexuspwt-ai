@@ -48,6 +48,7 @@ export type Approval = {
   decision: string | null;
   decided_at: string | null;
   comment: string | null;
+  assignment_version: number;
 };
 export type WorkspaceData = {
   user: {
@@ -65,6 +66,12 @@ export type WorkspaceData = {
   regions: { id: string; name: string }[];
   approvers: {
     id: string;
+    user_id: string;
+    unit_id: string | null;
+    version: number;
+    active: boolean;
+    eligible: boolean;
+    approver_contractor_id: string | null;
     kind: string;
     profile: string;
     user_name: string;

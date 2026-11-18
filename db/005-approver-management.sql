@@ -1,0 +1,3 @@
+ALTER TABLE approvers ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;
+ALTER TABLE approvers ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS assignment_version integer NOT NULL DEFAULT 1;

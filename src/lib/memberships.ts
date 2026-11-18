@@ -40,7 +40,7 @@ export async function saveMembership(
     throw new HttpError(400, 'Peça a outro administrador para desativar seu acesso nesta unidade.');
   if (input.contractorId) {
     const { rowCount } = await client.query(
-      'SELECT 1 FROM approvers a JOIN units u ON u.region_id=a.region_id WHERE u.id=$1 AND a.user_id=$2',
+      'SELECT 1 FROM approvers a JOIN units u ON u.region_id=a.region_id WHERE u.id=$1 AND a.user_id=$2 AND a.active',
       [unitId, userId],
     );
     if (rowCount)

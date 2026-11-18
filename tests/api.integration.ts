@@ -13,6 +13,9 @@ await db.exec(await readFile(new URL('../db/003-notifications.sql', import.meta.
 await db.exec(
   await readFile(new URL('../db/004-membership-management.sql', import.meta.url), 'utf8'),
 );
+await db.exec(
+  await readFile(new URL('../db/005-approver-management.sql', import.meta.url), 'utf8'),
+);
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -639,6 +642,129 @@ try {
   cookie = contractorCookie;
   await call('/api/workspace', undefined, 403);
   cookie = adminCookie;
+  // Configuration affects future submissions; pending transfers are explicit and versioned.
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  await call('/api/admin', change(person, { active: true, role: 'aprovador', contractorId: null }));
+  ws = await call(`/api/workspace?unit=${unit.id}`);
+  const assignment = ws.approvers.find((a: { kind: string }) => a.kind === 'APR');
+  const editAssignment = {
+    action: 'updateApprover',
+    unitId: unit.id,
+    id: assignment.id,
+    version: assignment.version,
+    userId: person.id,
+    active: true,
+    reason: 'Cobertura de férias',
+  };
+  await call('/api/admin', editAssignment);
+  await call('/api/admin', editAssignment, 409);
+  await call('/api/admin', { ...editAssignment, version: assignment.version + 1, active: false });
+  await call(`/api/documents/${owned.id}/workflow`, { action: 'submit', version: 1 }, 400);
+  await call('/api/admin', { ...editAssignment, version: assignment.version + 2, userId: user.id });
+  await call(`/api/documents/${owned.id}/workflow`, { action: 'submit', version: 1 });
+  ws = await call(`/api/workspace?unit=${unit.id}`);
+  const pending = ws.approvals.filter((a: { document_id: string }) => a.document_id === owned.id);
+  assert.equal(pending.length, 4);
+  for (const approval of pending) {
+    const transfer = {
+      action: 'reassignApproval',
+      unitId: unit.id,
+      id: approval.id,
+      assignmentVersion: approval.assignment_version,
+      userId: person.id,
+      reason: 'Substituição autorizada',
+    };
+    await call('/api/admin', { ...transfer, reason: '' }, 400);
+    await call('/api/admin', { ...transfer, unitId: secondUnit.id }, 404);
+    await call('/api/admin', transfer);
+    await call('/api/admin', { ...transfer, userId: user.id }, 409);
+  }
+  const reassigned = await db.query<{ user_id: string; assignment_version: number }>(
+    'SELECT user_id,assignment_version FROM approvals WHERE document_id=$1',
+    [owned.id],
+  );
+  assert(reassigned.rows.every((a) => a.user_id === person.id && a.assignment_version === 2));
+  const jobs = await db.query<{ user_id: string; status: string }>(
+    'SELECT user_id,status FROM notification_outbox WHERE document_id=$1',
+    [owned.id],
+  );
+  assert.equal(jobs.rows.length, 2);
+  assert.equal(jobs.rows.find((j) => j.user_id === user.id)?.status, 'cancelled');
+  assert.equal(jobs.rows.find((j) => j.user_id === person.id)?.status, 'pending');
+  await call(
+    '/api/admin',
+    {
+      action: 'reassignApproval',
+      unitId: unit.id,
+      id: ws.approvals.find(
+        (a: { document_id: string; version: number }) => a.document_id === d.id && a.version === 4,
+      ).id,
+      assignmentVersion: 1,
+      userId: person.id,
+      reason: 'Não pode alterar decisão',
+    },
+    409,
+  );
+  const transferHistory = await call(`/api/documents/${owned.id}/history`);
+  assert.equal(
+    transferHistory.events.filter(
+      (e: { action: string }) => e.action === 'aprovacao.responsavel_substituido',
+    ).length,
+    4,
+  );
+  const {
+    rows: [region],
+  } = await db.query<{ id: string }>(
+    'INSERT INTO regions(company_id,name) VALUES($1,$2) RETURNING id',
+    [company.id, 'Regional de teste'],
+  );
+  await db.query('UPDATE units SET region_id=$1 WHERE id=$2 OR id=$3', [
+    region.id,
+    unit.id,
+    secondUnit.id,
+  ]);
+  await call('/api/admin', {
+    action: 'approver',
+    unitId: unit.id,
+    userId: person.id,
+    kind: 'APR',
+    profile: aprProfiles[0],
+    scope: 'region',
+  });
+  ws = await call(`/api/workspace?unit=${unit.id}`);
+  const regional = ws.approvers.find(
+    (a: { region_id: string | null }) => a.region_id === region.id,
+  );
+  const editRegional = {
+    action: 'updateApprover',
+    unitId: unit.id,
+    id: regional.id,
+    version: regional.version,
+    userId: person.id,
+    active: false,
+    reason: 'Encerramento da cobertura regional',
+  };
+  await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  await call('/api/admin', editRegional, 403);
+  await db.query('UPDATE users SET platform_admin=true WHERE id=$1', [user.id]);
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  await call('/api/admin', change(person, { contractorId: firstContractor.id }), 409);
+  await call('/api/admin', editRegional);
+  await call('/api/admin', change(person, { contractorId: firstContractor.id }));
+  assert.equal(
+    (
+      await db.query('SELECT 1 FROM memberships WHERE user_id=$1 AND unit_id=$2', [
+        person.id,
+        secondUnit.id,
+      ])
+    ).rows.length,
+    1,
+    'Desativar atribuição preserva acesso existente',
+  );
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {

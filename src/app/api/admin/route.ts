@@ -7,6 +7,12 @@ import { uuid } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { saveMembership } from '@/lib/memberships';
 import { whatsappChatId } from '@/lib/openwa';
+import {
+  eligibleApprover,
+  grantRegionalAccess,
+  updateApprover,
+  reassignApproval,
+} from '@/lib/approvers';
 const name = z.string().trim().min(2).max(200);
 const phone = z
   .string()
@@ -75,6 +81,27 @@ const schema = z.discriminatedUnion('action', [
     profile: name,
     scope: z.enum(['unit', 'region']),
   }),
+  z
+    .object({
+      action: z.literal('updateApprover'),
+      unitId: uuid,
+      id: uuid,
+      version: z.number().int().positive(),
+      userId: uuid,
+      active: z.boolean(),
+      reason: z.string().trim().min(3).max(2000),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('reassignApproval'),
+      unitId: uuid,
+      id: uuid,
+      assignmentVersion: z.number().int().positive(),
+      userId: uuid,
+      reason: z.string().trim().min(3).max(2000),
+    })
+    .strict(),
 ]);
 export async function POST(request: Request) {
   try {
@@ -83,6 +110,10 @@ export async function POST(request: Request) {
     const input = schema.parse(await request.json());
     const unit = await unitAccess(user, input.unitId, ['admin']);
     await transaction(async (c) => {
+      // Serialize shared access/configuration changes before taking individual unit or membership locks.
+      await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `company-access:${unit.company_id}`,
+      ]);
       await unitAccess(user, unit.id, ['admin'], c);
       const company = unit.company_id;
       switch (input.action) {
@@ -125,7 +156,7 @@ export async function POST(request: Request) {
             u.id,
           ]);
           await c.query(
-            "INSERT INTO memberships(user_id,unit_id,role) SELECT DISTINCT user_id,$1::uuid,'aprovador' FROM approvers WHERE region_id=$2 ON CONFLICT DO NOTHING",
+            "INSERT INTO memberships(user_id,unit_id,role) SELECT DISTINCT user_id,$1::uuid,'aprovador' FROM approvers WHERE region_id=$2 AND active ON CONFLICT DO NOTHING",
             [u.id, input.regionId],
           );
           break;
@@ -180,18 +211,14 @@ export async function POST(request: Request) {
         case 'approver': {
           if (!(input.kind === 'APR' ? aprProfiles : ptProfiles).includes(input.profile))
             throw new HttpError(400, 'Perfil de aprovação inválido.');
-          const {
-            rows: [approver],
-          } = await c.query(
-            "SELECT contractor_id FROM memberships WHERE user_id=$1 AND unit_id=$2 AND active AND role IN ('admin','gestor','aprovador')",
-            [input.userId, unit.id],
-          );
-          if (!approver)
-            throw new HttpError(400, 'Vincule o aprovador à unidade com um perfil habilitado.');
           if (input.scope === 'region' && !unit.region_id)
             throw new HttpError(400, 'Esta unidade não pertence a uma regional.');
-          if (input.scope === 'region' && approver.contractor_id)
-            throw new HttpError(400, 'Aprovador regional deve pertencer à equipe própria.');
+          if (input.scope === 'region' && !user.platform_admin)
+            throw new HttpError(
+              403,
+              'Atribuições regionais são gerenciadas pelo administrador da plataforma.',
+            );
+          await eligibleApprover(c, input.userId, unit.id, input.scope === 'region');
           await c.query(
             'INSERT INTO approvers(company_id,unit_id,region_id,user_id,kind,profile) VALUES($1,$2,$3,$4,$5,$6)',
             [
@@ -203,13 +230,15 @@ export async function POST(request: Request) {
               input.profile,
             ],
           );
-          if (input.scope === 'region')
-            await c.query(
-              "INSERT INTO memberships(user_id,unit_id,role) SELECT $1::uuid,id,'aprovador' FROM units WHERE region_id=$2 ON CONFLICT DO NOTHING",
-              [input.userId, unit.region_id],
-            );
+          if (input.scope === 'region') await grantRegionalAccess(c, input.userId, unit.region_id);
           break;
         }
+        case 'updateApprover':
+          await updateApprover(c, user, unit.id, input);
+          break;
+        case 'reassignApproval':
+          await reassignApproval(c, user, unit.id, input);
+          break;
       }
       await c.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [
         user.id,

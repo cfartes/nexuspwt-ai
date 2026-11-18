@@ -1,10 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { Building2, Plus, Server, ShieldCheck } from 'lucide-react';
+import { Building2, Plus, Server } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { api } from './workspace';
 import IntegrationPanel from './integration-settings';
+import ApproverSettings from './approver-settings';
 export default function AdminPanel({
   ws,
   online,
@@ -44,31 +45,7 @@ export default function AdminPanel({
             <span className="badge">5 anos · backup a configurar</span>
           </div>
         </section>
-        <section className="card">
-          <div className="card-heading">
-            <div>
-              <h2>
-                <ShieldCheck size={18} /> Aprovação por perfil
-              </h2>
-              <p>Atribuições locais e regionais</p>
-            </div>
-          </div>
-          {ws.approvers.length ? (
-            ws.approvers.map((a) => (
-              <div className="setting-row" key={a.id}>
-                <div>
-                  <strong>{a.profile}</strong>
-                  <small>
-                    {a.kind} · {a.user_name}
-                  </small>
-                </div>
-                <span className="badge">{a.region_id ? 'Regional' : 'Unidade'}</span>
-              </div>
-            ))
-          ) : (
-            <div className="settings-empty">Nenhum aprovador configurado.</div>
-          )}
-        </section>
+        <ApproverSettings ws={ws} online={online} reload={reload} />
       </div>
       <section className="card">
         <div className="card-heading">
@@ -262,7 +239,9 @@ export default function AdminPanel({
                     Abrangência
                     <select name="scope">
                       <option value="unit">Somente esta unidade</option>
-                      <option value="region">Todas as unidades da regional</option>
+                      <option value="region" disabled={!ws.user.platform_admin}>
+                        Todas as unidades da regional (administração da plataforma)
+                      </option>
                     </select>
                   </label>
                 </>

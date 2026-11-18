@@ -53,10 +53,13 @@ export async function GET(request: Request) {
       ),
       db.query('SELECT * FROM regions WHERE company_id=$1 ORDER BY name', [unit.company_id]),
       db.query(
-        `SELECT a.*,u.name user_name FROM approvers a JOIN users u ON u.id=a.user_id AND u.active
-         JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador')
-         WHERE a.company_id=$1 AND (a.unit_id=$2 OR a.region_id=$3) AND ($4::uuid IS NULL OR m.contractor_id IS NULL OR m.contractor_id=$4)`,
-        [unit.company_id, unit.id, unit.region_id, unit.contractor_id],
+        `SELECT a.*,u.name user_name,m.contractor_id approver_contractor_id,
+          COALESCE(u.active AND m.active AND m.role IN ('admin','gestor','aprovador'),false) eligible
+         FROM approvers a JOIN users u ON u.id=a.user_id LEFT JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2
+         WHERE a.company_id=$1 AND (a.unit_id=$2 OR a.region_id=$3)
+          AND ($5='admin' OR (a.active AND u.active AND m.active AND m.role IN ('admin','gestor','aprovador')))
+          AND ($4::uuid IS NULL OR m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY a.unit_id NULLS LAST,a.kind,a.profile`,
+        [unit.company_id, unit.id, unit.region_id, unit.contractor_id, unit.role],
       ),
       db.query(
         'SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND a.version=d.version AND ($2::uuid IS NULL OR d.contractor_id=$2)',

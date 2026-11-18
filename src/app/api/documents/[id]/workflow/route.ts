@@ -70,7 +70,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           );
         const profiles = d.kind === 'APR' ? aprProfiles : ptProfiles;
         const { rows: assignments } = await c.query(
-          "SELECT DISTINCT ON(profile) a.* FROM approvers a JOIN users u ON u.id=a.user_id AND u.active JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador') WHERE a.company_id=$1 AND (a.unit_id=$2 OR a.region_id=$3) AND (m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY profile,a.unit_id NULLS LAST",
+          "SELECT DISTINCT ON(profile) a.* FROM approvers a JOIN users u ON u.id=a.user_id AND u.active JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador') WHERE a.company_id=$1 AND a.active AND (a.unit_id=$2 OR a.region_id=$3) AND (m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY profile,a.unit_id NULLS LAST",
           [unit.company_id, unit.id, unit.region_id, d.contractor_id],
         );
         if (profiles.some((p) => !assignments.some((a) => a.profile === p)))

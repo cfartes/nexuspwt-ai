@@ -18,6 +18,7 @@ import { statuses, type WorkspaceData } from '@/lib/types';
 import { enqueue } from '@/lib/offline';
 import { api } from './workspace';
 import DocumentHistory from './document-history';
+import ReassignApproval from './reassign-approval';
 type Photo = {
   id: string;
   caption: string;
@@ -34,6 +35,7 @@ export default function DocumentEditor({
   onSave,
   onSubmit,
   onRevise,
+  onReassigned,
   onPhotoQueued,
 }: {
   value: DocumentInput;
@@ -43,6 +45,7 @@ export default function DocumentEditor({
   onSave: (d: DocumentInput) => Promise<void>;
   onSubmit: () => Promise<void>;
   onRevise: (reason: string) => Promise<void>;
+  onReassigned: () => Promise<void>;
   onPhotoQueued: () => Promise<void>;
 }) {
   const modal = useRef<HTMLElement>(null);
@@ -627,7 +630,12 @@ export default function DocumentEditor({
                   (a) => a.document_id === d.id && a.profile === profile,
                 );
                 const assignment = ws.approvers.find(
-                  (a) => a.kind === d.kind && a.profile === profile,
+                  (a) =>
+                    a.kind === d.kind &&
+                    a.profile === profile &&
+                    a.active &&
+                    a.eligible &&
+                    (!a.approver_contractor_id || a.approver_contractor_id === d.contractorId),
                 );
                 return (
                   <div className="approval-profile" key={profile}>
@@ -644,6 +652,20 @@ export default function DocumentEditor({
                       {decision?.decision ? statuses[decision.decision] : 'Pendente'}
                     </span>
                     {decision?.comment && <p>{decision.comment}</p>}
+                    {decision &&
+                      !decision.decision &&
+                      saved?.status === 'em_aprovacao' &&
+                      ws.unit.role === 'admin' &&
+                      online && (
+                        <ReassignApproval
+                          key={`${decision.id}:${decision.assignment_version}`}
+                          approval={decision}
+                          unitId={ws.unit.id}
+                          people={ws.people}
+                          contractorId={d.contractorId}
+                          onChanged={onReassigned}
+                        />
+                      )}
                   </div>
                 );
               })}

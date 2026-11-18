@@ -19,6 +19,7 @@ const actions: Record<string, string> = {
   'workflow.approve': 'Aprovação registrada',
   'workflow.reject': 'Rejeição registrada',
   'workflow.revise': 'Nova revisão criada',
+  'aprovacao.responsavel_substituido': 'Responsável pendente substituído',
 };
 export default function DocumentHistory({ id, online }: { id: string; online: boolean }) {
   const [history, setHistory] = useState<History | null>(null),
