@@ -15,7 +15,7 @@ export async function currentUser(): Promise<User> {
   const {
     rows: [user],
   } = await db.query(
-    'SELECT u.id,u.name,u.email,u.platform_admin,s.expires_at session_expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active',
+    'SELECT u.id,u.name,u.email,u.platform_admin,s.expires_at session_expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active AND NOT u.password_pending',
     [digest(token)],
   );
   if (!user) throw new HttpError(401, 'Sua sessão expirou. Entre novamente.');

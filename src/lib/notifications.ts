@@ -49,7 +49,7 @@ export async function processNotification(pool: Pool) {
     await client.query(`UPDATE notification_outbox SET status='uncertain',last_error='Processo interrompido durante o envio. Confira o OpenWA antes de reenviar.',updated_at=now()
       WHERE status='sending' AND started_at<now()-interval '2 minutes'`);
     const { rowCount: recent } = await client.query(
-      "SELECT 1 FROM notification_outbox WHERE started_at>now()-interval '5 seconds' LIMIT 1",
+      "SELECT 1 FROM notification_outbox WHERE started_at>now()-interval '5 seconds' UNION ALL SELECT 1 FROM invitation_deliveries WHERE started_at>now()-interval '5 seconds' LIMIT 1",
     );
     if (recent) return false;
     await client.query('BEGIN');

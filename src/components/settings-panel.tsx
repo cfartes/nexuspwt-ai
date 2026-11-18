@@ -2,6 +2,7 @@
 import { Server } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
 import IntegrationPanel from './integration-settings';
+import ResendSettings from './resend-settings';
 
 export default function SettingsPanel({
   ws,
@@ -17,6 +18,7 @@ export default function SettingsPanel({
   return (
     <>
       <IntegrationPanel ws={ws} online={online} reload={reload} onError={onError} />
+      {ws.user.platform_admin && ws.unit.role === 'admin' && online && <ResendSettings />}
       <div className="settings-grid">
         <section className="card">
           <div className="card-heading">

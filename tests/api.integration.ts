@@ -19,6 +19,7 @@ await db.exec(
 );
 await db.exec(await readFile(new URL('../db/006-whatsapp-gateway.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/007-contractor-details.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/008-user-invitations.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -872,6 +873,12 @@ try {
     ),
   );
   await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  await call('/api/email-gateway', undefined, 403);
+  await call(
+    '/api/email-gateway',
+    { version: 0, sender: 'acesso@example.com', secret: 're_chave_teste_sem_envio' },
+    403,
+  );
   const unitAdminRegistrations = await call(`/api/workspace?unit=${unit.id}`);
   assert(
     !unitAdminRegistrations.registeredUnits.some((u: { id: string }) => u.id === unassignedUnit.id),
@@ -929,6 +936,63 @@ try {
     1,
     'Desativar atribuição preserva acesso existente',
   );
+  await call('/api/email-gateway', {
+    version: 0,
+    sender: 'acesso@example.com',
+    secret: 're_chave_teste_sem_envio',
+  });
+  const emailGateway = await call('/api/email-gateway');
+  assert.equal(emailGateway.hasSecret, true);
+  assert(!JSON.stringify(emailGateway).includes('re_chave_teste_sem_envio'));
+  await call(
+    '/api/email-gateway',
+    { version: 0, sender: 'acesso@example.com', secret: 're_chave_teste_sem_envio' },
+    409,
+  );
+  await call('/api/admin', {
+    action: 'user',
+    unitId: unit.id,
+    name: 'Aprovador convidado',
+    email: 'convidado@nexus.local',
+    phone: '+55 11 99999-9999',
+    role: 'aprovador',
+  });
+  const invited = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { email: string }) => p.email === 'convidado@nexus.local',
+  );
+  assert.equal(invited.password_pending, true);
+  assert.equal(invited.invitation_status.email.status, 'pending');
+  assert.equal(invited.invitation_status.whatsapp.status, 'pending');
+  await call(
+    '/api/auth',
+    { email: 'convidado@nexus.local', password: 'senha-que-admin-nao-define' },
+    401,
+  );
+  const getInvitation = async () =>
+    (
+      await db.query<{ id: string; token_ciphertext: string }>(
+        'SELECT id,token_ciphertext FROM user_invitations WHERE user_id=$1 AND consumed_at IS NULL',
+        [invited.id],
+      )
+    ).rows[0];
+  let invitation = await getInvitation();
+  const oldToken = decryptSecret(invitation.token_ciphertext, invitation.id, 'invitation');
+  await call('/api/invitations', { unitId: unit.id, userId: invited.id });
+  await call(
+    '/api/invitations/accept',
+    { token: oldToken, password: 'nova-senha-aprovador-123' },
+    400,
+  );
+  invitation = await getInvitation();
+  const token = decryptSecret(invitation.token_ciphertext, invitation.id, 'invitation');
+  await call('/api/invitations/accept', { token, password: 'curta' }, 400);
+  await call('/api/invitations/accept', { token, password: 'nova-senha-aprovador-123' });
+  await call('/api/invitations/accept', { token, password: 'nova-senha-aprovador-123' }, 400);
+  await call('/api/auth', { email: 'convidado@nexus.local', password: 'nova-senha-aprovador-123' });
+  assert.equal((await call(`/api/workspace?unit=${unit.id}`)).user.id, invited.id);
+  await call('/api/invitations', { unitId: unit.id, userId: user.id }, 403);
+  cookie = adminCookie;
+  await call('/api/invitations', { unitId: unit.id, userId: invited.id }, 409);
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {

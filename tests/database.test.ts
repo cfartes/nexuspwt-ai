@@ -32,6 +32,12 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
     );
     await db.exec(contractorSql);
     await db.exec(contractorSql);
+    const invitationSql = await readFile(
+      new URL('../db/008-user-invitations.sql', import.meta.url),
+      'utf8',
+    );
+    await db.exec(invitationSql);
+    await db.exec(invitationSql);
     const { rows: companies } = await db.query<{ id: string }>(
       "INSERT INTO companies(name) VALUES('Empresa A'),('Empresa B') RETURNING id",
     );

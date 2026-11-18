@@ -20,6 +20,14 @@ export default function PeoplePanel({
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState('');
   const canManage = ws.unit.role === 'admin';
+  const deliveryLabels: Record<string, string> = {
+    pending: 'Na fila',
+    blocked: 'Bloqueado',
+    sending: 'Enviando',
+    sent: 'Aceito pelo provedor',
+    uncertain: 'Resultado incerto',
+    cancelled: 'Cancelado',
+  };
   const [linkEmail, setLinkEmail] = useState('');
   const available = (ws.companyPeople || []).filter(
     (p) => !ws.people.some((member) => member.id === p.id),
@@ -222,6 +230,7 @@ export default function PeoplePanel({
               <th>Vínculo</th>
               <th>Perfil</th>
               <th>Situação</th>
+              {canManage && <th>Convite de acesso</th>}
               {canManage && <th>Ação</th>}
             </tr>
           </thead>
@@ -246,7 +255,57 @@ export default function PeoplePanel({
                   <span className={'badge ' + (person.active ? 'aprovado' : 'rejeitado')}>
                     {person.active ? 'Ativo' : 'Desativado'}
                   </span>
+                  {person.password_pending && <small>Aguardando definição de senha</small>}
                 </td>
+                {canManage && (
+                  <td>
+                    {person.password_pending ? (
+                      <>
+                        <div>
+                          {['email', 'whatsapp'].map((channel) => {
+                            const delivery = person.invitation_status?.[channel];
+                            return (
+                              <small key={channel}>
+                                {channel === 'email' ? 'E-mail' : 'WhatsApp'}:{' '}
+                                {delivery
+                                  ? deliveryLabels[delivery.status] || delivery.status
+                                  : 'Sem convite'}
+                                {delivery?.error && ` · ${delivery.error}`}
+                              </small>
+                            );
+                          })}
+                        </div>
+                        <button
+                          className="secondary"
+                          disabled={!online || busy || !person.active}
+                          onClick={async () => {
+                            setBusy(true);
+                            setError('');
+                            setNotice('');
+                            try {
+                              await api('/api/invitations', {
+                                unitId: ws.unit.id,
+                                userId: person.id,
+                              });
+                              await reload();
+                              setNotice(
+                                'Novo convite enfileirado por e-mail e WhatsApp. O link anterior foi invalidado.',
+                              );
+                            } catch (e) {
+                              setError((e as Error).message);
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                        >
+                          Reenviar convite
+                        </button>
+                      </>
+                    ) : (
+                      'Senha definida'
+                    )}
+                  </td>
+                )}
                 {canManage && (
                   <td>
                     <button

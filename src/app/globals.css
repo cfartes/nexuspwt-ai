@@ -975,6 +975,8 @@ fieldset {
   overscroll-behavior: contain;
 }
 .registration-popup::backdrop { background: #102b4280; }
+.password-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.password-page > .card { width: min(540px,100%); }
 .registration-popup > .card { border: 0; margin: 0; }
 .document-modal {
   background: white;

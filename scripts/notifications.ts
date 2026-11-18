@@ -1,6 +1,7 @@
 import { setTimeout } from 'node:timers/promises';
 import { db } from '../src/lib/db';
 import { processNotification } from '../src/lib/notifications';
+import { processInvitation } from '../src/lib/invitation-delivery';
 
 let stopping = false;
 process.on('SIGTERM', () => {
@@ -13,7 +14,8 @@ console.log('Processo de notificações iniciado. Envios dependem da habilitaç�
 try {
   while (!stopping) {
     try {
-      await processNotification(db);
+      await processInvitation(db);
+      if (!stopping) await processNotification(db);
     } catch {
       console.error('Falha ao processar notificações. Verifique banco, migrações e configuração.');
     }

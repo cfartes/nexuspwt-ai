@@ -19,6 +19,8 @@ export type Person = {
   active: boolean;
   contractor_id: string | null;
   membership_version: number;
+  password_pending: boolean;
+  invitation_status?: Record<string, { status: string; error: string | null }>;
 };
 export type DocumentRow = {
   id: string;

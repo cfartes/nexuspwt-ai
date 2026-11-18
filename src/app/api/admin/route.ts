@@ -8,6 +8,8 @@ import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { saveMembership } from '@/lib/memberships';
 import { whatsappChatId } from '@/lib/openwa';
 import { contractorDetails } from '@/lib/contractors';
+import { randomBytes } from 'node:crypto';
+import { createInvitation } from '@/lib/invitations';
 import {
   eligibleApprover,
   grantRegionalAccess,
@@ -56,16 +58,21 @@ const schema = z.discriminatedUnion('action', [
     })
     .strict(),
   z.object({ action: z.literal('linkContractor'), unitId: uuid, contractorId: uuid }),
-  z.object({
-    action: z.literal('user'),
-    unitId: uuid,
-    name,
-    email: z.email().transform((v) => v.toLowerCase()),
-    phone,
-    password: z.string().min(12).max(256),
-    role,
-    contractorId: uuid.nullable().default(null),
-  }),
+  z
+    .object({
+      action: z.literal('user'),
+      unitId: uuid,
+      name,
+      email: z.email().transform((v) => v.toLowerCase()),
+      phone,
+      password: z.string().min(12).max(256).optional(),
+      role,
+      contractorId: uuid.nullable().default(null),
+    })
+    .refine((input) => input.role === 'aprovador' || !!input.password, {
+      path: ['password'],
+      message: 'Informe a senha inicial para este perfil.',
+    }),
   z.object({
     action: z.literal('membership'),
     unitId: uuid,
@@ -224,10 +231,19 @@ export async function POST(request: Request) {
           const {
             rows: [u],
           } = await c.query(
-            'INSERT INTO users(name,email,phone,password_hash) VALUES($1,$2,$3,$4) RETURNING id',
-            [input.name, input.email, input.phone, hashPassword(input.password)],
+            'INSERT INTO users(name,email,phone,password_hash,password_pending) VALUES($1,$2,$3,$4,$5) RETURNING id',
+            [
+              input.name,
+              input.email,
+              input.phone,
+              hashPassword(
+                input.role === 'aprovador' ? randomBytes(32).toString('hex') : input.password!,
+              ),
+              input.role === 'aprovador',
+            ],
           );
           await saveMembership(c, user, unit.id, u.id, input);
+          if (input.role === 'aprovador') await createInvitation(c, user.id, u.id, unit.id);
           break;
         }
         case 'membership': {

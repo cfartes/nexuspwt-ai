@@ -46,7 +46,9 @@ export async function GET(request: Request) {
         [unit.id, unit.contractor_id],
       ),
       db.query(
-        `SELECT u.id,u.name,u.email,COALESCE(m.phone,u.phone) phone,m.role,m.active,m.contractor_id,m.version membership_version
+        `SELECT u.id,u.name,u.email,u.password_pending,COALESCE(m.phone,u.phone) phone,m.role,m.active,m.contractor_id,m.version membership_version,
+          (SELECT jsonb_object_agg(d.channel,jsonb_build_object('status',d.status,'error',d.last_error)) FROM invitation_deliveries d
+           WHERE d.invitation_id=(SELECT i.id FROM user_invitations i WHERE i.user_id=u.id AND i.unit_id=m.unit_id ORDER BY i.created_at DESC,i.id DESC LIMIT 1)) invitation_status
          FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.unit_id=$1 AND u.active
          AND ($2='admin' OR m.active) AND ($3::uuid IS NULL OR m.contractor_id=$3 OR (m.contractor_id IS NULL AND m.role IN ('admin','gestor','aprovador'))) ORDER BY u.name`,
         [unit.id, unit.role, unit.contractor_id],

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         rows: [u],
       } = await c.query('SELECT * FROM users WHERE email=$1 AND active', [email]);
       const valid = verifyPassword(password, u?.password_hash || dummyHash);
-      if (!u || !valid) {
+      if (!u || !valid || u.password_pending) {
         await c.query('UPDATE login_attempts SET failures=failures+1 WHERE email=$1', [email]);
         return null;
       }
