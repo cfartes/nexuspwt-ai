@@ -89,6 +89,35 @@ O teste de integração abre temporariamente um PostgreSQL embarcado na porta lo
 
 ## Subir o app na VPS
 
+### Instalação com o Traefik existente (recomendada)
+
+Usa **PostgreSQL 17** em container próprio, volume persistente, sem publicar a porta 5432. O domínio é **https://nexusptw.nexusdataanalytics.tech**. Aponte o registro DNS A para a VPS (e remova/corrija AAAA se não houver IPv6 funcional). Docker Engine, plugin Docker Compose com `--wait`, Git e Python 3.9+ devem estar instalados. O Traefik existente precisa usar o provider Docker e já ter HTTPS/ACME configurados.
+
+Na VPS, baixe e execute o instalador (se o repositório for privado, autentique o Git e copie o script pelo checkout):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cfartes/nexuspwt-ai/main/scripts/install_vps.sh -o /tmp/install-nexus-ptw.sh
+bash /tmp/install-nexus-ptw.sh
+```
+
+O script instala em `/opt/nexus-ptw`, detecta a rede, entrypoint e resolver TLS pelos containers existentes, seguindo o padrão do RotaFY. Se houver mais de uma opção, solicita a escolha no terminal. Não cria outro Traefik, não publica portas do app e não altera projetos de outros apps. Para informar valores explicitamente, use `TRAEFIK_CONTAINER`, `TRAEFIK_NETWORK`, `TRAEFIK_HTTPS_ENTRYPOINT` e `TRAEFIK_CERTRESOLVER` no ambiente; `PTW_INSTALL_DIR` permite outro diretório absoluto.
+
+São geradas senhas aleatórias para PostgreSQL e superadmin, além da chave de criptografia. Ficam em `/opt/nexus-ptw/deploy/.env.production`, com permissão `600`. Consulte `BOOTSTRAP_EMAIL` e `BOOTSTRAP_PASSWORD` nesse arquivo para entrar. Não publique esse arquivo: contém segredos necessários para restaurar o ambiente. Reexecuções preservam credenciais e dados; fazem build, backup PostgreSQL antes da migração, pausam somente app/worker deste projeto, aplicam migrations e iniciam app e **notifications** automaticamente. Uma falha após a pausa pode deixar o projeto parado: corrija a causa e execute novamente; não há rollback automático de schema.
+
+Após instalar, configure as chaves Resend/OpenWA no superadmin e conecte o WhatsApp da empresa. As configurações e os cadastros do desenvolvimento **não são transferidos**; esta é uma instalação nova com Ambev e unidade piloto. O instalador verifica a saúde interna do app; valide também HTTPS público e o recebimento de um convite nos dois canais. O DNS/certificado e os provedores precisam estar funcionais para concluir essa validação.
+
+Para consultar os serviços:
+
+```bash
+cd /opt/nexus-ptw
+docker compose --env-file deploy/.env.production -f deploy/compose.production.yml ps
+docker compose --env-file deploy/.env.production -f deploy/compose.production.yml logs --tail=100 notifications
+```
+
+Os dumps ficam em `data/backups` com acesso restrito. São backups locais de instalação/atualização, não backups periódicos externos nem a política de guarda por cinco anos. Preserve também `.env.production` em armazenamento seguro e configure backup externo antes do uso operacional. Teste a restauração. O volume PostgreSQL contém os documentos e as fotos da implementação atual.
+
+### Instalação manual com proxy para porta local
+
 1. Copie `deploy/.env.example` para `deploy/.env` e substitua os valores. A senha do banco na URL precisa estar codificada para URL; usar caracteres alfanuméricos aleatórios simplifica isso.
 2. Configure `APP_URL` com a origem HTTPS exata do app. O proxy deve encaminhar para `127.0.0.1:3010` preservando o domínio público.
 3. Na pasta `deploy`, execute `docker compose up -d --build`.
@@ -119,7 +148,7 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 - O isolamento usa permissões no servidor e chaves compostas entre empresa/unidade/terceirizada; políticas RLS no PostgreSQL ainda não foram implementadas. Homologação de segurança é necessária antes de expor dados reais de múltiplos clientes.
 - Guarda de cinco anos é requisito registrado, não uma política de backup já executada. Antes do uso real, definir o marco inicial da retenção, configurar backups externos de banco e certificado e testar restauração. Não existe exclusão automática.
 - IA, cobrança do SaaS e integração com cloud do cliente ficam fora desta primeira etapa.
-- Não houve teste com celular físico ou implantação Linux. A implantação Docker foi validada estruturalmente, sem construir containers nesta estação.
+- Não houve teste com celular físico nem implantação na VPS. As imagens Docker foram construídas e testadas localmente com PostgreSQL 17 real: migrations, preservação do administrador ao repetir setup, login com cookie Secure e inicialização do worker. O roteamento pelo Traefik e o certificado do domínio ainda exigem validação na VPS.
 
 ## Configurar integrações
 

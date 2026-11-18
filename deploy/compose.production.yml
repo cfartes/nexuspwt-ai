@@ -1,0 +1,89 @@
+name: nexus-ptw
+x-runtime: &runtime
+  DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL}
+  APP_URL: https://nexusptw.nexusdataanalytics.tech
+  INTEGRATIONS_ENCRYPTION_KEY: ${INTEGRATIONS_ENCRYPTION_KEY:?Configure a chave de criptografia}
+  OPENWA_ALLOWED_ORIGINS: ${OPENWA_ALLOWED_ORIGINS:-}
+  OPENWA_DEFAULT_URL: ${OPENWA_DEFAULT_URL:-}
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+    volumes: [database:/var/lib/postgresql/data]
+    networks: [database]
+    labels: {traefik.enable: 'false'}
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U nexus -d nexus']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  bootstrap:
+    profiles: [setup]
+    image: nexus-ptw-notifications:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: notifications
+    command: [node, scripts/setup.mjs]
+    environment:
+      <<: *runtime
+      BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:?Configure BOOTSTRAP_EMAIL}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:?Configure BOOTSTRAP_PASSWORD}
+      BOOTSTRAP_UNIT: Unidade piloto
+    networks: [database]
+    labels: {traefik.enable: 'false'}
+    depends_on:
+      database: {condition: service_healthy}
+  app:
+    image: nexus-ptw-app:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: app
+    restart: unless-stopped
+    environment:
+      <<: *runtime
+      COOKIE_SECURE: 'true'
+    networks: [database, traefik]
+    depends_on:
+      database: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: ${TRAEFIK_NETWORK:?Informe a rede Traefik}
+      traefik.http.routers.nexus-ptw.rule: Host(`nexusptw.nexusdataanalytics.tech`)
+      traefik.http.routers.nexus-ptw.entrypoints: ${TRAEFIK_HTTPS_ENTRYPOINT:?Informe entrypoint HTTPS}
+      traefik.http.routers.nexus-ptw.tls: 'true'
+      traefik.http.routers.nexus-ptw.tls.certresolver: ${TRAEFIK_CERTRESOLVER:?Informe resolver TLS}
+      traefik.http.routers.nexus-ptw.service: nexus-ptw
+      traefik.http.services.nexus-ptw.loadbalancer.server.port: '3000'
+  notifications:
+    image: nexus-ptw-notifications:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: notifications
+    restart: unless-stopped
+    stop_grace_period: 40s
+    environment: *runtime
+    networks: [database, egress]
+    labels: {traefik.enable: 'false'}
+    depends_on:
+      database: {condition: service_healthy}
+networks:
+  database: {internal: true}
+  egress: {}
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:?Informe a rede Traefik}
+volumes:
+  database:
