@@ -20,6 +20,7 @@ await db.exec(
 await db.exec(await readFile(new URL('../db/006-whatsapp-gateway.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/007-contractor-details.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/008-user-invitations.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/009-apr-removal.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -991,6 +992,7 @@ try {
   await call('/api/auth', { email: 'convidado@nexus.local', password: 'nova-senha-aprovador-123' });
   assert.equal((await call(`/api/workspace?unit=${unit.id}`)).user.id, invited.id);
   await call('/api/invitations', { unitId: unit.id, userId: user.id }, 403);
+  await call(`/api/documents/${d.id}/remove`, { version: 4 }, 403);
   await call(
     '/api/admin',
     { action: 'deleteRegistration', unitId: unit.id, kind: 'unit', id: unit.id },
@@ -1023,6 +1025,45 @@ try {
     { action: 'deleteRegistration', unitId: unit.id, kind: 'unit', id: unit.id },
     409,
   );
+  await call(`/api/documents/${d.id}/remove`, { version: 4 }, 409);
+  const removableApr = {
+    ...d,
+    id: randomUUID(),
+    version: 0,
+    contractorId: firstContractor.id,
+    title: 'APR para remover',
+  };
+  await call('/api/documents', removableApr);
+  await call(`/api/documents/${removableApr.id}/remove`, { version: 99 }, 409);
+  await call(`/api/documents/${removableApr.id}/remove`, { version: 1 });
+  assert(
+    !(await call(`/api/workspace?unit=${unit.id}`)).documents.some(
+      (row: { id: string }) => row.id === removableApr.id,
+    ),
+  );
+  await call('/api/documents', { ...removableApr, version: 1 }, 409);
+  await call(
+    '/api/documents',
+    {
+      ...pt,
+      id: randomUUID(),
+      version: 0,
+      aprId: removableApr.id,
+      contractorId: firstContractor.id,
+    },
+    400,
+  );
+  await call(`/api/documents/${removableApr.id}/workflow`, { action: 'submit', version: 1 }, 409);
+  assert(
+    (await call(`/api/documents/${removableApr.id}/history`)).events.some(
+      (e: { action: string }) => e.action === 'apr.removida',
+    ),
+  );
+  const removedPrint = await fetch(base + `/print/${removableApr.id}`, {
+    headers: { Cookie: cookie },
+  });
+  assert.equal(removedPrint.status, 200);
+  assert((await removedPrint.text()).includes('APR REMOVIDA DA OPERAÇÃO'));
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {

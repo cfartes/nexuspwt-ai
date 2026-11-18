@@ -26,6 +26,8 @@ export async function POST(request: Request) {
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [d.id]);
       if (existing && existing.unit_id !== unit.id)
         throw new HttpError(403, 'Documento indisponível.');
+      if (existing?.removed_at)
+        throw new HttpError(409, 'APR removida. Não é possível alterar este documento.');
       if (existing) assertContractorAccess(unit, existing.contractor_id);
       if (
         existing?.kind === 'PT' &&
@@ -54,10 +56,10 @@ export async function POST(request: Request) {
       if (d.kind === 'PT') {
         const {
           rows: [apr],
-        } = await c.query("SELECT * FROM documents WHERE id=$1 AND unit_id=$2 AND kind='APR'", [
-          d.aprId,
-          unit.id,
-        ]);
+        } = await c.query(
+          "SELECT * FROM documents WHERE id=$1 AND unit_id=$2 AND kind='APR' AND removed_at IS NULL FOR SHARE",
+          [d.aprId, unit.id],
+        );
         if (!apr) throw new HttpError(400, 'APR precisa pertencer à mesma unidade.');
         const preserveLink = existing?.apr_id === d.aprId;
         if (!preserveLink && apr.status !== 'aprovado')

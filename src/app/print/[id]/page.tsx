@@ -85,6 +85,14 @@ export default async function PrintPage({
         <PrintButton />
       </div>
       <article className="paper">
+        {doc.removed_at && (
+          <p>
+            <strong>
+              APR REMOVIDA DA OPERAÇÃO — mantida somente para histórico. Não utilizar para execução
+              de serviços.
+            </strong>
+          </p>
+        )}
         <header className="print-header">
           <strong>{d.company}</strong>
           <div>

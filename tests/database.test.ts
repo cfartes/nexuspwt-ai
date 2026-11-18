@@ -38,6 +38,12 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
     );
     await db.exec(invitationSql);
     await db.exec(invitationSql);
+    const removalSql = await readFile(
+      new URL('../db/009-apr-removal.sql', import.meta.url),
+      'utf8',
+    );
+    await db.exec(removalSql);
+    await db.exec(removalSql);
     const { rows: companies } = await db.query<{ id: string }>(
       "INSERT INTO companies(name) VALUES('Empresa A'),('Empresa B') RETURNING id",
     );

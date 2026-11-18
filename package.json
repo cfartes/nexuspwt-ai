@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test --test-concurrency=2 tests/*.test.ts",
     "test:integration": "tsx tests/api.integration.ts",
     "notifications:work": "node --env-file-if-exists=.env.local --import tsx scripts/notifications.ts",
     "db:setup": "node --env-file=.env.local scripts/setup.mjs"

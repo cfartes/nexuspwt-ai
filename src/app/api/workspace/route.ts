@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       const {
         rows: [target],
       } = await db.query(
-        'SELECT d.unit_id FROM documents d JOIN memberships m ON m.unit_id=d.unit_id WHERE d.id=$1 AND m.user_id=$2 AND m.active AND (m.contractor_id IS NULL OR m.contractor_id=d.contractor_id)',
+        'SELECT d.unit_id FROM documents d JOIN memberships m ON m.unit_id=d.unit_id WHERE d.id=$1 AND d.removed_at IS NULL AND m.user_id=$2 AND m.active AND (m.contractor_id IS NULL OR m.contractor_id=d.contractor_id)',
         [documentId, user.id],
       );
       if (!target) throw new HttpError(403, 'Documento indisponível para sua conta.');
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     const unit = await unitAccess(user, uuid.parse(unitId));
     const results = await Promise.all([
       db.query(
-        "SELECT d.*,u.name author FROM documents d JOIN users u ON u.id=d.created_by WHERE d.unit_id=$1 AND ($6::uuid IS NULL OR d.contractor_id=$6) AND ($2 <> 'executante' OR d.created_by=$3 OR (d.kind='APR' AND d.status='aprovado') OR d.data->'executors' @> $4::jsonb) ORDER BY (d.id=$5::uuid) DESC NULLS LAST,d.updated_at DESC LIMIT 500",
+        "SELECT d.*,u.name author FROM documents d JOIN users u ON u.id=d.created_by WHERE d.unit_id=$1 AND d.removed_at IS NULL AND ($6::uuid IS NULL OR d.contractor_id=$6) AND ($2 <> 'executante' OR d.created_by=$3 OR (d.kind='APR' AND d.status='aprovado') OR d.data->'executors' @> $4::jsonb) ORDER BY (d.id=$5::uuid) DESC NULLS LAST,d.updated_at DESC LIMIT 500",
         [
           unit.id,
           unit.role,
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         [unit.company_id, unit.id, unit.region_id, unit.contractor_id, unit.role],
       ),
       db.query(
-        'SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND a.version=d.version AND ($2::uuid IS NULL OR d.contractor_id=$2)',
+        'SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND d.removed_at IS NULL AND a.version=d.version AND ($2::uuid IS NULL OR d.contractor_id=$2)',
         [unit.id, unit.contractor_id],
       ),
       unit.role === 'admin' && user.platform_admin

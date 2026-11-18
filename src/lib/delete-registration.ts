@@ -160,7 +160,7 @@ export async function deleteRegistration(
           throw new HttpError(409, 'Não é possível excluir seu próprio acesso.');
         const { rowCount: pending } = await c.query(
           `SELECT 1 FROM approvals a JOIN documents d ON d.id=a.document_id WHERE a.user_id=$1 AND d.unit_id=$2
-          AND d.status='em_aprovacao' AND a.version=d.version AND a.decision IS NULL
+          AND d.removed_at IS NULL AND d.status='em_aprovacao' AND a.version=d.version AND a.decision IS NULL
           UNION ALL SELECT 1 FROM approvers WHERE user_id=$1 AND active AND (unit_id=$2 OR region_id=$3) LIMIT 1`,
           [input.id, unit.id, unit.region_id],
         );

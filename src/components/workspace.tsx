@@ -29,6 +29,7 @@ import DocumentEditor from './document-editor';
 import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
+import RemoveApr from './remove-apr';
 type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
@@ -470,6 +471,12 @@ export default function Workspace() {
                     docs={docs.slice(0, 6)}
                     contractors={ws.contractors}
                     onOpen={(d) => setEditor(asInput(d))}
+                    canRemoveApr={unit.role === 'admin'}
+                    online={online}
+                    onRemoved={async () => {
+                      await load(unit.id);
+                      setNotice('APR removida da operação. Histórico preservado.');
+                    }}
                   />
                 </section>
                 <section className="card operation">
@@ -541,6 +548,12 @@ export default function Workspace() {
                 docs={docs.filter((d) => d.kind === tab)}
                 contractors={ws.contractors}
                 onOpen={(d) => setEditor(asInput(d))}
+                canRemoveApr={unit.role === 'admin'}
+                online={online}
+                onRemoved={async () => {
+                  await load(unit.id);
+                  setNotice('APR removida da operação. Histórico preservado.');
+                }}
               />
             </section>
           )}
@@ -687,10 +700,16 @@ function DocumentTable({
   docs,
   contractors,
   onOpen,
+  canRemoveApr = false,
+  online = false,
+  onRemoved,
 }: {
   docs: DocumentRow[];
   contractors: WorkspaceData['contractors'];
   onOpen: (d: DocumentRow) => void;
+  canRemoveApr?: boolean;
+  online?: boolean;
+  onRemoved?: () => Promise<unknown>;
 }) {
   if (!docs.length)
     return (
@@ -741,13 +760,18 @@ function DocumentTable({
                 </span>
               </td>
               <td>
-                <button
-                  aria-label={'Abrir ' + d.title}
-                  className="icon-button"
-                  onClick={() => onOpen(d)}
-                >
-                  <ChevronRight size={18} />
-                </button>
+                <div className="actions">
+                  <button
+                    aria-label={'Abrir ' + d.title}
+                    className="icon-button"
+                    onClick={() => onOpen(d)}
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  {canRemoveApr && d.kind === 'APR' && onRemoved && (
+                    <RemoveApr document={d} online={online} onRemoved={onRemoved} />
+                  )}
+                </div>
               </td>
             </tr>
           ))}

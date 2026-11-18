@@ -52,6 +52,10 @@ O link abre `/definir-senha`, tem validade de 24 horas e só funciona uma vez. O
 
 ## Validação
 
+**Remover APR** aparece nas listagens para administradores da unidade. A operação exige a versão atual e não permite nenhuma PT vinculada, inclusive rascunhos e PTs que apontam para revisões anteriores. A APR sai da operação, mas permanece arquivada com autoria, decisões, versões e auditoria. Não pode ser editada, aprovada ou usada em novas PTs. Avisos ainda pendentes são cancelados; uma chamada já enviada ao gateway pode terminar. Impressões históricas recebem o aviso de APR removida. A migração `009-apr-removal.sql` é aplicada por `npm run db:setup`. A autorização exige administrador da própria unidade; ser superadmin sem esse perfil na unidade não basta.
+
+Os testes rodam com até dois arquivos simultâneos para limitar os bancos PGlite em memória durante a execução da suíte.
+
 ### Exclusão de cadastros
 
 Empresas, Regionais, Unidades, Terceirizadas, Pessoas e Aprovadores possuem **Excluir**, com confirmação em popup, validação de permissão no servidor e auditoria. Empresas e atribuições regionais são exclusivas do superadmin. Cadastros com dependências ou histórico protegido retornam um motivo; não há exclusão em cascata de documentos, decisões ou fotos. Alterações concorrentes de contratadas, acessos e atribuições são detectadas pela versão.

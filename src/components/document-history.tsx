@@ -13,6 +13,7 @@ type History = {
   }[];
 };
 const actions: Record<string, string> = {
+  'apr.removida': 'APR removida da operação',
   'rascunho.criado': 'Rascunho criado',
   'rascunho.atualizado': 'Rascunho atualizado',
   'workflow.submit': 'Enviado para análise',

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         rows: [job],
       } = await c.query(
         `SELECT n.*,d.unit_id,d.contractor_id,d.version current_version,d.status document_status FROM notification_outbox n
-        JOIN documents d ON d.id=n.document_id WHERE n.id=$1 AND d.unit_id=$2 FOR UPDATE OF n`,
+        JOIN documents d ON d.id=n.document_id WHERE n.id=$1 AND d.unit_id=$2 AND d.removed_at IS NULL FOR UPDATE OF n`,
         [input.id, input.unitId],
       );
       if (!job) throw new HttpError(404, 'Notificação não encontrada nesta unidade.');

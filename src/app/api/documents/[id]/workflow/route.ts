@@ -25,6 +25,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (!d) throw new HttpError(404, 'Documento não encontrado.');
       const unit = await unitAccess(user, d.unit_id, undefined, c);
       assertContractorAccess(unit, d.contractor_id);
+      if (d.removed_at)
+        throw new HttpError(409, 'APR removida. Não é possível executar ações neste documento.');
       if (d.version !== input.version)
         throw new HttpError(409, 'Versão desatualizada. Recarregue o documento.');
       if (input.action === 'revise') {

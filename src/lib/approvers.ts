@@ -106,6 +106,7 @@ export async function reassignApproval(
     rows: [approval],
   } = await client.query('SELECT * FROM approvals WHERE id=$1 FOR UPDATE', [input.id]);
   if (
+    document.removed_at ||
     document.status !== 'em_aprovacao' ||
     document.version !== approval.version ||
     approval.decision
