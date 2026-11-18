@@ -25,7 +25,7 @@ async function stillPending(client: PoolClient, id: string) {
     rows: [row],
   } = await client.query(
     `SELECT 1 FROM notification_outbox n JOIN documents d ON d.id=n.document_id
-    JOIN users u ON u.id=n.user_id AND u.active JOIN memberships m ON m.user_id=n.user_id AND m.unit_id=d.unit_id AND m.role IN ('admin','gestor','aprovador')
+    JOIN users u ON u.id=n.user_id AND u.active JOIN memberships m ON m.user_id=n.user_id AND m.unit_id=d.unit_id AND m.active AND m.role IN ('admin','gestor','aprovador') AND (m.contractor_id IS NULL OR m.contractor_id=d.contractor_id)
     WHERE n.id=$1 AND d.version=n.version AND d.status='em_aprovacao'
     AND EXISTS(SELECT 1 FROM approvals a WHERE a.document_id=n.document_id AND a.version=n.version AND a.user_id=n.user_id AND a.decision IS NULL)`,
     [id],
@@ -56,8 +56,8 @@ export async function processNotification(pool: Pool) {
     inTransaction = true;
     const {
       rows: [job],
-    } = await client.query(`SELECT n.*,d.company_id,d.kind,d.number,u.phone
-      FROM notification_outbox n JOIN documents d ON d.id=n.document_id JOIN users u ON u.id=n.user_id
+    } = await client.query(`SELECT n.*,d.company_id,d.kind,d.number,COALESCE(m.phone,u.phone) phone
+      FROM notification_outbox n JOIN documents d ON d.id=n.document_id JOIN users u ON u.id=n.user_id LEFT JOIN memberships m ON m.user_id=n.user_id AND m.unit_id=d.unit_id
       WHERE n.status IN ('pending','blocked') AND n.available_at<=now()
       ORDER BY n.available_at,n.created_at,n.id LIMIT 1 FOR UPDATE OF n SKIP LOCKED`);
     if (!job) {

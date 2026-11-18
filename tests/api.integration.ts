@@ -10,6 +10,9 @@ const db = await PGlite.create();
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/002-integrations.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/003-notifications.sql', import.meta.url), 'utf8'));
+await db.exec(
+  await readFile(new URL('../db/004-membership-management.sql', import.meta.url), 'utf8'),
+);
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -26,7 +29,10 @@ const {
   "INSERT INTO users(name,email,password_hash,platform_admin) VALUES('Administrador de teste','test@nexus.local',$1,true) RETURNING id",
   [hashPassword(password)],
 );
-await db.query("INSERT INTO memberships VALUES($1,$2,'admin')", [user.id, unit.id]);
+await db.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
+  user.id,
+  unit.id,
+]);
 const socket = new PGLiteSocketServer({ db, host: '127.0.0.1', port: 55439, maxConnections: 10 });
 await socket.start();
 const base = 'http://localhost:3109';
@@ -187,6 +193,10 @@ try {
   await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Empresa isolada' });
   const allUnits = (await call('/api/workspace')).units;
   const isolatedUnit = allUnits.find((u: { company_id: string }) => u.company_id !== company.id);
+  assert.equal(
+    (await call(`/api/workspace?unit=${isolatedUnit.id}`)).unit.company_name,
+    'Empresa isolada',
+  );
   assert.equal((await call(`/api/integrations?unit=${isolatedUnit.id}`)).integrations.length, 0);
   const { rows: audits } = await db.query<{ details: unknown }>(
     "SELECT details FROM audit_events WHERE action='integracao.configurada'",
@@ -423,6 +433,212 @@ try {
   const approvedHistory = await call(`/api/documents/${d.id}/history`);
   assert.equal(approvedHistory.versions.length, 2);
   cookie = adminCookie;
+  let people = (await call(`/api/workspace?unit=${unit.id}`)).people;
+  let person = people.find((p: { email: string }) => p.email === 'executor@nexus.local');
+  const change = (
+    p: {
+      id: string;
+      membership_version: number;
+      phone: string;
+      role: string;
+      active: boolean;
+      contractor_id: string | null;
+    },
+    patch: Record<string, unknown> = {},
+  ) => ({
+    action: 'updateMembership',
+    unitId: unit.id,
+    userId: p.id,
+    version: p.membership_version,
+    phone: p.phone,
+    role: p.role,
+    active: p.active,
+    contractorId: p.contractor_id,
+    ...patch,
+  });
+  const self = people.find((p: { id: string }) => p.id === user.id);
+  const firstContractor = ws.contractors.find((c: { cnpj: string }) => c.cnpj === '12345678000195');
+  await call('/api/admin', change(self, { role: 'gestor' }), 409);
+  await call('/api/admin', change(self, { active: false }), 400);
+  await call(
+    '/api/admin',
+    { action: 'membership', unitId: unit.id, email: 'test@nexus.local', role: 'gestor' },
+    409,
+  );
+  await call(
+    '/api/admin',
+    change(person, {
+      contractorId: firstContractor.id,
+      role: 'gestor',
+      phone: '+55 21 98888-7777',
+    }),
+  );
+  await call('/api/admin', change(person, { phone: '+55 21 98888-6666' }), 409);
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  assert.equal(person.contractor_id, firstContractor.id);
+  assert.equal(person.phone, '+55 21 98888-7777');
+  await call('/api/admin', change(person, { role: 'admin' }), 400);
+  await call('/api/admin', change(person, { phone: '123' }), 400);
+  await call('/api/admin', change(person, { contractorId: randomUUID() }), 400);
+  await call('/api/admin', {
+    action: 'unit',
+    unitId: unit.id,
+    name: 'Segunda unidade',
+    kind: 'CDD',
+    regionId: null,
+  });
+  const secondUnit = (await call('/api/workspace')).units.find(
+    (u: { id: string; company_id: string }) => u.id !== unit.id && u.company_id === company.id,
+  );
+  await call('/api/admin', {
+    action: 'membership',
+    unitId: secondUnit.id,
+    email: 'executor@nexus.local',
+    role: 'aprovador',
+  });
+  assert.equal(
+    (await call(`/api/workspace?unit=${secondUnit.id}`)).people.find(
+      (p: { id: string }) => p.id === person.id,
+    ).phone,
+    '+55 11 99999-9999',
+  );
+  const photoPayload = {
+    caption: 'Evidência de teste',
+    capturedAt: '2026-11-18T12:00:00.000Z',
+    latitude: -23,
+    longitude: -46,
+    accuracy: 10,
+    mime: 'image/png',
+    base64:
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/CWkAAAAASUVORK5CYII=',
+  };
+  const ownPhoto = crypto.randomUUID(),
+    otherPhoto = crypto.randomUUID();
+  await call(`/api/documents/${pt.id}/photos`, { ...photoPayload, id: ownPhoto });
+  await call(`/api/documents/${newPt.id}/photos`, { ...photoPayload, id: otherPhoto });
+  await call(
+    '/api/documents',
+    { ...pt, version: oldPt.version, contractorId: nextContractor.id },
+    409,
+  );
+  await call('/api/auth', { email: 'executor@nexus.local', password: executorPassword });
+  const contractorCookie = cookie;
+  const scoped = await call(`/api/workspace?unit=${unit.id}`);
+  assert(
+    scoped.documents.every(
+      (doc: { contractor_id: string }) => doc.contractor_id === firstContractor.id,
+    ),
+  );
+  assert.deepEqual(
+    scoped.contractors.map((c: { id: string }) => c.id),
+    [firstContractor.id],
+  );
+  await call(`/api/workspace?document=${d.id}`, undefined, 403);
+  await call(`/api/documents/${d.id}/history`, undefined, 403);
+  await call(`/api/documents/${newPt.id}/photos`, undefined, 403);
+  assert.equal(
+    (await fetch(`${base}/api/photos/${otherPhoto}`, { headers: { Cookie: cookie } })).status,
+    403,
+  );
+  assert.equal(
+    (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
+    200,
+  );
+  assert.equal((await fetch(`${base}/print/${d.id}`, { headers: { Cookie: cookie } })).status, 404);
+  assert.equal(
+    (await fetch(`${base}/print/${d.id}?version=2`, { headers: { Cookie: cookie } })).status,
+    200,
+  );
+  await call('/api/documents', { ...d, version: 4, contractorId: firstContractor.id }, 403);
+  const owned = await call('/api/documents', {
+    ...d,
+    id: randomUUID(),
+    version: 0,
+    contractorId: firstContractor.id,
+    title: 'Serviço da terceirizada vinculada',
+  });
+  await call(
+    '/api/documents',
+    { ...d, id: randomUUID(), version: 0, contractorId: nextContractor.id },
+    403,
+  );
+  await call('/api/admin', change(person, { contractorId: null, role: 'admin' }), 403);
+  cookie = adminCookie;
+  await call('/api/admin', change(person, { active: false }));
+  cookie = contractorCookie;
+  await call(`/api/workspace?unit=${unit.id}`, undefined, 403);
+  assert.equal((await call(`/api/workspace?unit=${secondUnit.id}`)).unit.id, secondUnit.id);
+  assert.equal(
+    (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
+    403,
+  );
+  cookie = adminCookie;
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  assert.equal(person.active, false);
+  await call('/api/admin', change(person, { active: true, role: 'executante', phone: '' }));
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  assert.equal(person.phone, '');
+  assert.equal(
+    (await call(`/api/workspace?unit=${secondUnit.id}`)).people.find(
+      (p: { id: string }) => p.id === person.id,
+    ).phone,
+    '+55 11 99999-9999',
+  );
+  await call('/api/documents', {
+    ...pt,
+    version: oldPt.version,
+    title: oldPt.title,
+    data: {
+      ...pt.data,
+      executors: [...pt.data.executors, { userId: person.id, role: 'Executante' }],
+    },
+  });
+  cookie = contractorCookie;
+  const executorWorkspace = await call(`/api/workspace?unit=${unit.id}`);
+  assert(executorWorkspace.documents.some((doc: { id: string }) => doc.id === pt.id));
+  assert(executorWorkspace.documents.some((doc: { id: string }) => doc.id === owned.id));
+  assert(!executorWorkspace.documents.some((doc: { id: string }) => doc.id === d.id));
+  assert.equal(
+    (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
+    200,
+  );
+  cookie = adminCookie;
+  await call('/api/admin', change(person, { role: 'admin', contractorId: null }));
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  await call('/api/admin', change(self, { role: 'gestor' }));
+  cookie = contractorCookie;
+  const changedSelf = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === user.id,
+  );
+  await call('/api/admin', change(changedSelf, { role: 'admin' }));
+  cookie = adminCookie;
+  await call(
+    '/api/admin',
+    change(person, { role: 'executante', contractorId: firstContractor.id }),
+  );
+  const {
+    rows: [globalUser],
+  } = await db.query<{ phone: string }>('SELECT phone FROM users WHERE id=$1', [person.id]);
+  assert.equal(globalUser.phone, '+55 11 99999-9999');
+  person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  await call('/api/admin', change(person, { active: false }));
+  const secondaryPerson = (await call(`/api/workspace?unit=${secondUnit.id}`)).people.find(
+    (p: { id: string }) => p.id === person.id,
+  );
+  await call('/api/admin', change(secondaryPerson, { unitId: secondUnit.id, active: false }));
+  cookie = contractorCookie;
+  await call('/api/workspace', undefined, 403);
+  cookie = adminCookie;
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {
@@ -434,7 +650,7 @@ try {
   });
   assert.equal(foreign.status, 403);
   console.log(
-    'Integração OK: fluxos APR/PT, configuração DocuSign/Certisign/OpenWA, credenciais protegidas, troca e remoção de segredo, isolamento por empresa, permissões e CSRF. Nenhuma chamada a provedores reais.',
+    'Integração OK: APR/PT, integrações, gestão de acessos por unidade, contatos independentes, isolamento de documentos/fotos por terceirizada, desativação sem exclusão, proteção do último administrador e CSRF. Nenhuma chamada a provedores reais.',
   );
 } catch (e) {
   console.error(logs);

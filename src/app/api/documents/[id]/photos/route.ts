@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { db } from '@/lib/db';
-import { currentUser, unitAccess } from '@/lib/auth';
+import { db, transaction } from '@/lib/db';
+import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { assertOrigin, digest, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { uuid } from '@/lib/validation';
@@ -22,17 +22,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     uuid.parse(id);
     if (Number(request.headers.get('content-length') || 0) > 7100000)
       throw new HttpError(413, 'Foto muito grande. Limite de 5 MB.');
-    const {
-      rows: [doc],
-    } = await db.query('SELECT * FROM documents WHERE id=$1', [id]);
-    if (!doc || doc.kind !== 'PT') throw new HttpError(404, 'PT não encontrada.');
-    const unit = await unitAccess(user, doc.unit_id);
-    if (
-      !['admin', 'gestor'].includes(unit.role) &&
-      doc.created_by !== user.id &&
-      !doc.data.executors.some((e: { userId: string }) => e.userId === user.id)
-    )
-      throw new HttpError(403, 'Sem permissão para enviar evidências desta PT.');
     const p = schema.parse(await request.json());
     const bytes = Buffer.from(p.base64, 'base64');
     if (bytes.length > 5 * 1024 * 1024 || bytes.length < 12)
@@ -45,32 +34,46 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           ? 'image/webp'
           : null;
     if (mime !== p.mime) throw new HttpError(400, 'Conteúdo da imagem inválido.');
-    const {
-      rows: [existing],
-    } = await db.query('SELECT document_id,sha256 FROM photos WHERE id=$1', [p.id]);
-    const sha = digest(bytes);
-    if (existing) {
-      if (existing.document_id !== id || existing.sha256 !== sha)
-        throw new HttpError(409, 'Identificador de foto já utilizado.');
+    return await transaction(async (c) => {
+      const {
+        rows: [doc],
+      } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
+      if (!doc || doc.kind !== 'PT') throw new HttpError(404, 'PT não encontrada.');
+      const unit = await unitAccess(user, doc.unit_id, undefined, c);
+      assertContractorAccess(unit, doc.contractor_id);
+      if (
+        !['admin', 'gestor'].includes(unit.role) &&
+        doc.created_by !== user.id &&
+        !doc.data.executors.some((e: { userId: string }) => e.userId === user.id)
+      )
+        throw new HttpError(403, 'Sem permissão para enviar evidências desta PT.');
+      const {
+        rows: [existing],
+      } = await c.query('SELECT document_id,sha256 FROM photos WHERE id=$1', [p.id]);
+      const sha = digest(bytes);
+      if (existing) {
+        if (existing.document_id !== id || existing.sha256 !== sha)
+          throw new HttpError(409, 'Identificador de foto já utilizado.');
+        return Response.json({ ok: true });
+      }
+      await c.query(
+        'INSERT INTO photos(id,document_id,actor_id,caption,captured_at,latitude,longitude,accuracy,mime,sha256,content) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+        [
+          p.id,
+          id,
+          user.id,
+          p.caption,
+          p.capturedAt,
+          p.latitude,
+          p.longitude,
+          p.accuracy,
+          mime,
+          sha,
+          bytes,
+        ],
+      );
       return Response.json({ ok: true });
-    }
-    await db.query(
-      'INSERT INTO photos(id,document_id,actor_id,caption,captured_at,latitude,longitude,accuracy,mime,sha256,content) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
-      [
-        p.id,
-        id,
-        user.id,
-        p.caption,
-        p.capturedAt,
-        p.latitude,
-        p.longitude,
-        p.accuracy,
-        mime,
-        sha,
-        bytes,
-      ],
-    );
-    return Response.json({ ok: true });
+    });
   } catch (e) {
     return apiError(e);
   }
@@ -85,6 +88,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     } = await db.query('SELECT * FROM documents WHERE id=$1', [id]);
     if (!doc) throw new HttpError(404, 'Documento não encontrado.');
     const unit = await unitAccess(user, doc.unit_id);
+    assertContractorAccess(unit, doc.contractor_id);
     if (
       unit.role === 'executante' &&
       doc.created_by !== user.id &&

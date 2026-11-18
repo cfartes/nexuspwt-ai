@@ -10,11 +10,13 @@ export default function AdminPanel({
   online,
   reload,
   onError,
+  onManagePeople,
 }: {
   ws: WorkspaceData;
   online: boolean;
   reload: () => Promise<unknown>;
   onError: (s: string) => void;
+  onManagePeople: () => void;
 }) {
   const [action, setAction] = useState('contractor'),
     [busy, setBusy] = useState(false),
@@ -76,6 +78,9 @@ export default function AdminPanel({
             </h2>
             <p>Empresa, regionais, unidades, terceirizadas e acessos.</p>
           </div>
+          <button type="button" className="secondary" onClick={onManagePeople}>
+            Gerenciar pessoas e acessos
+          </button>
         </div>
         {!admin ? (
           <div className="settings-empty">Seu perfil não permite gerenciar cadastros.</div>
@@ -91,6 +96,8 @@ export default function AdminPanel({
                 data[key] = value;
               });
               if (action === 'unit') data.regionId = data.regionId || null;
+              if (['user', 'membership'].includes(action))
+                data.contractorId = data.contractorId || null;
               setBusy(true);
               setSuccess('');
               try {
@@ -162,6 +169,17 @@ export default function AdminPanel({
                       <option value="admin">Administrador da unidade</option>
                     </select>
                   </label>
+                  <label>
+                    Vínculo nesta unidade
+                    <select name="contractorId">
+                      <option value="">Equipe própria da contratante</option>
+                      {ws.contractors.map((c) => (
+                        <option value={c.id} key={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </>
               )}
               {action === 'user' && (
@@ -217,7 +235,7 @@ export default function AdminPanel({
                     <select name="userId" required>
                       <option value="">Selecione</option>
                       {ws.people
-                        .filter((p) => p.role !== 'executante')
+                        .filter((p) => p.role !== 'executante' && p.active)
                         .map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}

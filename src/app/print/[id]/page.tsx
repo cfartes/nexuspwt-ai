@@ -1,4 +1,4 @@
-import { currentUser, unitAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { uuid } from '@/lib/validation';
 import { visibleSections } from '@/lib/forms';
@@ -44,6 +44,11 @@ export default async function PrintPage({
     starts_at: archived?.snapshot.starts_at || doc.starts_at.toISOString(),
     ends_at: archived?.snapshot.ends_at || doc.ends_at.toISOString(),
   } as DocumentRow & { contractor: string; unit: string; company: string };
+  try {
+    assertContractorAccess(unit, d.contractor_id);
+  } catch {
+    notFound();
+  }
   const {
     rows: [contractor],
   } = await db.query('SELECT name FROM contractors WHERE id=$1', [d.contractor_id]);

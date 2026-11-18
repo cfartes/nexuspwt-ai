@@ -523,52 +523,89 @@ export default function DocumentEditor({
                 </p>
               </div>
               <fieldset disabled={readOnly}>
-                {ws.people.map((person) => {
-                  const item = d.data.executors.find((e) => e.userId === person.id);
-                  return (
-                    <div key={person.id} className="executor-row">
-                      <label className="checkbox-line">
-                        <input
-                          type="checkbox"
-                          checked={!!item}
-                          onChange={(e) =>
-                            setD((prev) => ({
-                              ...prev,
-                              data: {
-                                ...prev.data,
-                                executors: e.target.checked
-                                  ? [...prev.data.executors, { userId: person.id, role: '' }]
-                                  : prev.data.executors.filter((x) => x.userId !== person.id),
-                              },
-                            }))
-                          }
-                        />
-                        <span>
-                          <strong>{person.name}</strong>
-                          <small>{person.email}</small>
-                        </span>
-                      </label>
-                      {item && (
-                        <input
-                          aria-label={'Função de ' + person.name}
-                          placeholder="Função na atividade"
-                          value={item.role}
-                          onChange={(e) =>
-                            setD((prev) => ({
-                              ...prev,
-                              data: {
-                                ...prev.data,
-                                executors: prev.data.executors.map((x) =>
-                                  x.userId === person.id ? { ...x, role: e.target.value } : x,
-                                ),
-                              },
-                            }))
-                          }
-                        />
-                      )}
+                {ws.people
+                  .filter(
+                    (person) =>
+                      d.data.executors.some((e) => e.userId === person.id) ||
+                      (person.active !== false &&
+                        (!person.contractor_id || person.contractor_id === d.contractorId)),
+                  )
+                  .map((person) => {
+                    const item = d.data.executors.find((e) => e.userId === person.id);
+                    return (
+                      <div key={person.id} className="executor-row">
+                        <label className="checkbox-line">
+                          <input
+                            type="checkbox"
+                            checked={!!item}
+                            disabled={person.active === false && !item}
+                            onChange={(e) =>
+                              setD((prev) => ({
+                                ...prev,
+                                data: {
+                                  ...prev.data,
+                                  executors: e.target.checked
+                                    ? [...prev.data.executors, { userId: person.id, role: '' }]
+                                    : prev.data.executors.filter((x) => x.userId !== person.id),
+                                },
+                              }))
+                            }
+                          />
+                          <span>
+                            <strong>{person.name}</strong>
+                            <small>{person.email}</small>
+                            {person.active === false && (
+                              <small>Acesso desativado nesta unidade</small>
+                            )}
+                          </span>
+                        </label>
+                        {item && (
+                          <input
+                            aria-label={'Função de ' + person.name}
+                            placeholder="Função na atividade"
+                            value={item.role}
+                            onChange={(e) =>
+                              setD((prev) => ({
+                                ...prev,
+                                data: {
+                                  ...prev.data,
+                                  executors: prev.data.executors.map((x) =>
+                                    x.userId === person.id ? { ...x, role: e.target.value } : x,
+                                  ),
+                                },
+                              }))
+                            }
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                {d.data.executors
+                  .filter((executor) => !ws.people.some((person) => person.id === executor.userId))
+                  .map((executor) => (
+                    <div className="executor-row" key={executor.userId}>
+                      <span>
+                        Executante sem acesso atual<small>{executor.userId}</small>
+                      </span>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() =>
+                          setD((prev) => ({
+                            ...prev,
+                            data: {
+                              ...prev.data,
+                              executors: prev.data.executors.filter(
+                                (e) => e.userId !== executor.userId,
+                              ),
+                            },
+                          }))
+                        }
+                      >
+                        Remover do rascunho
+                      </button>
                     </div>
-                  );
-                })}
+                  ))}
               </fieldset>
             </>
           )}

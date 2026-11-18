@@ -5,7 +5,22 @@ import { assertOrigin, hashPassword, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { uuid } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
+import { saveMembership } from '@/lib/memberships';
+import { whatsappChatId } from '@/lib/openwa';
 const name = z.string().trim().min(2).max(200);
+const phone = z
+  .string()
+  .trim()
+  .max(25)
+  .refine((value) => {
+    try {
+      whatsappChatId(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Informe telefone internacional com DDI e DDD.');
+const role = z.enum(['admin', 'gestor', 'aprovador', 'executante']);
 const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('company'), unitId: uuid, name }),
   z.object({ action: z.literal('region'), unitId: uuid, name }),
@@ -28,16 +43,30 @@ const schema = z.discriminatedUnion('action', [
     unitId: uuid,
     name,
     email: z.email().transform((v) => v.toLowerCase()),
-    phone: z.string().regex(/^\+?[0-9 ()-]{8,25}$/),
+    phone,
     password: z.string().min(12).max(256),
-    role: z.enum(['admin', 'gestor', 'aprovador', 'executante']),
+    role,
+    contractorId: uuid.nullable().default(null),
   }),
   z.object({
     action: z.literal('membership'),
     unitId: uuid,
     email: z.email().transform((v) => v.toLowerCase()),
-    role: z.enum(['admin', 'gestor', 'aprovador', 'executante']),
+    role,
+    contractorId: uuid.nullable().default(null),
   }),
+  z
+    .object({
+      action: z.literal('updateMembership'),
+      unitId: uuid,
+      userId: uuid,
+      version: z.number().int().positive(),
+      role,
+      active: z.boolean(),
+      contractorId: uuid.nullable(),
+      phone: z.union([phone, z.literal('')]),
+    })
+    .strict(),
   z.object({
     action: z.literal('approver'),
     unitId: uuid,
@@ -54,6 +83,7 @@ export async function POST(request: Request) {
     const input = schema.parse(await request.json());
     const unit = await unitAccess(user, input.unitId, ['admin']);
     await transaction(async (c) => {
+      await unitAccess(user, unit.id, ['admin'], c);
       const company = unit.company_id;
       switch (input.action) {
         case 'company': {
@@ -71,7 +101,10 @@ export async function POST(request: Request) {
             "INSERT INTO units(company_id,name,kind) VALUES($1,'Unidade inicial','Escritório') RETURNING id",
             [co.id],
           );
-          await c.query("INSERT INTO memberships VALUES($1,$2,'admin')", [user.id, u.id]);
+          await c.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
+            user.id,
+            u.id,
+          ]);
           break;
         }
         case 'region':
@@ -87,9 +120,12 @@ export async function POST(request: Request) {
             'INSERT INTO units(company_id,name,kind,region_id) VALUES($1,$2,$3,$4) RETURNING id',
             [company, input.name, input.kind, input.regionId],
           );
-          await c.query("INSERT INTO memberships VALUES($1,$2,'admin')", [user.id, u.id]);
+          await c.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
+            user.id,
+            u.id,
+          ]);
           await c.query(
-            "INSERT INTO memberships(user_id,unit_id,role) SELECT DISTINCT user_id,$1,'aprovador' FROM approvers WHERE region_id=$2 ON CONFLICT DO NOTHING",
+            "INSERT INTO memberships(user_id,unit_id,role) SELECT DISTINCT user_id,$1::uuid,'aprovador' FROM approvers WHERE region_id=$2 ON CONFLICT DO NOTHING",
             [u.id, input.regionId],
           );
           break;
@@ -122,7 +158,7 @@ export async function POST(request: Request) {
             'INSERT INTO users(name,email,phone,password_hash) VALUES($1,$2,$3,$4) RETURNING id',
             [input.name, input.email, input.phone, hashPassword(input.password)],
           );
-          await c.query('INSERT INTO memberships VALUES($1,$2,$3)', [u.id, unit.id, input.role]);
+          await saveMembership(c, user, unit.id, u.id, input);
           break;
         }
         case 'membership': {
@@ -134,23 +170,28 @@ export async function POST(request: Request) {
             [input.email, company],
           );
           if (!u) throw new HttpError(404, 'Usuário não encontrado nesta empresa.');
-          await c.query(
-            'INSERT INTO memberships VALUES($1,$2,$3) ON CONFLICT(user_id,unit_id) DO UPDATE SET role=EXCLUDED.role',
-            [u.id, unit.id, input.role],
-          );
+          await saveMembership(c, user, unit.id, u.id, input);
+          break;
+        }
+        case 'updateMembership': {
+          await saveMembership(c, user, unit.id, input.userId, input);
           break;
         }
         case 'approver': {
           if (!(input.kind === 'APR' ? aprProfiles : ptProfiles).includes(input.profile))
             throw new HttpError(400, 'Perfil de aprovação inválido.');
-          const { rowCount } = await c.query(
-            "SELECT 1 FROM memberships WHERE user_id=$1 AND unit_id=$2 AND role IN ('admin','gestor','aprovador')",
+          const {
+            rows: [approver],
+          } = await c.query(
+            "SELECT contractor_id FROM memberships WHERE user_id=$1 AND unit_id=$2 AND active AND role IN ('admin','gestor','aprovador')",
             [input.userId, unit.id],
           );
-          if (!rowCount)
+          if (!approver)
             throw new HttpError(400, 'Vincule o aprovador à unidade com um perfil habilitado.');
           if (input.scope === 'region' && !unit.region_id)
             throw new HttpError(400, 'Esta unidade não pertence a uma regional.');
+          if (input.scope === 'region' && approver.contractor_id)
+            throw new HttpError(400, 'Aprovador regional deve pertencer à equipe própria.');
           await c.query(
             'INSERT INTO approvers(company_id,unit_id,region_id,user_id,kind,profile) VALUES($1,$2,$3,$4,$5,$6)',
             [
@@ -164,7 +205,7 @@ export async function POST(request: Request) {
           );
           if (input.scope === 'region')
             await c.query(
-              "INSERT INTO memberships(user_id,unit_id,role) SELECT $1,id,'aprovador' FROM units WHERE region_id=$2 ON CONFLICT DO NOTHING",
+              "INSERT INTO memberships(user_id,unit_id,role) SELECT $1::uuid,id,'aprovador' FROM units WHERE region_id=$2 ON CONFLICT DO NOTHING",
               [input.userId, unit.region_id],
             );
           break;

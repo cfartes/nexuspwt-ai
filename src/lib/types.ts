@@ -7,8 +7,18 @@ export type Unit = {
   kind: string;
   region_id: string | null;
   role: string;
+  contractor_id: string | null;
 };
-export type Person = { id: string; name: string; email: string; phone: string; role: string };
+export type Person = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  active: boolean;
+  contractor_id: string | null;
+  membership_version: number;
+};
 export type DocumentRow = {
   id: string;
   unit_id: string;

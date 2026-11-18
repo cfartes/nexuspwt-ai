@@ -34,7 +34,10 @@ try {
         "INSERT INTO users(name,email,password_hash,platform_admin) VALUES('Administrador',$1,$2,true) RETURNING id",
         [email, hash],
       );
-      await db.query("INSERT INTO memberships VALUES($1,$2,'admin')", [user.id, unit.id]);
+      await db.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
+        user.id,
+        unit.id,
+      ]);
       console.log('Empresa, unidade piloto e administrador criados.');
     } else console.log('Administrador já existe; credenciais preservadas.');
   }

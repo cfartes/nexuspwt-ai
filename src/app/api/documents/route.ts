@@ -1,4 +1,4 @@
-import { currentUser, unitAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { transaction } from '@/lib/db';
 import { assertOrigin, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     const user = await currentUser();
     const d = documentSchema.parse(await request.json());
     const unit = await unitAccess(user, d.unitId, ['admin', 'gestor', 'aprovador', 'executante']);
+    assertContractorAccess(unit, d.contractorId);
     const result = await transaction(async (c) => {
       // Serialize creates and retries by client-generated UUID; synchronization is idempotent.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [d.id]);
@@ -18,6 +19,20 @@ export async function POST(request: Request) {
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [d.id]);
       if (existing && existing.unit_id !== unit.id)
         throw new HttpError(403, 'Documento indisponível.');
+      if (existing) assertContractorAccess(unit, existing.contractor_id);
+      if (
+        existing?.kind === 'PT' &&
+        (existing.contractor_id !== d.contractorId || existing.apr_id !== d.aprId)
+      ) {
+        const { rowCount } = await c.query('SELECT 1 FROM photos WHERE document_id=$1 LIMIT 1', [
+          d.id,
+        ]);
+        if (rowCount)
+          throw new HttpError(
+            409,
+            'PT com evidências não pode mudar de terceirizada ou APR. Crie uma nova PT.',
+          );
+      }
       if (existing && existing.created_by !== user.id && !['admin', 'gestor'].includes(unit.role))
         throw new HttpError(403, 'Somente o autor ou gestor pode editar.');
       if (existing && existing.status === 'em_aprovacao')
@@ -61,8 +76,8 @@ export async function POST(request: Request) {
       }
       for (const executor of d.data.executors) {
         const { rowCount } = await c.query(
-          'SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.unit_id=$2 AND u.active',
-          [executor.userId, unit.id],
+          'SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.unit_id=$2 AND u.active AND m.active AND (m.contractor_id IS NULL OR m.contractor_id=$3)',
+          [executor.userId, unit.id, d.contractorId],
         );
         if (!rowCount) throw new HttpError(400, 'Executante sem acesso à unidade.');
       }

@@ -30,10 +30,17 @@ export async function unitAccess(
   const {
     rows: [unit],
   } = await client.query(
-    'SELECT u.*,m.role FROM units u JOIN memberships m ON m.unit_id=u.id WHERE u.id=$1 AND m.user_id=$2',
+    'SELECT u.*,c.name company_name,m.role,m.contractor_id FROM units u JOIN companies c ON c.id=u.company_id JOIN memberships m ON m.unit_id=u.id WHERE u.id=$1 AND m.user_id=$2 AND m.active',
     [unitId, user.id],
   );
   if (!unit || (roles && !roles.includes(unit.role)))
     throw new HttpError(403, 'Sem permissão nesta unidade.');
   return unit;
+}
+export function assertContractorAccess(
+  unit: { contractor_id: string | null },
+  contractorId: string,
+) {
+  if (unit.contractor_id && unit.contractor_id !== contractorId)
+    throw new HttpError(403, 'Documento indisponível para a terceirizada vinculada ao seu acesso.');
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { currentUser, unitAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { transaction } from '@/lib/db';
 import { assertOrigin, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
@@ -24,6 +24,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
       if (!d) throw new HttpError(404, 'Documento não encontrado.');
       const unit = await unitAccess(user, d.unit_id, undefined, c);
+      assertContractorAccess(unit, d.contractor_id);
       if (d.version !== input.version)
         throw new HttpError(409, 'Versão desatualizada. Recarregue o documento.');
       if (input.action === 'revise') {
@@ -69,8 +70,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           );
         const profiles = d.kind === 'APR' ? aprProfiles : ptProfiles;
         const { rows: assignments } = await c.query(
-          'SELECT DISTINCT ON(profile) a.* FROM approvers a JOIN users u ON u.id=a.user_id AND u.active JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 WHERE a.company_id=$1 AND (a.unit_id=$2 OR a.region_id=$3) ORDER BY profile,a.unit_id NULLS LAST',
-          [unit.company_id, unit.id, unit.region_id],
+          "SELECT DISTINCT ON(profile) a.* FROM approvers a JOIN users u ON u.id=a.user_id AND u.active JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador') WHERE a.company_id=$1 AND (a.unit_id=$2 OR a.region_id=$3) AND (m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY profile,a.unit_id NULLS LAST",
+          [unit.company_id, unit.id, unit.region_id, d.contractor_id],
         );
         if (profiles.some((p) => !assignments.some((a) => a.profile === p)))
           throw new HttpError(400, 'Cadastre um aprovador para cada perfil deste documento.');

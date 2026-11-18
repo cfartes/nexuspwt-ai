@@ -44,7 +44,10 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
   } = await db.query<{ id: string }>(
     "INSERT INTO users(name,email,password_hash,phone) VALUES('Aprovador','test@example.com','hash','+55 11 99999-9999') RETURNING id",
   );
-  await db.query("INSERT INTO memberships VALUES($1,$2,'aprovador')", [user.id, unit.id]);
+  await db.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'aprovador')", [
+    user.id,
+    unit.id,
+  ]);
   const {
     rows: [contractor],
   } = await db.query<{ id: string }>(
@@ -140,6 +143,10 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
       sessionId: crypto.randomUUID(),
       sendNotifications: true,
     };
+    await db.query('UPDATE memberships SET phone=$2 WHERE user_id=$1', [
+      user.id,
+      '+55 21 98888-7777',
+    ]);
     await db.query(
       "INSERT INTO company_integrations(company_id,service,provider,settings,secret_ciphertext,updated_by) VALUES($1,'whatsapp','openwa',$2,$3,$4)",
       [company.id, JSON.stringify(settings), encryptSecret(key, company.id, 'whatsapp'), user.id],
@@ -148,12 +155,12 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
     await processNotification(pool);
     assert.equal((await row()).status, 'sent');
     assert.equal((await row()).attempts, 1);
-    assert.equal((await row()).recipient_hint, '••••9999');
+    assert.equal((await row()).recipient_hint, '••••7777');
     const send = request.mock.calls.find((call) =>
       String(call.arguments[0]).endsWith('send-text'),
     )!;
     const body = JSON.parse(String(send.arguments[1]?.body));
-    assert.equal(body.chatId, '5511999999999@c.us');
+    assert.equal(body.chatId, '5521988887777@c.us');
     assert(!body.text.includes('Atividade privada'));
     assert.equal(body.linkPreview, false);
     const count = request.mock.callCount();
@@ -188,6 +195,12 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
     assert.equal((await row()).status, 'cancelled');
     assert.equal(request.mock.callCount(), afterTimeout);
     await db.query("UPDATE memberships SET role='aprovador' WHERE user_id=$1", [user.id]);
+    await reset();
+    await db.query('UPDATE memberships SET active=false WHERE user_id=$1', [user.id]);
+    await processNotification(pool);
+    assert.equal((await row()).status, 'cancelled');
+    assert.equal(request.mock.callCount(), afterTimeout);
+    await db.query('UPDATE memberships SET active=true WHERE user_id=$1', [user.id]);
     await reset();
     await db.query('UPDATE documents SET version=2 WHERE id=$1', [id]);
     await processNotification(pool);

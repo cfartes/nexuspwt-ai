@@ -14,6 +14,12 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
     await db.exec(sql);
     await db.exec(integrationsSql);
     await db.exec(integrationsSql);
+    const membershipSql = await readFile(
+      new URL('../db/004-membership-management.sql', import.meta.url),
+      'utf8',
+    );
+    await db.exec(membershipSql);
+    await db.exec(membershipSql);
     const { rows: companies } = await db.query<{ id: string }>(
       "INSERT INTO companies(name) VALUES('Empresa A'),('Empresa B') RETURNING id",
     );
@@ -52,6 +58,24 @@ test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e fot
       rows: [user],
     } = await db.query<{ id: string }>(
       "INSERT INTO users(name,email,password_hash) VALUES('Ana','ana@example.com','hash') RETURNING id",
+    );
+    await assert.rejects(
+      db.query(
+        "INSERT INTO memberships(user_id,unit_id,role,contractor_id) VALUES($1,$2,'executante',$3)",
+        [user.id, unit.id, other.id],
+      ),
+      /foreign key/,
+    );
+    await assert.rejects(
+      db.query(
+        "INSERT INTO memberships(user_id,unit_id,role,contractor_id) VALUES($1,$2,'admin',$3)",
+        [user.id, unit.id, contractor.id],
+      ),
+      /check constraint/,
+    );
+    await db.query(
+      "INSERT INTO memberships(user_id,unit_id,role,contractor_id) VALUES($1,$2,'executante',$3)",
+      [user.id, unit.id, contractor.id],
     );
     const id = crypto.randomUUID();
     const insert =

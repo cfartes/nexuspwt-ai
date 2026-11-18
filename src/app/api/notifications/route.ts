@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { currentUser, unitAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
 import { uuid } from '@/lib/validation';
 import { assertOrigin, HttpError } from '@/lib/security';
@@ -13,8 +13,8 @@ export async function GET(request: Request) {
     const { rows } = await db.query(
       `SELECT n.id,n.document_id,n.version,n.status,n.attempts,n.created_at,n.updated_at,n.sent_at,n.last_error,n.recipient_hint,
       d.kind,d.number,u.name recipient FROM notification_outbox n JOIN documents d ON d.id=n.document_id JOIN users u ON u.id=n.user_id
-      WHERE d.unit_id=$1 AND ($2=ANY(ARRAY['admin','gestor']) OR n.user_id=$3) ORDER BY n.created_at DESC,n.id DESC LIMIT 100`,
-      [unit.id, unit.role, user.id],
+      WHERE d.unit_id=$1 AND ($4::uuid IS NULL OR d.contractor_id=$4) AND ($2=ANY(ARRAY['admin','gestor']) OR n.user_id=$3) ORDER BY n.created_at DESC,n.id DESC LIMIT 100`,
+      [unit.id, unit.role, user.id, unit.contractor_id],
     );
     return Response.json(
       { notifications: rows, canRetry: ['admin', 'gestor'].includes(unit.role) },
@@ -32,16 +32,17 @@ export async function POST(request: Request) {
       .object({ id: uuid, unitId: uuid, confirmDuplicateRisk: z.boolean().default(false) })
       .strict()
       .parse(await request.json());
-    await unitAccess(user, input.unitId, ['admin', 'gestor']);
+    const unit = await unitAccess(user, input.unitId, ['admin', 'gestor']);
     await transaction(async (c) => {
       const {
         rows: [job],
       } = await c.query(
-        `SELECT n.*,d.unit_id,d.version current_version,d.status document_status FROM notification_outbox n
+        `SELECT n.*,d.unit_id,d.contractor_id,d.version current_version,d.status document_status FROM notification_outbox n
         JOIN documents d ON d.id=n.document_id WHERE n.id=$1 AND d.unit_id=$2 FOR UPDATE OF n`,
         [input.id, input.unitId],
       );
       if (!job) throw new HttpError(404, 'Notificação não encontrada nesta unidade.');
+      assertContractorAccess(unit, job.contractor_id);
       if (!['blocked', 'uncertain'].includes(job.status))
         throw new HttpError(409, 'Esta notificação não está disponível para nova tentativa.');
       if (job.status === 'uncertain' && !input.confirmDuplicateRisk)

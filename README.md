@@ -9,6 +9,7 @@ Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e
 - Login individual, senha com scrypt, sessão em cookie HttpOnly, limite de tentativas e validação de origem nas alterações.
 - PostgreSQL com SQL parametrizado e migração inicial. Foi usado `pg` diretamente nesta primeira versão para evitar adicionar um ORM além do SQL necessário.
 - Empresa, regional, unidade, usuários por unidade, terceirizadas e autorização por unidade. Reutilize o mesmo CNPJ da terceirizada em outra unidade da empresa para criar o vínculo.
+- Gestão em **Pessoas e acessos**: telefone, perfil, terceirizada, ativação e desativação por unidade, com controle de versão e histórico. Mudanças não alteram o telefone global nem o acesso das outras unidades; a unidade não pode ficar sem administrador ativo.
 - Aprovadores locais e regionais; atribuição local tem precedência sobre regional para o mesmo perfil.
 - APR por serviço, etapas e riscos, controles obrigatórios, executantes e várias PTs vinculadas.
 - Checklists condicionais da PT e campos dos formulários descritos no Markdown original.
@@ -76,7 +77,7 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 - Impressão: modelo estruturado inicial, não homologado como reprodução fiel. Ainda faltam modelos originais em branco, papel, folhas de continuação e validação visual com o cliente. Upload e reconstrução automática de modelos não foram implementados.
 - Offline: primeiro login e download do workspace exigem internet. O acesso offline se limita à sessão previamente autenticada na mesma aba. A sincronização requer app aberto/reaberto; não há promessa de envio com app fechado. Fechar sem salvar perde as alterações do formulário.
 - Dados locais são separados por usuário e removidos no logout; logout é bloqueado quando há fila pendente. Limpar dados do navegador ou perder o aparelho pode eliminar itens ainda não sincronizados. Dispositivo compartilhado precisa de proteção local antes do uso operacional.
-- Acesso executante lista apenas documentos próprios, PTs em que está vinculado e APRs aprovadas da unidade. Ainda falta associar o empregador ao cadastro do usuário para restringir também por terceirizada.
+- Acesso executante lista apenas documentos próprios, PTs em que está vinculado e APRs aprovadas da unidade. Quando o acesso está vinculado a uma terceirizada, todas essas consultas e operações ficam limitadas a ela, inclusive fotos, histórico, impressão e avisos. Equipe própria (`contractor_id` nulo) mantém o alcance do seu perfil na unidade. Cadastros antigos sem vínculo são preservados como equipe própria; revise a classificação antes de incluir usuários reais de terceiros.
 - O isolamento usa permissões no servidor e chaves compostas entre empresa/unidade/terceirizada; políticas RLS no PostgreSQL ainda não foram implementadas. Homologação de segurança é necessária antes de expor dados reais de múltiplos clientes.
 - Guarda de cinco anos é requisito registrado, não uma política de backup já executada. Antes do uso real, definir o marco inicial da retenção, configurar backups externos de banco e certificado e testar restauração. Não existe exclusão automática.
 - IA, cobrança do SaaS e integração com cloud do cliente ficam fora desta primeira etapa.
@@ -84,7 +85,7 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 
 ## Configurar integrações
 
-1. Atualize o banco com `npm run db:setup` (ou `docker compose exec app node scripts/setup.mjs`). As migrações `002-integrations.sql` e `003-notifications.sql` são aditivas e não removem documentos.
+1. Atualize o banco com `npm run db:setup` (ou `docker compose exec app node scripts/setup.mjs`). As migrações `002-integrations.sql`, `003-notifications.sql` e `004-membership-management.sql` são aditivas e não removem documentos.
 2. Gere `INTEGRATIONS_ENCRYPTION_KEY` com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e configure no ambiente do servidor. São 64 caracteres hexadecimais. Faça backup seguro dessa chave; substituí-la sem recriptografar as credenciais impede sua leitura.
 3. Configure `OPENWA_ALLOWED_ORIGINS` com a origem HTTPS do gateway autorizado e `OPENWA_DEFAULT_URL` com sua URL raiz ou base `/api`. O valor do guia recebido deve ser configurado no ambiente privado; o guia com senhas do painel não é copiado para o projeto.
 4. Acesse **Configurações** com um administrador da plataforma que também administre a unidade. As integrações pertencem à empresa e afetam todas as suas unidades; um administrador apenas da unidade não pode alterá-las.
@@ -111,3 +112,11 @@ O processo trata um aviso a cada cinco segundos e usa uma trava global no Postgr
 Timeout, resposta sem confirmação ou interrupção durante envio deixam o resultado **incerto**, sem repetição automática. Isso evita duplicar mensagens quando o gateway pode ter aceitado a primeira tentativa. Administrador/gestor pode solicitar nova tentativa, confirmando o risco de duplicidade após conferir o painel do OpenWA. Essa ação fica no histórico do documento. Avisos aceitos pelo gateway não são reenviados automaticamente; não há confirmação de entrega ou leitura, pois os webhooks ainda não foram integrados.
 
 Nenhuma aprovação é executada pelo link ou pela mensagem. O usuário precisa entrar no app e registrar sua decisão. Desabilitar o envio afeta as próximas preparações; uma requisição já em andamento pode terminar. Mensagens ao solicitante após a decisão, lembretes periódicos, grupos e anexos não fazem parte desta etapa.
+
+## Gerenciar pessoas por unidade
+
+No cadastro de usuário ou vínculo de uma conta existente, escolha **Equipe própria da contratante** ou uma terceirizada autorizada. Em **Pessoas e acessos → Editar acesso**, o administrador da unidade pode corrigir o telefone, mudar o perfil/vínculo ou desativar o acesso. O e-mail de login, nome global, senha e a conta não são modificados por essa tela. Um usuário pode manter acessos e contatos diferentes em outras unidades. Telefone vazio na edição suspende avisos de WhatsApp naquela unidade, sem voltar silenciosamente ao número global.
+
+Administrador da unidade precisa pertencer à equipe própria. Aprovador regional também permanece na equipe própria; para alterar esse vínculo, é preciso ajustar a atribuição regional antes. A interface de substituição/remoção das atribuições regionais ainda está pendente. A desativação do próprio acesso deve ser feita por outro administrador; o último administrador ativo não pode ser removido ou rebaixado, inclusive pelo cadastro de vínculo de conta existente.
+
+A desativação impede novas requisições online e cancela avisos pendentes quando o processo os reavalia. Não apaga assinaturas, fotos, decisões nem cópias já baixadas em dispositivos offline. Mudanças só passam pela validação do servidor após reconectar. PTs com fotos não podem trocar de terceirizada ou APR; crie uma nova PT para preservar o contexto das evidências. O envio de foto e a alteração da PT usam a mesma trava do documento para evitar troca de vínculo durante uma captura em trânsito.

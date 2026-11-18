@@ -28,6 +28,7 @@ import * as offline from '@/lib/offline';
 import DocumentEditor from './document-editor';
 import AdminPanel from './admin-panel';
 import NotificationPanel from './notification-panel';
+import PeoplePanel from './people-panel';
 type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'contractors' | 'people' | 'settings';
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
@@ -92,8 +93,8 @@ export default function Workspace() {
           return cached as WorkspaceData;
         }
       }
-      if (status === 401) setWs(null);
-      else setError((e as Error).message);
+      if (status === 401 || status === 403) setWs(null);
+      if (status !== 401) setError((e as Error).message);
       return null;
     } finally {
       setLoading(false);
@@ -630,41 +631,16 @@ export default function Workspace() {
           )}
           {tab === 'approvals' && <NotificationPanel unitId={unit.id} online={online} />}
           {tab === 'people' && (
-            <section className="card">
-              <div className="card-heading">
-                <div>
-                  <h2>Pessoas da unidade</h2>
-                  <p>Contas individuais e permissões de acesso.</p>
-                </div>
-              </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Nome</th>
-                      <th>E-mail</th>
-                      <th>Perfil</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ws.people.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <strong>{p.name}</strong>
-                        </td>
-                        <td>{p.email}</td>
-                        <td>
-                          <span className="badge">{p.role}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <PeoplePanel key={unit.id} ws={ws} online={online} reload={() => load(unit.id)} />
           )}
           {tab === 'settings' && (
-            <AdminPanel ws={ws} online={online} reload={() => load(unit.id)} onError={setError} />
+            <AdminPanel
+              ws={ws}
+              online={online}
+              reload={() => load(unit.id)}
+              onError={setError}
+              onManagePeople={() => setTab('people')}
+            />
           )}
           <footer className="page-footer">
             <span>Nexus PTW AI</span>
@@ -847,7 +823,11 @@ function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unkno
               const f = new FormData(e.currentTarget);
               try {
                 await api('/api/auth', { email: f.get('email'), password: f.get('password') });
-                await onLogin();
+                const result = await onLogin();
+                if (!result)
+                  setMessage(
+                    'Não foi possível abrir o workspace. Verifique seu acesso ativo com o administrador.',
+                  );
               } catch (err) {
                 setMessage((err as Error).message);
               } finally {
