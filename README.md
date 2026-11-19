@@ -5,6 +5,8 @@ Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e
 
 ## Implementado
 
+O acompanhamento da implementação e das diretrizes recebidas está em [Implementado](docs/IMPLEMENTADO.md) e [Pendente](docs/PENDENTE.md). Esses registros distinguem os recursos existentes das adequações arquiteturais, de segurança, privacidade e acessibilidade ainda necessárias.
+
 - Next.js, React e TypeScript, interface responsiva em português.
 - Login individual, senha com scrypt, sessão em cookie HttpOnly, limite de tentativas e validação de origem nas alterações.
 - PostgreSQL com SQL parametrizado e migração inicial. Foi usado `pg` diretamente nesta primeira versão para evitar adicionar um ORM além do SQL necessário.
