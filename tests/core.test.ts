@@ -32,14 +32,14 @@ const draft = (): DocumentInput => ({
     executors: [],
   },
 });
-test('senhas têm salt individual e não aceitam senha incorreta', () => {
+await test('senhas têm salt individual e não aceitam senha incorreta', () => {
   const first = hashPassword('senha-individual-123');
   assert.notEqual(first, hashPassword('senha-individual-123'));
   assert.equal(verifyPassword('senha-individual-123', first), true);
   assert.equal(verifyPassword('outra-senha', first), false);
   assert.equal(verifyPassword('senha', 'inválido'), false);
 });
-test('origem externa não pode efetuar alterações autenticadas', () => {
+await test('origem externa não pode efetuar alterações autenticadas', () => {
   process.env.APP_URL = 'https://nexus.example';
   assert.throws(() =>
     assertOrigin(
@@ -56,7 +56,7 @@ test('origem externa não pode efetuar alterações autenticadas', () => {
     ),
   );
 });
-test('risco sem controle e datas invertidas impedem salvar', () => {
+await test('risco sem controle e datas invertidas impedem salvar', () => {
   const d = draft();
   assert.equal(documentSchema.safeParse(d).success, true);
   d.data.risks[0].controls = '';
@@ -65,7 +65,7 @@ test('risco sem controle e datas invertidas impedem salvar', () => {
   d.endsAt = '2026-11-16';
   assert.equal(documentSchema.safeParse(d).success, false);
 });
-test('PT precisa de APR e APR não vincula outra APR', () => {
+await test('PT precisa de APR e APR não vincula outra APR', () => {
   const d = draft();
   d.kind = 'PT';
   assert.equal(documentSchema.safeParse(d).success, false);
@@ -74,7 +74,7 @@ test('PT precisa de APR e APR não vincula outra APR', () => {
   d.kind = 'APR';
   assert.equal(documentSchema.safeParse(d).success, false);
 });
-test('checklists aparecem pelo tipo e bloqueio de energia', () => {
+await test('checklists aparecem pelo tipo e bloqueio de energia', () => {
   const sections = visibleSections(['Trabalho em altura', 'Substâncias perigosas'], {
     's11.q9': 'Sim',
   }).map((s) => s.id);
@@ -84,7 +84,7 @@ test('checklists aparecem pelo tipo e bloqueio de energia', () => {
   assert(!sections.includes('s12'));
   assert(!sections.includes('s14'));
 });
-test('APR incompleta não pode ir para análise', () => {
+await test('APR incompleta não pode ir para análise', () => {
   const d = draft();
   assert.deepEqual(submissionErrors(d), []);
   d.data.risks = [];

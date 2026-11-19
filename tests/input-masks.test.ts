@@ -5,7 +5,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MaskedInput from '../src/components/masked-input';
 
-test('máscaras CPF, CNPJ e CEP são progressivas e guardam valores sem pontuação', () => {
+await test('máscaras CPF, CNPJ e CEP são progressivas e guardam valores sem pontuação', () => {
   for (const [kind, raw, formatted] of [
     ['cpf', '12345678901', '123.456.789-01'],
     ['cnpj', '11222333000181', '11.222.333/0001-81'],
@@ -26,7 +26,7 @@ test('máscaras CPF, CNPJ e CEP são progressivas e guardam valores sem pontuaç
   assert.equal(unmask('00.000.000/E08G-12', 'cnpj', true), '00000000E08G12');
 });
 
-test('campo exibe máscara e envia somente o valor sem pontuação no formulário', () => {
+await test('campo exibe máscara e envia somente o valor sem pontuação no formulário', () => {
   const html = renderToStaticMarkup(
     createElement(MaskedInput, {
       kind: 'cnpj',

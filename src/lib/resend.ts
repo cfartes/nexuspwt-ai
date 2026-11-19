@@ -30,10 +30,8 @@ export async function sendResendEmail(
       error: 'Resend recusou o envio. Confira a chave, o remetente verificado e os limites.',
     };
   if (response.ok) {
-    try {
-      const data = await response.json();
-      if (typeof data.id === 'string') return { status: 'sent', error: null };
-    } catch {}
+    const data = await response.json().catch(() => null);
+    if (data && typeof data.id === 'string') return { status: 'sent', error: null };
   }
   return {
     status: 'uncertain',

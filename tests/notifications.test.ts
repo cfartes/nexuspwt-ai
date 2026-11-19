@@ -9,7 +9,7 @@ import { processNotification, approvalMessage } from '../src/lib/notifications';
 import { encryptSecret } from '../src/lib/integrations';
 import { whatsappChatId, sendOpenwaText } from '../src/lib/openwa';
 
-test('mensagem contém somente referência e link autenticado; telefone internacional é normalizado', () => {
+await test('mensagem contém somente referência e link autenticado; telefone internacional é normalizado', () => {
   process.env.APP_URL = 'https://nexus.example';
   assert.equal(whatsappChatId('+55 (11) 99999-9999'), '5511999999999@c.us');
   assert.throws(() => whatsappChatId('grupo@g.us'));
@@ -21,7 +21,7 @@ test('mensagem contém somente referência e link autenticado; telefone internac
   process.env.APP_URL = 'http://dominio-sem-https.example';
   assert.throws(() => approvalMessage(id, 2, 'APR', '123'));
 });
-test('processo envia uma vez e suspende resultados incertos; ignora decisões concluídas e acessos removidos', async () => {
+await test('processo envia uma vez e suspende resultados incertos; ignora decisões concluídas e acessos removidos', async () => {
   process.env.APP_URL = 'https://nexus.example';
   process.env.OPENWA_ALLOWED_ORIGINS = 'https://openwa.example.com';
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'c'.repeat(64);
@@ -83,7 +83,7 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
     connectionString: 'postgresql://postgres:postgres@127.0.0.1:55440/postgres',
     max: 1,
   });
-  const request = mock.method(globalThis, 'fetch', async (url: unknown, options?: RequestInit) =>
+  const request = mock.method(globalThis, 'fetch', async (url: unknown) =>
     String(url).endsWith('send-text')
       ? Response.json({ success: true, messageId: 'simulado' })
       : Response.json({ status: 'READY' }),
@@ -233,7 +233,7 @@ test('processo envia uma vez e suspende resultados incertos; ignora decisões co
     await db.close();
   }
 });
-test('resposta sem confirmação e erro após POST não provocam repetição automática', async () => {
+await test('resposta sem confirmação e erro após POST não provocam repetição automática', async () => {
   process.env.OPENWA_ALLOWED_ORIGINS = 'https://openwa.example.com';
   const request = mock.method(
     globalThis,
@@ -250,6 +250,10 @@ test('resposta sem confirmação e erro após POST não provocam repetição aut
   try {
     assert.equal((await sendOpenwaText(...args)).status, 'uncertain');
     request.mock.mockImplementation(async () => Response.json({}));
+    assert.equal((await sendOpenwaText(...args)).status, 'uncertain');
+    request.mock.mockImplementation(async () => new Response('resposta sem JSON'));
+    assert.equal((await sendOpenwaText(...args)).status, 'uncertain');
+    request.mock.mockImplementation(async () => Response.json(null));
     assert.equal((await sendOpenwaText(...args)).status, 'uncertain');
     request.mock.mockImplementation(async () => new Response('negado', { status: 403 }));
     assert.equal((await sendOpenwaText(...args)).status, 'blocked');

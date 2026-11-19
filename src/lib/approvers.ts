@@ -94,7 +94,7 @@ export async function reassignApproval(
   const {
     rows: [target],
   } = await client.query(
-    `SELECT a.document_id FROM approvals a JOIN documents d ON d.id=a.document_id WHERE a.id=$1 AND d.unit_id=$2`,
+    'SELECT a.document_id FROM approvals a JOIN documents d ON d.id=a.document_id WHERE a.id=$1 AND d.unit_id=$2',
     [input.id, unitId],
   );
   if (!target) throw new HttpError(404, 'Aprovação não encontrada nesta unidade.');

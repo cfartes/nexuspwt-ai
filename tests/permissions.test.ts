@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allowedMenus, canViewAudit, companyManager } from '../src/lib/permissions';
 
-test('menus seguem a matriz e somente administradores da empresa acessam configurações compartilhadas', () => {
+await test('menus seguem a matriz e somente administradores da empresa acessam configurações compartilhadas', () => {
   const ordinary = { platform_admin: false };
   for (const role of ['gestor', 'seguranca_trabalho', 'aprovador', 'executante']) {
     const menus = allowedMenus(ordinary, { role });

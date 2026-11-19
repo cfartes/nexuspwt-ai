@@ -9,7 +9,7 @@ import { createInvitation } from '../src/lib/invitations';
 import type { User } from '../src/lib/auth';
 import { saveMembership } from '../src/lib/memberships';
 
-test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões e preservação do histórico', async () => {
+await test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões e preservação do histórico', async () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'f'.repeat(64);
   const db = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))

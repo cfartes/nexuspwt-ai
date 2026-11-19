@@ -56,7 +56,7 @@ export async function authenticateDecision(
     const {
       rows: [row],
     } = await c.query(
-      `SELECT s.*,u.password_hash,u.active,u.password_pending FROM user_security s JOIN users u ON u.id=s.user_id WHERE s.user_id=$1 FOR UPDATE OF s`,
+      'SELECT s.*,u.password_hash,u.active,u.password_pending FROM user_security s JOIN users u ON u.id=s.user_id WHERE s.user_id=$1 FOR UPDATE OF s',
       [user.id],
     );
     if (Date.now() - new Date(row.window_at).getTime() >= 900000) {
@@ -197,7 +197,7 @@ export async function recordIdentity(
   const {
     rows: [person],
   } = await c.query(
-    `SELECT u.name,u.email,u.platform_admin,u.password_pending,COALESCE(m.phone,u.phone) phone,m.contractor_id,m.version FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.unit_id=$2 AND u.active AND m.active FOR UPDATE OF m`,
+    'SELECT u.name,u.email,u.platform_admin,u.password_pending,COALESCE(m.phone,u.phone) phone,m.contractor_id,m.version FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.unit_id=$2 AND u.active AND m.active FOR UPDATE OF m',
     [userId, unitId],
   );
   if (!person || person.password_pending || (!actor.platform_admin && person.platform_admin))

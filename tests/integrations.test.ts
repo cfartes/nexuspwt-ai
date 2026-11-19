@@ -16,7 +16,7 @@ import {
 } from '../src/lib/openwa';
 import { apiError } from '../src/lib/http';
 
-test('OpenWA 429: respeita a janela esgotada, preserva Retry-After e suspende novas chamadas', async () => {
+await test('OpenWA 429: respeita a janela esgotada, preserva Retry-After e suspende novas chamadas', async () => {
   process.env.OPENWA_ALLOWED_ORIGINS = 'https://rate-openwa.example.com';
   assert.equal(openwaRetryAfter(new Headers({ 'Retry-After': '12' })), 12);
   assert.equal(
@@ -82,7 +82,7 @@ test('OpenWA 429: respeita a janela esgotada, preserva Retry-After e suspende no
   }
 });
 
-test('credenciais criptografadas são vinculadas à empresa e serviço e não aparecem na resposta', () => {
+await test('credenciais criptografadas são vinculadas à empresa e serviço e não aparecem na resposta', () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);
   const company = crypto.randomUUID(),
     value = 'token-de-teste-secreto';
@@ -108,7 +108,7 @@ test('credenciais criptografadas são vinculadas à empresa e serviço e não ap
   delete process.env.INTEGRATIONS_ENCRYPTION_KEY;
   assert.throws(() => encryptSecret(value, company, 'signature'));
 });
-test('configuração não aceita chave abreviada nem URL insegura', () => {
+await test('configuração não aceita chave abreviada nem URL insegura', () => {
   const input = {
     service: 'whatsapp',
     provider: 'openwa',
@@ -128,16 +128,15 @@ test('configuração não aceita chave abreviada nem URL insegura', () => {
       .success,
   );
 });
-test('teste OpenWA consulta somente a sessão autorizada, sem enviar mensagens', async () => {
+await test('teste OpenWA consulta somente a sessão autorizada, sem enviar mensagens', async () => {
   process.env.OPENWA_ALLOWED_ORIGINS = 'https://openwa.example.com';
   assert.equal(openwaBaseUrl('https://openwa.example.com/api/'), 'https://openwa.example.com/api');
   assert.throws(() => openwaBaseUrl('https://outro.example.com'));
   assert.throws(() => openwaBaseUrl('https://openwa.example.com/api/../../interno'));
   const session = crypto.randomUUID(),
     key = 'chave-de-teste';
-  const request = mock.method(globalThis, 'fetch', async (_url: unknown, _options: unknown) =>
-    Response.json({ status: 'READY' }),
-  );
+  const respond: typeof fetch = async () => Response.json({ status: 'READY' });
+  const request = mock.method(globalThis, 'fetch', respond);
   try {
     assert.deepEqual(await checkOpenwaSession('https://openwa.example.com', session, key), {
       connected: true,

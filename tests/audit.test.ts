@@ -8,7 +8,7 @@ import pg from 'pg';
 import { auditFilters, companyAudit } from '../src/lib/audit';
 import type { User } from '../src/lib/auth';
 
-test('auditoria exclusiva da empresa: isolamento, filtros, paginação e preservação após exclusão', async () => {
+await test('auditoria exclusiva da empresa: isolamento, filtros, paginação e preservação após exclusão', async () => {
   const embedded = await PGlite.create();
   const files = (await readdir(new URL('../db/', import.meta.url)))
     .filter((f) => f.endsWith('.sql'))

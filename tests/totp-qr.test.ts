@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { totpQrCode, totpUri } from '../src/lib/totp-qr';
 
-test('QR do autenticador usa otpauth com conta e parâmetros corretos, sem serviço externo', async () => {
+await test('QR do autenticador usa otpauth com conta e parâmetros corretos, sem serviço externo', async () => {
   const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
   const email = 'pessoa+teste&qr@example.com';
   const uri = new URL(totpUri(secret, email));

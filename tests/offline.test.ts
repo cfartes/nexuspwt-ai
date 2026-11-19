@@ -14,7 +14,7 @@ import {
 import type { DocumentInput } from '../src/lib/validation';
 import { ACCESS_POLICY_VERSION } from '../src/lib/permissions';
 
-test('cache anterior à matriz de acesso exige reconexão sem apagar a fila local', async () => {
+await test('cache anterior à matriz de acesso exige reconexão sem apagar a fila local', async () => {
   const user = crypto.randomUUID();
   try {
     await enqueue(user, { id: crypto.randomUUID(), path: '/api/documents', body: {} });
@@ -30,7 +30,7 @@ test('cache anterior à matriz de acesso exige reconexão sem apagar a fila loca
     await clearLocal(user);
   }
 });
-test('fila offline separa usuários e não apaga uma edição mais nova ao confirmar envio anterior', async () => {
+await test('fila offline separa usuários e não apaga uma edição mais nova ao confirmar envio anterior', async () => {
   const user = crypto.randomUUID(),
     other = crypto.randomUUID(),
     id = crypto.randomUUID();
@@ -52,7 +52,7 @@ test('fila offline separa usuários e não apaga uma edição mais nova ao confi
     await clearLocal(other);
   }
 });
-test('logout limpa workspace e rascunhos sem bloquear por conexões abertas', async () => {
+await test('logout limpa workspace e rascunhos sem bloquear por conexões abertas', async () => {
   const user = crypto.randomUUID();
   const unitId = crypto.randomUUID();
   await cacheWorkspace(user, { unit: { id: unitId } });

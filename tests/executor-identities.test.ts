@@ -17,7 +17,7 @@ import {
 import { decryptSecret } from '../src/lib/integrations';
 import { requiresLoginMfa, sessionEvidence } from '../src/lib/session-security';
 
-test('contratada cadastra somente sua equipe; documentos privados, revisão interna, reenvio e guarda de cinco anos', async () => {
+await test('contratada cadastra somente sua equipe; documentos privados, revisão interna, reenvio e guarda de cinco anos', async () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'b'.repeat(64);
   const embedded = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))

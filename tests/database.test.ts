@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
-test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e foto', async () => {
+await test('schema PostgreSQL: isolamento dos vínculos, integridade da revisão e foto', async () => {
   const db = await PGlite.create();
   try {
     const sql = await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8');

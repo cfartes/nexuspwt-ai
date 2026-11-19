@@ -81,7 +81,9 @@ export function sessionPhone(value: unknown, depth = 0): string | null {
     } else if (['id', '_serialized'].includes(field)) continue;
     try {
       return whatsappChatId(phone).split('@')[0];
-    } catch {}
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+    }
   }
   for (const field of ['me', 'wid', 'account', 'data', 'session']) {
     const phone = sessionPhone(item[field], depth + 1);
@@ -284,20 +286,18 @@ export async function sendOpenwaText(
       status: 'uncertain',
       error: 'OpenWA retornou erro após a tentativa. Confira o painel antes de reenviar.',
     };
-  try {
-    const body = await response.json();
-    if (
-      body &&
-      body.success !== false &&
-      !body.error &&
-      (body.success === true ||
-        typeof body.messageId === 'string' ||
-        typeof body.id === 'string' ||
-        typeof body.data?.messageId === 'string' ||
-        typeof body.data?.id === 'string')
-    )
-      return { status: 'sent', error: null };
-  } catch {}
+  const body = await response.json().catch(() => null);
+  if (
+    body &&
+    body.success !== false &&
+    !body.error &&
+    (body.success === true ||
+      typeof body.messageId === 'string' ||
+      typeof body.id === 'string' ||
+      typeof body.data?.messageId === 'string' ||
+      typeof body.data?.id === 'string')
+  )
+    return { status: 'sent', error: null };
   return {
     status: 'uncertain',
     error: 'O gateway não retornou uma confirmação reconhecida. Verifique o envio no OpenWA.',

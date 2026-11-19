@@ -58,7 +58,11 @@ export default async function PrintPage({
     [id, d.version],
   );
   const approved = approvals.length > 0 && approvals.every((a) => a.decision === 'aprovado');
-  try { await assertDocumentRead(db, user, unit, d, approved); } catch { notFound(); }
+  try {
+    await assertDocumentRead(db, user, unit, d, approved);
+  } catch {
+    notFound();
+  }
   if (
     unit.role === 'executante' &&
     d.created_by !== user.id &&

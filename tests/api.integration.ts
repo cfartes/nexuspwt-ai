@@ -89,7 +89,9 @@ try {
   for (let i = 0; i < 100; i++) {
     try {
       if ((await fetch(base)).ok) break;
-    } catch {}
+    } catch (error) {
+      if (!(error instanceof TypeError)) throw error;
+    }
     await new Promise((r) => setTimeout(r, 200));
     if (i === 99) throw new Error('Servidor não iniciou: ' + logs);
   }
@@ -403,7 +405,7 @@ try {
   // Fixture de conferência anterior do administrador, realizada por outro usuário.
   await db.query("UPDATE users SET phone='5511999999999' WHERE id=$1", [user.id]);
   await db.query(
-    `UPDATE memberships m SET identity_verified_at=now(),identity_verified_by=$3,identity_snapshot=jsonb_build_object('name',u.name,'email',u.email,'phone',COALESCE(m.phone,u.phone),'contractorId',m.contractor_id) FROM users u WHERE m.user_id=u.id AND u.id=$1 AND m.unit_id=$2`,
+    "UPDATE memberships m SET identity_verified_at=now(),identity_verified_by=$3,identity_snapshot=jsonb_build_object('name',u.name,'email',u.email,'phone',COALESCE(m.phone,u.phone),'contractorId',m.contractor_id) FROM users u WHERE m.user_id=u.id AND u.id=$1 AND m.unit_id=$2",
     [user.id, unit.id, responsibleId],
   );
   const approveAsResponsible = async (documentId: string, version: number, email: string) => {
@@ -721,7 +723,7 @@ try {
   const approvedHistory = await call(`/api/documents/${d.id}/history`);
   assert.equal(approvedHistory.versions.length, 2);
   cookie = adminCookie;
-  let people = (await call(`/api/workspace?unit=${unit.id}`)).people;
+  const people = (await call(`/api/workspace?unit=${unit.id}`)).people;
   let person = people.find((p: { email: string }) => p.email === 'executor@nexus.local');
   const change = (
     p: {

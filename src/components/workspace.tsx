@@ -31,7 +31,7 @@ import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
 import RemoveApr from './remove-apr';
-import { allowedMenus, companyManager, roleLabels } from '@/lib/permissions';
+import { allowedMenus, roleLabels } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
 import AuditPanel from './audit-panel';

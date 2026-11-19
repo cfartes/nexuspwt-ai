@@ -13,7 +13,10 @@ function store(userId: string) {
         db.createObjectStore('drafts', { keyPath: 'id' });
       },
       blocking() {
-        connections.get(userId)?.then((db) => db.close());
+        connections
+          .get(userId)
+          ?.then((db) => db.close())
+          .catch(() => console.error({ event: 'offline_connection_close_failed' }));
         connections.delete(userId);
       },
     });

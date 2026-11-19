@@ -10,7 +10,7 @@ import { encryptSecret, decryptSecret } from '../src/lib/integrations';
 import { verifyPassword } from '../src/lib/security';
 import { sendResendEmail } from '../src/lib/resend';
 
-test('convite: duas entregas, expiração, reemissão, revogação de acesso, definição única e envio sem expor token', async () => {
+await test('convite: duas entregas, expiração, reemissão, revogação de acesso, definição única e envio sem expor token', async () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'e'.repeat(64);
   process.env.APP_URL = 'https://nexus.example';
   process.env.OPENWA_ALLOWED_ORIGINS = 'https://openwa.example.com';
@@ -67,12 +67,16 @@ test('convite: duas entregas, expiração, reemissão, revogação de acesso, de
   };
   const raw = (invitation: { id: string; token_ciphertext: string }) =>
     decryptSecret(invitation.token_ciphertext, invitation.id, 'invitation');
-  const requests: { url: string; body: any; headers: any }[] = [];
+  const requests: {
+    url: string;
+    body: { to?: string[]; text?: string } | null;
+    headers: Headers;
+  }[] = [];
   const request = mock.method(globalThis, 'fetch', async (url: unknown, options?: RequestInit) => {
     requests.push({
       url: String(url),
       body: options?.body ? JSON.parse(String(options.body)) : null,
-      headers: options?.headers,
+      headers: new Headers(options?.headers),
     });
     if (String(url).includes('api.resend.com')) return Response.json({ id: 'email-aceito' });
     if (String(url).endsWith('send-text'))
@@ -148,9 +152,9 @@ test('convite: duas entregas, expiração, reemissão, revogação de acesso, de
     );
     assert(sent.rows.every((d) => d.status === 'sent'));
     const email = requests.find((r) => r.url.includes('resend'))!;
-    assert.equal(email.body.to[0], 'convidado@example.com');
-    assert(email.body.text.includes('#token=' + token));
-    assert(email.headers['Idempotency-Key']);
+    assert.equal(email.body?.to?.[0], 'convidado@example.com');
+    assert(email.body?.text?.includes('#token=' + token));
+    assert(email.headers.get('Idempotency-Key'));
     assert(requests.some((r) => r.body?.text?.includes('/definir-senha#token=' + token)));
     const count = requests.length;
     await db.query(
@@ -197,9 +201,19 @@ test('convite: duas entregas, expiração, reemissão, revogação de acesso, de
   }
 });
 
-test('Resend: ausência de confirmação mantém resultado incerto e recusa explícita bloqueia', async () => {
+await test('Resend: ausência de confirmação mantém resultado incerto e recusa explícita bloqueia', async () => {
   const request = mock.method(globalThis, 'fetch', async () => Response.json({}, { status: 500 }));
   try {
+    assert.equal(
+      (await sendResendEmail('re_teste', 'a@example.com', 'b@example.com', 'convite', 'id')).status,
+      'uncertain',
+    );
+    request.mock.mockImplementation(async () => new Response('resposta sem JSON'));
+    assert.equal(
+      (await sendResendEmail('re_teste', 'a@example.com', 'b@example.com', 'convite', 'id')).status,
+      'uncertain',
+    );
+    request.mock.mockImplementation(async () => Response.json(null));
     assert.equal(
       (await sendResendEmail('re_teste', 'a@example.com', 'b@example.com', 'convite', 'id')).status,
       'uncertain',

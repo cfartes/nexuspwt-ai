@@ -15,7 +15,7 @@ import { encryptSecret, decryptSecret } from '../src/lib/integrations';
 import { hashPassword } from '../src/lib/security';
 import type { User } from '../src/lib/auth';
 
-test('TOTP usa vetores RFC 6238 e rejeita códigos fora da janela ou reutilizados', () => {
+await test('TOTP usa vetores RFC 6238 e rejeita códigos fora da janela ou reutilizados', () => {
   const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
   for (const [time, code] of [
     [59, '94287082'],
@@ -36,7 +36,7 @@ test('TOTP usa vetores RFC 6238 e rejeita códigos fora da janela ou reutilizado
   assert(!validCpf('52998224724'));
 });
 
-test('decisões exigem conferência humana, senha e MFA conforme a empresa; erros persistem e códigos não repetem', async () => {
+await test('decisões exigem conferência humana, senha e MFA conforme a empresa; erros persistem e códigos não repetem', async () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'c'.repeat(64);
   const embedded = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))

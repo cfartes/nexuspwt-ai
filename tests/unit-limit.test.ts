@@ -6,7 +6,7 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
 import { assertUnitCapacity, setUnitLimit } from '../src/lib/unit-limit';
 import type { User } from '../src/lib/auth';
-test('limite por empresa: migração preserva unidades e configuração, permissão, versão e bloqueio na criação', async () => {
+await test('limite por empresa: migração preserva unidades e configuração, permissão, versão e bloqueio na criação', async () => {
   const db = await PGlite.create();
   await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
   const {

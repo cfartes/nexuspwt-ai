@@ -20,7 +20,7 @@ const data = {
     state: 'SP',
   },
 };
-test('empresa exige dados de contato e endereço; aceita CNPJ numérico e alfanumérico', () => {
+await test('empresa exige dados de contato e endereço; aceita CNPJ numérico e alfanumérico', () => {
   assert.equal(companyInput.parse(data).cnpj, '00000000E08G12');
   assert.equal(companyInput.parse({ ...data, cnpj: '11222333000181' }).cnpj, '11222333000181');
   assert.equal(companyInput.safeParse({ name: 'Só o nome' }).success, false);
@@ -53,7 +53,7 @@ test('empresa exige dados de contato e endereço; aceita CNPJ numérico e alfanu
   );
 });
 
-test('administrador da unidade não pode alterar cadastro fiscal de empresa', async () => {
+await test('administrador da unidade não pode alterar cadastro fiscal de empresa', async () => {
   const client = {
     query() {
       throw new Error('Não deve consultar o banco');

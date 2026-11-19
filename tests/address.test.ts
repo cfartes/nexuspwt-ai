@@ -2,7 +2,7 @@ import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { lookupCep } from '../src/lib/address';
 import { contractorDetails } from '../src/lib/contractors';
-test('CEP: valida antes da consulta, traduz endereço e trata falha sem depender do provedor', async () => {
+await test('CEP: valida antes da consulta, traduz endereço e trata falha sem depender do provedor', async () => {
   const request = mock.method(globalThis, 'fetch', async () =>
     Response.json({
       logradouro: 'Praça da Sé',

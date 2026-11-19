@@ -8,4 +8,10 @@ export default [
     files: ['**/*.js'],
     languageOptions: { sourceType: 'module' },
   },
+  {
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', URL: 'readonly' },
+    },
+  },
 ];

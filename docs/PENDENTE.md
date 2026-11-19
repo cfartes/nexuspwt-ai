@@ -6,7 +6,7 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 
 - A migração para Python/FastAPI/SQLAlchemy/Alembic foi descartada pelo responsável pelo projeto. Manter Next.js/TypeScript, Zod, `pg`, PostgreSQL e migrações SQL incrementais. Não há pendência de substituir o backend ou reorganizar toda a aplicação para seguir a estrutura Python genérica.
 - Melhorar a separação entre transporte, regras de negócio e acesso a dados dentro da stack atual, somente nos escopos autorizados, sem refatoração geral como efeito colateral.
-- Corrigir os diagnósticos do lint completo: GTS já instalado e configuração ESM validada, mas a execução local encontrou 405 erros e 5 avisos no código existente, incluindo formatação, tipagem e promises sem tratamento explícito. Não declarar lint global aprovado nem desabilitar regras para ocultar o passivo. A instalação não aplicou refatoração ou correção automática geral.
+- Manter lint completo, typecheck e testes aprovados nas próximas alterações. Os diagnósticos do GTS foram corrigidos em 19/11/2026, sem desativar regras; o detalhamento está em `IMPLEMENTADO.md`.
 - Revisar contratos explícitos de API, tipagem, nomes, tratamento de erros e casts contra as novas regras. As rotas atuais ainda possuem consultas e lógica incompatíveis com a separação exigida.
 - Implementar e validar RLS/FORCE RLS, papéis de runtime sem privilégios de superusuário/BYPASSRLS e escopo de empresa por transação. O código atual não contém essas policies; autorização na API não substitui essa adequação.
 - Complementar a proteção de origem existente com token CSRF separado, conforme as diretrizes, preservando os fluxos web e offline.

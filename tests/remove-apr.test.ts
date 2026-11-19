@@ -6,7 +6,7 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
 import { removeApr } from '../src/lib/remove-apr';
 import type { User } from '../src/lib/auth';
-test('APR: somente admin da unidade, bloqueio por qualquer PT e remoção com histórico preservado', async () => {
+await test('APR: somente admin da unidade, bloqueio por qualquer PT e remoção com histórico preservado', async () => {
   const db = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))
     .filter((f) => f.endsWith('.sql'))

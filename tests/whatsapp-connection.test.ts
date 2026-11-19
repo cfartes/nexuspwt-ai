@@ -4,13 +4,13 @@ import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
-import { encryptSecret } from '../src/lib/integrations';
+import { encryptSecret, type IntegrationRow } from '../src/lib/integrations';
 import { connectWhatsapp, connectionInput, connectionView } from '../src/lib/whatsapp-connection';
 import { safeQr, sessionPhone, businessPhone } from '../src/lib/openwa';
 
 const png =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
-test('identidade da sessão e QR: apenas PNG, sem inferir telefone de nome ou UUID', () => {
+await test('identidade da sessão e QR: apenas PNG, sem inferir telefone de nome ou UUID', () => {
   assert.equal(businessPhone('47999595207'), '5547999595207');
   assert.equal(businessPhone('+1 415 555 1234'), '14155551234');
   assert.equal(businessPhone('5547999595207'), '5547999595207');
@@ -34,7 +34,7 @@ test('identidade da sessão e QR: apenas PNG, sem inferir telefone de nome ou UU
   );
 });
 
-test('pareamento por empresa: recupera criação incerta, confere número, isola sessão e não envia mensagens', async () => {
+await test('pareamento por empresa: recupera criação incerta, confere número, isola sessão e não envia mensagens', async () => {
   process.env.OPENWA_ALLOWED_ORIGINS = 'https://openwa.example.com';
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'd'.repeat(64);
   const db = await PGlite.create();
@@ -164,7 +164,7 @@ test('pareamento por empresa: recupera criação incerta, confere número, isola
     const view = JSON.stringify(
       connectionView(
         (
-          await db.query<any>('SELECT * FROM company_integrations WHERE company_id=$1', [
+          await db.query<IntegrationRow>('SELECT * FROM company_integrations WHERE company_id=$1', [
             companies[0].id,
           ])
         ).rows[0],
