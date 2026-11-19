@@ -4,9 +4,8 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 
 ## Adequação às diretrizes de C:\Projetos
 
-- Planejar a migração incremental do backend atual (rotas Next.js, Zod e `pg`) para Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2 async e PostgreSQL. Preservar dados, contratos de API e comportamento autorizado; não reescrever toda a aplicação como efeito colateral de uma alteração pontual.
-- Adequar a estrutura a `/backend/src` e `/frontend/src`, separando rotas, serviços, repositórios, schemas, componentes visuais e funcionalidades por domínio. Adotar os padrões de nomes e Tailwind exigidos.
-- Planejar a transição das migrações SQL existentes para Alembic, sem reinstalar o banco nem reaplicar operações destrutivas sobre os dados existentes.
+- A migração para Python/FastAPI/SQLAlchemy/Alembic foi descartada pelo responsável pelo projeto. Manter Next.js/TypeScript, Zod, `pg`, PostgreSQL e migrações SQL incrementais. Não há pendência de substituir o backend ou reorganizar toda a aplicação para seguir a estrutura Python genérica.
+- Melhorar a separação entre transporte, regras de negócio e acesso a dados dentro da stack atual, somente nos escopos autorizados, sem refatoração geral como efeito colateral.
 - Regularizar o ambiente de lint: o manifesto local possui `gts`, mas `npm run lint` retorna que o comando não é reconhecido. Reconciliar ferramentas, configuração ESM, scripts e lockfile antes de declarar lint aprovado. Não instalar novas dependências sem a autorização exigida.
 - Revisar contratos explícitos de API, tipagem, nomes, tratamento de erros e casts contra as novas regras. As rotas atuais ainda possuem consultas e lógica incompatíveis com a separação exigida.
 - Implementar e validar RLS/FORCE RLS, papéis de runtime sem privilégios de superusuário/BYPASSRLS e escopo de empresa por transação. O código atual não contém essas policies; autorização na API não substitui essa adequação.

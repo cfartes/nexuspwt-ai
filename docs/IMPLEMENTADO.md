@@ -8,6 +8,10 @@ Foram lidos os arquivos `C:\Projetos\agents.md` e `C:\Projetos\REGRAS_E_DIRETRIZ
 
 Antes de novas funcionalidades, pesquisar os projetos existentes em `C:\Projetos` para reaproveitamento. Manter este arquivo e `PENDENTE.md`, separar o que existe do que está planejado, preservar dados e limitar mudanças ao escopo solicitado. Novas dependências e instalação de skills exigem autorização conforme as diretrizes recebidas.
 
+## Decisão de arquitetura
+
+Por decisão explícita do responsável pelo projeto em 19/11/2026, manter o backend em Next.js/TypeScript, com Zod, `pg`, PostgreSQL e as migrações SQL existentes. Não migrar para Python/FastAPI/SQLAlchemy/Alembic nem reorganizar toda a aplicação por exigência do padrão genérico de `C:\Projetos\agents.md`. Esta exceção prevalece para o Nexus PTW; as demais diretrizes de segurança, privacidade, acessibilidade, tipagem e desenvolvimento continuam aplicáveis, adaptadas à stack atual.
+
 ## Funcionalidades disponíveis no código
 
 - Empresas, regionais, unidades, cotas de unidades, contratadas e vínculos por unidade; cadastros em popup, máscaras e consulta de CEP/IBGE.
