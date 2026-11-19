@@ -13,6 +13,15 @@ spec.loader.exec_module(rolling)
 
 
 class RollingTests(unittest.TestCase):
+    def test_assets_are_copied_from_live_container_without_using_old_image(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(rolling, 'run') as command:
+                rolling.stage_assets('running-container', 'nexus-ptw-app:release-new', 'test-assets', directory)
+            calls = [call.args for call in command.call_args_list]
+            self.assertEqual(calls[0][:3], ('docker', 'cp', 'running-container:/app/.next/static/.'))
+            self.assertIn('nexus-ptw-app:release-new', calls[1])
+            self.assertFalse(any('sha256:' in argument for call in calls for argument in call))
+            self.assertEqual(list(Path(directory).iterdir()), [])
     def test_command_errors_explain_failure_without_exposing_credentials(self):
         error = subprocess.CalledProcessError(1, ['docker', 'pull'], stderr='registry denied: password=secret-value https://name:private@registry.test/image')
         with patch.object(rolling.subprocess, 'run', side_effect=error):

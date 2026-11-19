@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -33,6 +34,15 @@ def save(path, value, mode=0o600):
     temporary.write_text(value, encoding='utf-8')
     temporary.chmod(mode)
     temporary.replace(path)
+
+
+def stage_assets(container_id, image, volume, directory):
+    with tempfile.TemporaryDirectory(prefix='public-assets-', dir=directory) as temporary:
+        run('docker', 'cp', container_id + ':/app/.next/static/.', temporary)
+        run('docker', 'run', '--rm', '--network', 'none', '--user', 'root',
+            '-v', volume + ':/assets', '-v', str(Path(temporary).resolve()) + ':/old:ro',
+            '--entrypoint', 'sh', image, '-c',
+            'cp -a /old/. /assets/ && cp -a /app/.next/static/. /assets/')
 
 
 def gateway_config(target):
@@ -169,8 +179,11 @@ class RollingDeployment:
         database_networks = [name for name in database['NetworkSettings']['Networks'] if name.endswith('_database')]
         if len(database_networks) != 1:
             raise ValueError('Rede do PostgreSQL não identificada com segurança.')
-        images = {name: run('docker', 'image', 'inspect', '--format', '{{.Id}}', self.base['services'][name]['image']) for name in ('app', 'notifications')}
         project = 'nexus-ptw-r' + str(time.time_ns())
+        images = {}
+        for name in ('app', 'notifications'):
+            images[name] = 'nexus-ptw-' + name + ':' + project
+            run('docker', 'tag', self.base['services'][name]['image'], images[name])
         candidate = {'project': project, 'compose': str(self.directory / (project + '.json')), 'release': release}
         save(Path(candidate['compose']), json.dumps(candidate_config(self.base, project, images, database_networks[0])))
         if not self.state:
@@ -197,10 +210,11 @@ class RollingDeployment:
         print('Etapa: preservação dos bundles públicos das duas versões…', flush=True)
         volume = 'nexus-ptw-public-static'
         run('docker', 'volume', 'create', volume)
-        old_image = json.loads(Path(active['compose']).read_text())['services']['app']['image']
-        # Reuse RotaFY's append-only public asset volume so old tabs retain lazy chunks.
-        for image in dict.fromkeys([old_image, images['app']]):
-            run('docker', 'run', '--rm', '--network', 'none', '--user', 'root', '-v', volume + ':/assets', '--entrypoint', 'sh', image, '-c', 'cp -a /app/.next/static/. /assets/')
+        active_container = self.target(active, 'ps', '-q', 'app')
+        if not active_container or '\n' in active_container:
+            raise ValueError('Container ativo do app não identificado com segurança.')
+        # Running containers remain readable even if their original image was removed.
+        stage_assets(active_container, images['app'], volume, self.directory)
         gateway = {
             'services': {'gateway': {
                 'image': 'nginx:1.28-alpine', 'restart': 'unless-stopped', 'stop_grace_period': '190s',
