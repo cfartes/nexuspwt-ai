@@ -2,16 +2,21 @@
 import { useRef, useState } from 'react';
 import type { ContractorDetails } from '@/lib/contractors';
 import { api } from './workspace';
+import MaskedInput from './masked-input';
 export default function ContractorFields({
   unitId,
   initial = {},
   requiredFields = false,
+  municipality = false,
 }: {
   unitId: string;
-  initial?: Partial<ContractorDetails>;
+  initial?: Partial<ContractorDetails> & { municipalityCode?: string };
   requiredFields?: boolean;
+  municipality?: boolean;
 }) {
-  const [details, setDetails] = useState<Partial<ContractorDetails>>(initial),
+  const [details, setDetails] = useState<
+      Partial<ContractorDetails> & { municipalityCode?: string }
+    >(initial),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState('');
   const current = useRef(details);
@@ -30,6 +35,8 @@ export default function ContractorFields({
         const next = { ...d };
         for (const key of ['street', 'district', 'city', 'state'] as const)
           if (d[key] === previous[key]) next[key] = result[key];
+        if (municipality && d.municipalityCode === previous.municipalityCode)
+          next.municipalityCode = result.municipalityCode;
         return next;
       });
       setMessage('Endereço preenchido. Confira e informe número e complemento.');
@@ -65,21 +72,18 @@ export default function ContractorFields({
       ))}
       <label>
         CEP
-        <input
+        <MaskedInput
+          kind="cep"
           name="cep"
           required={requiredFields}
-          inputMode="numeric"
           autoComplete="postal-code"
           value={details.cep || ''}
-          maxLength={9}
-          onChange={(e) => {
-            const cep = e.target.value.replace(/\D/g, '');
+          onValueChange={(cep) => {
             setDetails((d) => ({ ...d, cep }));
             setMessage('');
             setBusy(false);
             void find(cep);
           }}
-          onBlur={() => void find(details.cep || '')}
         />
       </label>
       <button
@@ -93,6 +97,24 @@ export default function ContractorFields({
       >
         Buscar CEP
       </button>
+      {municipality && (
+        <label>
+          Código IBGE do município
+          <input
+            name="municipalityCode"
+            value={details.municipalityCode || ''}
+            inputMode="numeric"
+            maxLength={7}
+            pattern="[0-9]{7}"
+            onChange={(e) =>
+              setDetails((d) => ({
+                ...d,
+                municipalityCode: e.target.value.replace(/\D/g, '').slice(0, 7),
+              }))
+            }
+          />
+        </label>
+      )}
       {message && (
         <p className="muted span-2" role="status">
           {message}

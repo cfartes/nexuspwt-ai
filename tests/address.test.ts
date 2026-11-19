@@ -4,7 +4,13 @@ import { lookupCep } from '../src/lib/address';
 import { contractorDetails } from '../src/lib/contractors';
 test('CEP: valida antes da consulta, traduz endereço e trata falha sem depender do provedor', async () => {
   const request = mock.method(globalThis, 'fetch', async () =>
-    Response.json({ logradouro: 'Praça da Sé', bairro: 'Sé', localidade: 'São Paulo', uf: 'SP' }),
+    Response.json({
+      logradouro: 'Praça da Sé',
+      bairro: 'Sé',
+      localidade: 'São Paulo',
+      uf: 'SP',
+      ibge: '3550308',
+    }),
   );
   try {
     await assert.rejects(lookupCep('../12345678'), /8 dígitos/);
@@ -15,11 +21,22 @@ test('CEP: valida antes da consulta, traduz endereço e trata falha sem depender
       district: 'Sé',
       city: 'São Paulo',
       state: 'SP',
+      municipalityCode: '3550308',
     });
     assert.equal(
       String(request.mock.calls[0].arguments[0]),
       'https://viacep.com.br/ws/01001000/json/',
     );
+    request.mock.mockImplementation(async () =>
+      Response.json({
+        logradouro: 'Rua',
+        bairro: 'Centro',
+        localidade: 'Cidade',
+        uf: 'SP',
+        ibge: 'inválido',
+      }),
+    );
+    assert.equal((await lookupCep('01001000')).municipalityCode, '');
     request.mock.mockImplementation(async () => Response.json({ erro: true }));
     await assert.rejects(lookupCep('99999999'), /não encontrado/);
     request.mock.mockImplementation(async () => {

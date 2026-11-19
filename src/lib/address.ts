@@ -27,6 +27,8 @@ export async function lookupCep(cep: string) {
       district: value.bairro,
       city: value.localidade,
       state: value.uf,
+      municipalityCode:
+        typeof value.ibge === 'string' && /^\d{7}$/.test(value.ibge) ? value.ibge : '',
     };
   } catch (error) {
     if (error instanceof HttpError) throw error;

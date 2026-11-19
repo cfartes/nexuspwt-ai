@@ -8,6 +8,7 @@ import ContractorFields from './contractor-fields';
 import { contractorDetails } from '@/lib/contractors';
 import CompanyFields from './company-fields';
 import { companyDetails } from '@/lib/companies';
+import MaskedInput from './masked-input';
 export default function AdminPanel({
   ws,
   online,
@@ -111,15 +112,8 @@ export default function AdminPanel({
             {(action === 'contractor' || action === 'company') && (
               <>
                 <label>
-                  CNPJ ({action === 'company' ? 'sem pontuação' : 'somente números'}) *
-                  <input
-                    name="cnpj"
-                    inputMode={action === 'company' ? 'text' : 'numeric'}
-                    pattern={action === 'company' ? '[A-Za-z0-9]{12}[0-9]{2}' : '[0-9]{14}'}
-                    minLength={14}
-                    maxLength={14}
-                    required
-                  />
+                  CNPJ *
+                  <MaskedInput kind="cnpj" name="cnpj" required />
                 </label>
                 {action === 'contractor' && (
                   <p className="muted span-2">

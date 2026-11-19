@@ -9,6 +9,7 @@ import Popup from './popup';
 import ContractorEditor from './contractor-editor';
 import DeleteRegistration from './delete-registration';
 import CompanyEditor from './company-editor';
+import { mask } from '@/lib/input-masks';
 
 export type RegistrationTab =
   'companies' | 'regions' | 'units' | 'contractors' | 'people' | 'approvers';
@@ -67,7 +68,7 @@ export default function RegistrationPanel({
           id: c.id,
           name: c.name,
           detail: [
-            c.cnpj ? `CNPJ ${c.cnpj}` : 'Cadastro fiscal pendente',
+            c.cnpj ? `CNPJ ${mask(c.cnpj, 'cnpj')}` : 'Cadastro fiscal pendente',
             c.details.contactName,
             c.details.email,
             c.details.phone,
@@ -88,11 +89,11 @@ export default function RegistrationPanel({
             ? ws.contractors.map((c) => ({
                 id: c.id,
                 name: c.name,
-                detail: `CNPJ ${c.cnpj} · Autorizada nesta unidade`,
+                detail: `CNPJ ${mask(c.cnpj, 'cnpj')} · Autorizada nesta unidade`,
               }))
             : [];
   const filtered = rows.filter((row) =>
-    `${row.name} ${row.detail}`
+    `${row.name} ${row.detail} ${row.detail.replace(/\D/g, '')}`
       .toLocaleLowerCase('pt-BR')
       .includes(search.toLocaleLowerCase('pt-BR')),
   );

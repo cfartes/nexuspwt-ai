@@ -6,6 +6,7 @@ import { companyDetails } from '@/lib/companies';
 import Popup from './popup';
 import CompanyFields from './company-fields';
 import { api } from './workspace';
+import MaskedInput from './masked-input';
 
 export default function CompanyEditor({
   ws,
@@ -63,16 +64,8 @@ export default function CompanyEditor({
             <input name="name" required minLength={2} maxLength={200} defaultValue={company.name} />
           </label>
           <label>
-            CNPJ (sem pontuação) *
-            <input
-              name="cnpj"
-              required
-              inputMode="text"
-              pattern="[A-Za-z0-9]{12}[0-9]{2}"
-              minLength={14}
-              maxLength={14}
-              defaultValue={company.cnpj || ''}
-            />
+            CNPJ *
+            <MaskedInput kind="cnpj" name="cnpj" required initial={company.cnpj || ''} />
           </label>
           <CompanyFields unitId={ws.unit.id} initial={company.details} />
         </fieldset>

@@ -93,6 +93,8 @@ Empresas possuem cadastro fiscal e de contato em **Empresas → Novo cadastro / 
 
 A migração `011-company-details.sql` mantém empresas existentes sem inventar dados fiscais: aparecem como cadastro fiscal pendente até serem completadas pelo superadmin. Execute `npm run db:setup` no desenvolvimento ou reexecute o instalador da VPS para atualizar o schema.
 
+Nos formulários, CEP e CNPJ exibem máscara enquanto o envio mantém o valor sem pontuação. Novos campos recebem apenas números; CNPJs alfanuméricos existentes são preservados na edição. O componente compartilhado também suporta CPF, ainda sem campo nas telas atuais. A consulta do CEP preenche endereço e código IBGE no cadastro da empresa, preservando alterações manuais feitas durante a consulta; se o provedor não retornar IBGE válido, o campo pode ser preenchido manualmente. Esta melhoria não exige migration adicional.
+
 ### Instalação com o Traefik existente (recomendada)
 
 Usa **PostgreSQL 17** em container próprio, volume persistente, sem publicar a porta 5432. O domínio é **https://nexusptw.nexusdataanalytics.tech**. Aponte o registro DNS A para a VPS (e remova/corrija AAAA se não houver IPv6 funcional). Docker Engine, plugin Docker Compose com `--wait`, Git e Python 3.9+ devem estar instalados. O Traefik existente precisa usar o provider Docker e já ter HTTPS/ACME configurados.

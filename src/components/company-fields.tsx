@@ -11,16 +11,13 @@ export default function CompanyFields({
 }) {
   return (
     <>
-      <ContractorFields unitId={unitId} initial={initial} requiredFields />
-      {(
-        ['municipalRegistration', 'stateRegistration', 'municipalityCode', 'billingEmail'] as const
-      ).map((key) => (
+      <ContractorFields unitId={unitId} initial={initial} requiredFields municipality />
+      {(['municipalRegistration', 'stateRegistration', 'billingEmail'] as const).map((key) => (
         <label key={key}>
           {
             {
               municipalRegistration: 'Inscrição municipal (se houver)',
               stateRegistration: 'Inscrição estadual (ou ISENTO)',
-              municipalityCode: 'Código IBGE do município',
               billingEmail: 'E-mail financeiro / recebimento da NFS-e',
             }[key]
           }
@@ -28,9 +25,7 @@ export default function CompanyFields({
             name={key}
             defaultValue={initial[key] || ''}
             type={key === 'billingEmail' ? 'email' : 'text'}
-            maxLength={key === 'billingEmail' ? 254 : key === 'municipalityCode' ? 7 : 50}
-            inputMode={key === 'municipalityCode' ? 'numeric' : undefined}
-            pattern={key === 'municipalityCode' ? '[0-9]{7}' : undefined}
+            maxLength={key === 'billingEmail' ? 254 : 50}
           />
         </label>
       ))}

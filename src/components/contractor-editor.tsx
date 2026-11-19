@@ -5,6 +5,7 @@ import { contractorDetails } from '@/lib/contractors';
 import Popup from './popup';
 import ContractorFields from './contractor-fields';
 import { api } from './workspace';
+import MaskedInput from './masked-input';
 export default function ContractorEditor({
   ws,
   contractor,
@@ -73,7 +74,7 @@ export default function ContractorEditor({
           </label>
           <label>
             CNPJ
-            <input value={contractor.cnpj} readOnly />
+            <MaskedInput kind="cnpj" initial={contractor.cnpj} readOnly />
           </label>
           <ContractorFields unitId={ws.unit.id} initial={contractor.details} />
         </fieldset>
