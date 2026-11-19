@@ -46,10 +46,10 @@ export async function GET(request: Request) {
         [unit.id, unit.contractor_id],
       ),
       db.query(
-        `SELECT u.id,u.name,u.email,u.password_pending,COALESCE(m.phone,u.phone) phone,m.role,m.active,m.contractor_id,m.version membership_version,
+        `SELECT u.id,u.name,u.email,u.password_pending,COALESCE(m.phone,u.phone) phone,m.role,m.active,m.contractor_id,m.version membership_version,m.identity_verified_at,m.identity_verified_by,(s.enabled_at IS NOT NULL) authenticator_enabled,
           (SELECT jsonb_object_agg(d.channel,jsonb_build_object('status',d.status,'error',d.last_error)) FROM invitation_deliveries d
            WHERE d.invitation_id=(SELECT i.id FROM user_invitations i WHERE i.user_id=u.id AND i.unit_id=m.unit_id ORDER BY i.created_at DESC,i.id DESC LIMIT 1)) invitation_status
-         FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.unit_id=$1 AND u.active
+         FROM users u JOIN memberships m ON m.user_id=u.id LEFT JOIN user_security s ON s.user_id=u.id WHERE m.unit_id=$1 AND u.active
          AND ($4::boolean OR NOT u.platform_admin)
          AND ($2='admin' OR m.active) AND ($3::uuid IS NULL OR m.contractor_id=$3 OR (m.contractor_id IS NULL AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho'))) ORDER BY u.name`,
         [unit.id, unit.role, unit.contractor_id, user.platform_admin],
@@ -100,6 +100,10 @@ export async function GET(request: Request) {
             [unit.company_id],
           )
         : Promise.resolve({ rows: [] }),
+      db.query(
+        'SELECT approval_mfa_required required,security_version version FROM companies WHERE id=$1',
+        [unit.company_id],
+      ),
     ]);
     return Response.json(
       {
@@ -116,6 +120,7 @@ export async function GET(request: Request) {
         registeredUnits: results[8].rows,
         companyPeople: results[7].rows,
         unitQuota: results[9].rows[0] || null,
+        securityPolicy: results[10].rows[0],
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );

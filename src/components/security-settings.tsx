@@ -1,0 +1,231 @@
+'use client';
+import { useState } from 'react';
+import type { WorkspaceData } from '@/lib/types';
+import { api } from './workspace';
+import Popup from './popup';
+
+export default function SecuritySettings({
+  ws,
+  online,
+  reload,
+}: {
+  ws: WorkspaceData;
+  online: boolean;
+  reload: () => Promise<unknown>;
+}) {
+  const [open, setOpen] = useState(false),
+    [secret, setSecret] = useState(''),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState('');
+  const self = ws.people.find((p) => p.id === ws.user.id);
+  const enabled = self?.authenticator_enabled;
+  return (
+    <section className="card">
+      <div className="card-heading">
+        <div>
+          <h2>Segurança das aprovações</h2>
+          <p>
+            Conferência humana e senha são obrigatórias. O autenticador pode ser exigido pela
+            empresa.
+          </p>
+        </div>
+      </div>
+      <div className="admin-form">
+        {notice && (
+          <p role="status" className="alert">
+            {notice}
+          </p>
+        )}
+        <p>
+          Seu autenticador: {enabled ? 'Configurado' : 'Não configurado'}. Sua identidade nesta
+          unidade:{' '}
+          {self?.identity_verified_at
+            ? 'Conferida'
+            : 'Pendente de conferência por outro administrador'}
+          .
+        </p>
+        {!enabled && (
+          <button
+            className="secondary"
+            disabled={!online}
+            onClick={() => {
+              setOpen(true);
+              setError('');
+              setSecret('');
+            }}
+          >
+            Configurar meu autenticador
+          </button>
+        )}
+        <p className="muted">
+          Cadastre uma conta por pessoa no Google Authenticator, Microsoft Authenticator ou
+          aplicativo TOTP compatível. Recuperação após perda do aparelho exige nova conferência por
+          outro administrador, encerra suas sessões e bloqueia decisões até nova conferência.
+        </p>
+        {ws.unit.role === 'admin' && (
+          <form
+            className="form-grid"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fields = new FormData(e.currentTarget);
+              setBusy(true);
+              setError('');
+              setNotice('');
+              try {
+                await api('/api/security', {
+                  action: 'policy',
+                  unitId: ws.unit.id,
+                  version: ws.securityPolicy?.version,
+                  required: fields.get('required') === 'on',
+                  password: fields.get('password'),
+                  code: fields.get('code') || '',
+                });
+                await reload();
+                setNotice('Política de segurança atualizada para todas as unidades desta empresa.');
+                (e.target as HTMLFormElement).reset();
+              } catch (error) {
+                setError((error as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <fieldset className="form-grid span-2" disabled={busy || !online}>
+              <label className="checkbox-line span-2">
+                <input
+                  name="required"
+                  type="checkbox"
+                  defaultChecked={ws.securityPolicy?.required}
+                />
+                Exigir autenticador ao aprovar ou rejeitar em todas as unidades da empresa
+              </label>
+              <label>
+                Sua senha
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  maxLength={256}
+                />
+              </label>
+              <label>
+                Seu código do autenticador
+                <input
+                  name="code"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                />
+              </label>
+              <p className="muted span-2">
+                Configure seu autenticador antes de ativar esta opção. Ativar ou desativar a
+                exigência requer seu código. Com a opção desativada, as decisões continuam exigindo
+                identidade conferida e senha.
+              </p>
+              <button className="primary">Salvar política de segurança</button>
+            </fieldset>
+          </form>
+        )}
+        {error && !open && (
+          <p role="alert" className="alert error">
+            {error}
+          </p>
+        )}
+      </div>
+      {open && (
+        <Popup
+          title="Configurar meu autenticador"
+          busy={busy}
+          onClose={() => {
+            setOpen(false);
+            setSecret('');
+            setError('');
+          }}
+        >
+          <form
+            className="admin-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fields = new FormData(e.currentTarget);
+              setBusy(true);
+              setError('');
+              try {
+                const result = await api('/api/security', {
+                  action: secret ? 'confirm' : 'begin',
+                  unitId: ws.unit.id,
+                  password: fields.get('password'),
+                  code: fields.get('code') || '',
+                });
+                if (result.secret) setSecret(result.secret);
+                else {
+                  setSecret('');
+                  setOpen(false);
+                  await reload();
+                  setNotice(
+                    'Autenticador confirmado. Aguarde o próximo código para outra confirmação.',
+                  );
+                }
+              } catch (error) {
+                setError((error as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {error && (
+              <p className="alert error" role="alert">
+                {error}
+              </p>
+            )}
+            <fieldset className="form-grid" disabled={busy || !online}>
+              <label className="span-2">
+                Sua senha
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  autoComplete="current-password"
+                  maxLength={256}
+                />
+              </label>
+              {secret && (
+                <>
+                  <p className="span-2">
+                    No aplicativo autenticador, adicione uma conta com entrada manual, nome “Nexus
+                    PTW · {ws.user.email}”, tipo baseado em tempo (TOTP), 6 dígitos e intervalo de
+                    30 segundos.
+                  </p>
+                  <label className="span-2">
+                    Chave de configuração (não compartilhe)
+                    <input value={secret} readOnly autoComplete="off" />
+                  </label>
+                  <p className="muted span-2">
+                    Esta chave não será mostrada após a confirmação. A configuração pendente expira
+                    em 10 minutos.
+                  </p>
+                  <label>
+                    Código gerado no aplicativo
+                    <input
+                      name="code"
+                      required
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                    />
+                  </label>
+                </>
+              )}
+              <button className="primary">
+                {secret ? 'Confirmar autenticador' : 'Gerar chave de configuração'}
+              </button>
+            </fieldset>
+          </form>
+        </Popup>
+      )}
+    </section>
+  );
+}

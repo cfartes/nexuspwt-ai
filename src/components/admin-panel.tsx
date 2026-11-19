@@ -105,7 +105,12 @@ export default function AdminPanel({
           <fieldset disabled={!online || busy} key={action} className="form-grid">
             {['contractor', 'user', 'region', 'unit', 'company'].includes(action) && (
               <label>
-                {action === 'contractor' || action === 'company' ? 'Razão social' : 'Nome'} *
+                {action === 'contractor' || action === 'company'
+                  ? 'Razão social'
+                  : action === 'user'
+                    ? 'Nome completo (conforme documento)'
+                    : 'Nome'}{' '}
+                *
                 <input name="name" required minLength={2} maxLength={200} />
               </label>
             )}

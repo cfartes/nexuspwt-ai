@@ -30,6 +30,7 @@ import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
 import RemoveApr from './remove-apr';
+import ApprovalConfirmation from './approval-confirmation';
 type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
@@ -59,6 +60,10 @@ export default function Workspace() {
     [editor, setEditor] = useState<DocumentInput | null>(null),
     [syncing, setSyncing] = useState(false);
   const busy = useRef(false);
+  const [decision, setDecision] = useState<{
+    document: DocumentRow;
+    action: 'approve' | 'reject';
+  } | null>(null);
   const openedLink = useRef(false);
   const workspace = useRef(ws);
   workspace.current = ws;
@@ -204,14 +209,12 @@ export default function Workspace() {
       setError('Esta ação exige conexão.');
       return;
     }
-    let comment = '';
-    if (action === 'reject') {
-      const answer = window.prompt('Motivo da rejeição:');
-      if (!answer) return;
-      comment = answer;
+    if (action !== 'submit') {
+      setDecision({ document: d, action });
+      return;
     }
     try {
-      await api(`/api/documents/${d.id}/workflow`, { action, version: d.version, comment });
+      await api(`/api/documents/${d.id}/workflow`, { action, version: d.version, comment: '' });
       await load(ws?.unit.id);
       setNotice('Decisão registrada no histórico.');
     } catch (e) {
@@ -312,7 +315,9 @@ export default function Workspace() {
           <span className="avatar">{ws.user.name.slice(0, 2).toUpperCase()}</span>
           <span>
             {ws.user.name}
-            <small>{unit.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : unit.role}</small>
+            <small>
+              {unit.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : unit.role}
+            </small>
           </span>
           <LogOut size={17} />
         </button>
@@ -640,6 +645,18 @@ export default function Workspace() {
           </footer>
         </main>
       </div>
+      {decision && (
+        <ApprovalConfirmation
+          document={decision.document}
+          action={decision.action}
+          mfa={!!ws.securityPolicy?.required}
+          onClose={() => setDecision(null)}
+          onDone={async () => {
+            await load(ws.unit.id);
+            setNotice('Decisão registrada com confirmação de identidade.');
+          }}
+        />
+      )}
       {editor && (
         <DocumentEditor
           key={`${editor.id}:${editor.version}`}

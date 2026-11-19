@@ -6,6 +6,7 @@ import { api } from './workspace';
 import Popup from './popup';
 import AdminPanel from './admin-panel';
 import DeleteRegistration from './delete-registration';
+import IdentityReview from './identity-review';
 
 export default function PeoplePanel({
   ws,
@@ -264,13 +265,21 @@ export default function PeoplePanel({
                     : 'Equipe própria'}
                 </td>
                 <td>
-                  <span className="badge">{person.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : person.role}</span>
+                  <span className="badge">
+                    {person.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : person.role}
+                  </span>
                 </td>
                 <td>
                   <span className={'badge ' + (person.active ? 'aprovado' : 'rejeitado')}>
                     {person.active ? 'Ativo' : 'Desativado'}
                   </span>
                   {person.password_pending && <small>Aguardando definição de senha</small>}
+                  <small>
+                    Identidade: {person.identity_verified_at ? 'Conferida' : 'Pendente'}
+                  </small>
+                  <small>
+                    Autenticador: {person.authenticator_enabled ? 'Configurado' : 'Não configurado'}
+                  </small>
                 </td>
                 {canManage && (
                   <td>
@@ -335,6 +344,7 @@ export default function PeoplePanel({
                       >
                         Editar acesso
                       </button>
+                      <IdentityReview person={person} ws={ws} online={online} reload={reload} />
                       <DeleteRegistration
                         unitId={ws.unit.id}
                         kind="user"

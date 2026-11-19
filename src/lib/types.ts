@@ -21,6 +21,9 @@ export type Person = {
   contractor_id: string | null;
   membership_version: number;
   password_pending: boolean;
+  identity_verified_at?: string | null;
+  identity_verified_by?: string | null;
+  authenticator_enabled?: boolean;
   invitation_status?: Record<string, { status: string; error: string | null }>;
 };
 export type DocumentRow = {
@@ -76,6 +79,7 @@ export type WorkspaceData = {
   }[];
   companyPeople: { id: string; name: string; email: string; units: string[] }[];
   unitQuota: { limit: number; used: number; version: number } | null;
+  securityPolicy?: { required: boolean; version: number };
   people: Person[];
   regions: { id: string; name: string }[];
   approvers: {

@@ -73,7 +73,7 @@ export async function saveMembership(
     rows: [saved],
   } = await client.query(
     `INSERT INTO memberships(user_id,unit_id,role,contractor_id,active,phone) VALUES($1,$2,$3,$4,$5,$6)
-    ON CONFLICT(user_id,unit_id) DO UPDATE SET role=EXCLUDED.role,contractor_id=EXCLUDED.contractor_id,active=EXCLUDED.active,phone=EXCLUDED.phone,version=memberships.version+1 RETURNING *`,
+    ON CONFLICT(user_id,unit_id) DO UPDATE SET role=EXCLUDED.role,contractor_id=EXCLUDED.contractor_id,active=EXCLUDED.active,phone=EXCLUDED.phone,version=memberships.version+1,identity_verified_at=NULL,identity_verified_by=NULL,identity_snapshot=NULL RETURNING *`,
     [
       userId,
       unitId,

@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
-import { transaction } from '@/lib/db';
-import { assertOrigin, HttpError } from '@/lib/security';
+import { db, transaction } from '@/lib/db';
+import { assertOrigin, digest, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { uuid, documentSchema, submissionErrors } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { aprResponsibles } from '@/lib/apr-responsibles';
+import { authenticateDecision, assertDecisionIdentity } from '@/lib/approval-security';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     assertOrigin(request);
@@ -17,9 +18,32 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         action: z.enum(['submit', 'approve', 'reject', 'revise']),
         version: z.number().int().positive(),
         comment: z.string().trim().max(2000).default(''),
+        password: z.string().max(256).default(''),
+        code: z
+          .string()
+          .regex(/^$|^\d{6}$/)
+          .default(''),
       })
       .parse(await request.json());
+    let proof: Awaited<ReturnType<typeof authenticateDecision>> | undefined;
+    if (['approve', 'reject'].includes(input.action)) {
+      const {
+        rows: [policy],
+      } = await db.query(
+        'SELECT c.approval_mfa_required FROM documents d JOIN units un ON un.id=d.unit_id JOIN companies c ON c.id=un.company_id JOIN memberships m ON m.unit_id=un.id AND m.user_id=$2 AND m.active WHERE d.id=$1',
+        [id, user.id],
+      );
+      if (!policy) throw new HttpError(403, 'Documento indisponível.');
+      proof = await authenticateDecision(
+        db,
+        user,
+        input.password,
+        input.code,
+        policy.approval_mfa_required ? 'totp' : 'password',
+      );
+    }
     await transaction(async (c) => {
+      let verification: Record<string, unknown> | undefined;
       const {
         rows: [d],
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
@@ -114,6 +138,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           throw new HttpError(409, 'Documento não está em aprovação.');
         if (input.action === 'reject' && !input.comment)
           throw new HttpError(400, 'Informe o motivo da rejeição.');
+        verification = await assertDecisionIdentity(c, user, d.unit_id, proof!);
+        const {
+          rows: [archive],
+        } = await c.query(
+          'SELECT snapshot::text snapshot FROM document_versions WHERE document_id=$1 AND version=$2',
+          [id, d.version],
+        );
+        if (!archive) throw new HttpError(409, 'Versão arquivada não encontrada.');
+        verification.snapshotHash = digest(archive.snapshot);
         const decision = input.action === 'approve' ? 'aprovado' : 'rejeitado';
         const { rowCount } = await c.query(
           'UPDATE approvals SET decision=$4,comment=$5,decided_at=now() WHERE document_id=$1 AND version=$2 AND user_id=$3 AND decision IS NULL',
@@ -142,6 +175,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
             version: input.action === 'revise' ? d.version + 1 : d.version,
             ...(input.action === 'revise' ? { previousVersion: d.version } : {}),
             comment: input.comment,
+            ...(verification ? { verification } : {}),
           }),
         ],
       );

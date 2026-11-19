@@ -4,6 +4,7 @@ import type { WorkspaceData } from '@/lib/types';
 import IntegrationPanel from './integration-settings';
 import ResendSettings from './resend-settings';
 import UnitLimitSettings from './unit-limit-settings';
+import SecuritySettings from './security-settings';
 
 export default function SettingsPanel({
   ws,
@@ -18,6 +19,12 @@ export default function SettingsPanel({
 }) {
   return (
     <>
+      <SecuritySettings
+        key={`${ws.unit.company_id}:${ws.unit.id}`}
+        ws={ws}
+        online={online}
+        reload={reload}
+      />
       {ws.user.platform_admin && ws.unit.role === 'admin' && (
         <UnitLimitSettings key={ws.unit.company_id} ws={ws} online={online} reload={reload} />
       )}

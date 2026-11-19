@@ -7,6 +7,7 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import { hashPassword } from '../src/lib/security';
 import { decryptSecret } from '../src/lib/integrations';
 import { aprProfiles } from '../src/lib/forms';
+import { totp } from '../src/lib/totp';
 const db = await PGlite.create();
 process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
@@ -25,6 +26,7 @@ await db.exec(await readFile(new URL('../db/009-apr-removal.sql', import.meta.ur
 await db.exec(await readFile(new URL('../db/010-company-unit-limit.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/011-company-details.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/012-safety-role.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/013-approval-identity.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -82,6 +84,13 @@ try {
   }
   let cookie = '';
   const call = async (path: string, body?: unknown, expected = 200, method?: string) => {
+    if (
+      body &&
+      typeof body === 'object' &&
+      'action' in body &&
+      ['approve', 'reject'].includes(String(body.action))
+    )
+      body = { password, ...body };
     const r = await fetch(base + path, {
       method: method || (body ? 'POST' : 'GET'),
       headers: {
@@ -346,10 +355,26 @@ try {
       'UPDATE users SET password_pending=false,password_hash=$2 WHERE email=$1 RETURNING id',
       [email, hashPassword(password)],
     );
+    await call('/api/security', {
+      action: 'verify',
+      unitId: unit.id,
+      userId: responsible.id,
+      cpf: email.includes('first') ? '52998224725' : '11144477735',
+      reference: 'Conferência presencial de documento com foto e vínculo',
+      confirmed: true,
+      password,
+      version: 1,
+    });
     return responsible.id;
   };
   const responsibleEmail = 'safety-first@example.com';
   const responsibleId = await seedResponsible(ws.contractors[0].id, responsibleEmail);
+  // Fixture de conferência anterior do administrador, realizada por outro usuário.
+  await db.query("UPDATE users SET phone='5511999999999' WHERE id=$1", [user.id]);
+  await db.query(
+    `UPDATE memberships m SET identity_verified_at=now(),identity_verified_by=$3,identity_snapshot=jsonb_build_object('name',u.name,'email',u.email,'phone',COALESCE(m.phone,u.phone),'contractorId',m.contractor_id) FROM users u WHERE m.user_id=u.id AND u.id=$1 AND m.unit_id=$2`,
+    [user.id, unit.id, responsibleId],
+  );
   const approveAsResponsible = async (documentId: string, version: number, email: string) => {
     const previous = cookie;
     await call('/api/auth', { email, password });
@@ -1362,6 +1387,155 @@ try {
     assert.equal(pendingPerson.invitation_status.whatsapp.status, 'pending');
     await call('/api/auth', { email, password: 'senha-definida-por-admin' }, 401);
   }
+  cookie = adminCookie;
+  const securityPolicy = await call(`/api/security?unit=${unit.id}`);
+  assert.equal(securityPolicy.required, false);
+  await call(
+    '/api/security',
+    {
+      action: 'verify',
+      unitId: unit.id,
+      userId: user.id,
+      cpf: '52998224725',
+      reference: 'Não permite autoconferência',
+      confirmed: true,
+      password,
+      version: 1,
+    },
+    403,
+  );
+  await call('/api/security', { action: 'begin', unitId: unit.id, password: 'incorreta' }, 403);
+  const enrollment = await call('/api/security', { action: 'begin', unitId: unit.id, password });
+  assert.match(enrollment.secret, /^[A-Z2-7]{32}$/);
+  const enrollmentStep = Math.floor(Date.now() / 30000);
+  await call('/api/security', {
+    action: 'confirm',
+    unitId: unit.id,
+    password,
+    code: totp(enrollment.secret, enrollmentStep - 1),
+  });
+  const policyCode = totp(enrollment.secret, enrollmentStep);
+  await call('/api/security', {
+    action: 'policy',
+    unitId: unit.id,
+    required: true,
+    version: securityPolicy.version,
+    password,
+    code: policyCode,
+  });
+  assert.equal((await call(`/api/workspace?unit=${unit.id}`)).securityPolicy.required, true);
+  assert.equal(
+    (await call(`/api/security?unit=${isolatedUnit.id}`)).required,
+    false,
+    'Política não invade outra empresa',
+  );
+  await call(
+    '/api/security',
+    {
+      action: 'policy',
+      unitId: unit.id,
+      required: false,
+      version: securityPolicy.version + 1,
+      password,
+    },
+    403,
+  );
+  await call(
+    '/api/security',
+    {
+      action: 'policy',
+      unitId: unit.id,
+      required: false,
+      version: securityPolicy.version + 1,
+      password,
+      code: policyCode,
+    },
+    403,
+  );
+  const rootSecurityCookie = cookie;
+  await call('/api/auth', { email: responsibleEmail, password });
+  await call(
+    '/api/security',
+    {
+      action: 'policy',
+      unitId: unit.id,
+      required: false,
+      version: securityPolicy.version + 1,
+      password,
+    },
+    403,
+  );
+  await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 4, password }, 403);
+  cookie = rootSecurityCookie;
+  await call('/api/security', {
+    action: 'policy',
+    unitId: unit.id,
+    required: false,
+    version: securityPolicy.version + 1,
+    password,
+    code: totp(enrollment.secret, enrollmentStep + 1),
+  });
+  await call(
+    '/api/security',
+    {
+      action: 'policy',
+      unitId: unit.id,
+      required: false,
+      version: securityPolicy.version,
+      password,
+    },
+    409,
+  );
+  assert(!JSON.stringify(await call(`/api/security?unit=${unit.id}`)).includes(enrollment.secret));
+  await call('/api/security', { action: 'begin', unitId: unit.id, password }, 409);
+  await call('/api/auth', { email: responsibleEmail, password });
+  const ownEnrollment = await call('/api/security', { action: 'begin', unitId: unit.id, password });
+  await call('/api/security', {
+    action: 'confirm',
+    unitId: unit.id,
+    password,
+    code: totp(ownEnrollment.secret, Math.floor(Date.now() / 30000) - 1),
+  });
+  const revokedCookie = cookie;
+  cookie = rootSecurityCookie;
+  const recoverPerson = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === responsibleId,
+  );
+  await call('/api/security', {
+    action: 'reset',
+    unitId: unit.id,
+    userId: responsibleId,
+    version: recoverPerson.membership_version,
+    password,
+    reference: 'Recuperação assistida após nova conferência',
+    confirmed: true,
+  });
+  const recovered = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === responsibleId,
+  );
+  assert.equal(recovered.authenticator_enabled, false);
+  assert.equal(recovered.identity_verified_at, null);
+  cookie = revokedCookie;
+  await call('/api/workspace', undefined, 401);
+  cookie = rootSecurityCookie;
+  const securityAudits = await db.query<{ details: unknown }>(
+    "SELECT details FROM audit_events WHERE action LIKE 'seguranca.%'",
+  );
+  const securityText = JSON.stringify(securityAudits.rows);
+  assert(!securityText.includes(password));
+  assert(!securityText.includes(enrollment.secret));
+  assert(!securityText.includes(ownEnrollment.secret));
+  assert(!securityText.includes('52998224725'));
+  const decisions = await db.query<{
+    details: { verification?: { method: string; snapshotHash: string } };
+  }>("SELECT details FROM audit_events WHERE action='workflow.approve'");
+  assert(
+    decisions.rows.every(
+      (row) =>
+        row.details.verification?.method === 'password' &&
+        row.details.verification.snapshotHash.length === 64,
+    ),
+  );
   const foreign = await fetch(base + '/api/admin', {
     method: 'POST',
     headers: {
