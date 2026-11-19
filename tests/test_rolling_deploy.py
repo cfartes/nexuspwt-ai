@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,23 @@ spec.loader.exec_module(rolling)
 
 
 class RollingTests(unittest.TestCase):
+    def test_command_errors_explain_failure_without_exposing_credentials(self):
+        error = subprocess.CalledProcessError(1, ['docker', 'pull'], stderr='registry denied: password=secret-value https://name:private@registry.test/image')
+        with patch.object(rolling.subprocess, 'run', side_effect=error):
+            with self.assertRaises(ValueError) as failure:
+                rolling.run('docker', 'pull', 'nginx:1.28-alpine')
+        message = str(failure.exception)
+        self.assertIn('docker pull', message)
+        self.assertIn('registry denied', message)
+        self.assertNotIn('secret-value', message)
+        self.assertNotIn('private', message)
+
+    def test_runtime_secrets_are_removed_from_command_errors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            secret = 'runtime-private-key-123'
+            rolling.RollingDeployment(Path(directory), [], {'services': {'app': {'environment': {'INTEGRATIONS_ENCRYPTION_KEY': secret}}}})
+            error = subprocess.CalledProcessError(1, [], stderr='failed ' + secret)
+            self.assertNotIn(secret, str(rolling.command_error(['docker', 'compose'], error)))
     def test_candidate_has_no_database_service_or_public_router(self):
         base = {
             'services': {name: {'image': name, 'build': {}, 'labels': {'traefik.enable': 'true'}, 'depends_on': {'database': {}}, 'networks': ['database']} for name in ('app', 'notifications')},

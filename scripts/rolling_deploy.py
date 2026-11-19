@@ -8,9 +8,24 @@ import time
 import urllib.error
 import urllib.request
 
+SENSITIVE_VALUES = set()
+
+
+def command_error(args, error):
+    detail = error.stderr or 'O comando não retornou detalhe de erro.'
+    for secret in sorted(SENSITIVE_VALUES, key=len, reverse=True):
+        detail = detail.replace(secret, '[oculto]')
+    detail = re.sub(r'(?i)([a-z][a-z0-9+.-]*://)[^\s/@]+:[^\s/@]+@', r'\1[oculto]@', detail)
+    detail = re.sub(r'(?i)((?:password|token|secret|api[_-]?key)\s*[=:]\s*)[^\s,;]+', r'\1[oculto]', detail)
+    detail = ''.join(character for character in detail if character in '\n\t' or ord(character) >= 32)
+    return ValueError(f'Falha em {" ".join(args[:2])} (código {error.returncode}): {detail.strip()[:1600]}')
+
 
 def run(*args):
-    return subprocess.run(args, check=True, capture_output=True, text=True).stdout.strip()
+    try:
+        return subprocess.run(args, check=True, capture_output=True, text=True).stdout.strip()
+    except subprocess.CalledProcessError as error:
+        raise command_error(args, error) from None
 
 
 def save(path, value, mode=0o600):
@@ -79,6 +94,10 @@ def candidate_config(base, project, images, database_network):
 class RollingDeployment:
     def __init__(self, root, compose, base):
         self.root, self.compose, self.base = root, compose, base
+        for service in base.get('services', {}).values():
+            for key, value in service.get('environment', {}).items():
+                if value and re.search(r'PASSWORD|DATABASE_URL|KEY|TOKEN|SECRET', key):
+                    SENSITIVE_VALUES.add(str(value))
         self.directory = root / 'data' / 'deploy'
         self.directory.mkdir(parents=True, exist_ok=True)
         self.state_path = self.directory / 'state.json'
@@ -142,7 +161,9 @@ class RollingDeployment:
         # Images are prepared while the active app continues serving requests.
         print('Construindo a nova versão; app atual permanece disponível…', flush=True)
         subprocess.run([*self.compose, 'build', '--build-arg', 'APP_RELEASE=' + release, 'app', 'notifications'], check=True)
+        print('Etapa: download da imagem do gateway Nginx…', flush=True)
         run('docker', 'pull', 'nginx:1.28-alpine')
+        print('Etapa: identificação do PostgreSQL, redes e imagens…', flush=True)
         database_id = run(*self.compose, 'ps', '-q', 'database')
         database = json.loads(run('docker', 'inspect', database_id))[0]
         database_networks = [name for name in database['NetworkSettings']['Networks'] if name.endswith('_database')]
@@ -173,6 +194,7 @@ class RollingDeployment:
             self.state = {'active': {'project': self.base['name'], 'compose': str(legacy_path), 'legacy': True, 'upstream': legacy_upstream}, 'pending': None, 'previous': None}
             self.persist()
         active = self.state['active']
+        print('Etapa: preservação dos bundles públicos das duas versões…', flush=True)
         volume = 'nexus-ptw-public-static'
         run('docker', 'volume', 'create', volume)
         old_image = json.loads(Path(active['compose']).read_text())['services']['app']['image']
@@ -200,15 +222,18 @@ class RollingDeployment:
             'volumes': {volume: {'external': True, 'name': volume}},
         }
         save(self.gateway_file, json.dumps(gateway))
+        print('Etapa: backup do PostgreSQL existente…', flush=True)
         backups = self.root / 'data' / 'backups'
         backups.mkdir(exist_ok=True)
         with (backups / (project + '.dump')).open('xb') as backup:
             subprocess.run([*self.compose, 'exec', '-T', 'database', 'pg_dump', '-U', 'nexus', '-d', 'nexus', '-Fc'], stdout=backup, check=True)
         # Online migration policy refuses unreviewed SQL and rolls back on lock timeout.
+        print('Etapa: migrações online…', flush=True)
         subprocess.run([*self.compose, '--profile', 'setup', 'run', '--rm', '--no-deps', '--entrypoint', 'node', 'bootstrap', 'scripts/migrate-online.mjs'], check=True)
         self.state['pending'] = candidate
         self.persist()
         try:
+            print('Etapa: inicialização e teste da instância candidata…', flush=True)
             self.target(candidate, 'up', '-d', '--no-deps', '--wait', '--wait-timeout', '150', 'app')
             self.target(active, 'stop', 'notifications')
             self.target(candidate, 'up', '-d', '--no-deps', '--wait', '--wait-timeout', '60', 'notifications')
