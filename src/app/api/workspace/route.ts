@@ -68,7 +68,7 @@ export async function GET(request: Request) {
         [unit.id, unit.contractor_id],
       ),
       unit.role === 'admin' && user.platform_admin
-        ? db.query('SELECT id,name FROM companies ORDER BY name')
+        ? db.query('SELECT id,name,cnpj,details,version FROM companies ORDER BY name')
         : Promise.resolve({ rows: [] }),
       unit.role === 'admin'
         ? db.query(

@@ -5,9 +5,11 @@ import { api } from './workspace';
 export default function ContractorFields({
   unitId,
   initial = {},
+  requiredFields = false,
 }: {
   unitId: string;
   initial?: Partial<ContractorDetails>;
+  requiredFields?: boolean;
 }) {
   const [details, setDetails] = useState<Partial<ContractorDetails>>(initial),
     [busy, setBusy] = useState(false),
@@ -54,6 +56,7 @@ export default function ContractorFields({
           }
           <input
             name={key}
+            required={requiredFields && key !== 'tradeName'}
             type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'}
             defaultValue={initial[key] || ''}
             maxLength={key === 'email' ? 254 : key === 'phone' ? 25 : 200}
@@ -64,6 +67,7 @@ export default function ContractorFields({
         CEP
         <input
           name="cep"
+          required={requiredFields}
           inputMode="numeric"
           autoComplete="postal-code"
           value={details.cep || ''}
@@ -108,6 +112,7 @@ export default function ContractorFields({
           }
           <input
             name={key}
+            required={requiredFields && key !== 'complement'}
             value={details[key] || ''}
             maxLength={key === 'state' ? 2 : key === 'number' ? 30 : 200}
             onChange={(e) =>

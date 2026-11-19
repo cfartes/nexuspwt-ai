@@ -23,6 +23,7 @@ await db.exec(await readFile(new URL('../db/007-contractor-details.sql', import.
 await db.exec(await readFile(new URL('../db/008-user-invitations.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/009-apr-removal.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/010-company-unit-limit.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/011-company-details.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -247,7 +248,26 @@ try {
   });
   assert.equal(enabled.settings.sendNotifications, true);
   await call('/api/integrations', { ...whatsapp, version: 5, sessionId, sendNotifications: false });
-  await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Empresa isolada' });
+  const companyData = {
+    name: 'Empresa isolada',
+    cnpj: '11222333000181',
+    details: {
+      contactName: 'Responsável financeiro',
+      email: 'fiscal@example.com',
+      phone: '11999999999',
+      cep: '01001000',
+      street: 'Praça da Sé',
+      number: '100',
+      district: 'Sé',
+      city: 'São Paulo',
+      state: 'SP',
+      municipalityCode: '3550308',
+      billingEmail: 'notas@example.com',
+    },
+  };
+  await call('/api/admin', { action: 'company', unitId: unit.id, name: 'Incompleta' }, 400);
+  await call('/api/admin', { action: 'company', unitId: unit.id, ...companyData });
+  await call('/api/admin', { action: 'company', unitId: unit.id, ...companyData }, 409);
   const allUnits = (await call('/api/workspace')).units;
   const isolatedUnit = allUnits.find((u: { company_id: string }) => u.company_id !== company.id);
   await call(
@@ -256,6 +276,38 @@ try {
     404,
   );
   const companyRegistrations = await call(`/api/workspace?unit=${unit.id}`);
+  const registeredCompany = companyRegistrations.companies.find(
+    (c: { id: string }) => c.id === isolatedUnit.company_id,
+  );
+  assert.equal(registeredCompany.cnpj, companyData.cnpj);
+  assert.equal(registeredCompany.details.billingEmail, companyData.details.billingEmail);
+  const editCompany = {
+    action: 'updateCompany',
+    unitId: unit.id,
+    id: registeredCompany.id,
+    version: registeredCompany.version,
+    ...companyData,
+    details: { ...companyData.details, contactName: 'Novo responsável' },
+  };
+  await call('/api/admin', editCompany);
+  await call('/api/admin', editCompany, 409);
+  assert.equal(
+    (await call(`/api/workspace?unit=${unit.id}`)).companies.find(
+      (c: { id: string }) => c.id === registeredCompany.id,
+    ).details.contactName,
+    'Novo responsável',
+  );
+  await call(
+    '/api/admin',
+    {
+      action: 'deleteRegistration',
+      kind: 'company',
+      unitId: unit.id,
+      id: registeredCompany.id,
+      version: registeredCompany.version + 1,
+    },
+    409,
+  );
   assert(
     companyRegistrations.companies.some((c: { id: string }) => c.id === isolatedUnit.company_id),
   );
@@ -926,6 +978,12 @@ try {
     ),
   );
   await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  await call('/api/admin', { ...editCompany, version: editCompany.version + 1 }, 403);
+  await call(
+    '/api/admin',
+    { action: 'company', unitId: unit.id, ...companyData, cnpj: '22333444000181' },
+    403,
+  );
   await call(
     '/api/admin',
     { action: 'deleteRegistration', unitId: unit.id, kind: 'account', id: person.id },

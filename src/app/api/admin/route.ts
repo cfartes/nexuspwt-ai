@@ -8,6 +8,8 @@ import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { saveMembership } from '@/lib/memberships';
 import { whatsappChatId, businessPhone } from '@/lib/openwa';
 import { contractorDetails } from '@/lib/contractors';
+import { companyInput } from '@/lib/companies';
+import { saveCompany } from '@/lib/company-registration';
 import { randomBytes } from 'node:crypto';
 import { createInvitation } from '@/lib/invitations';
 import { deleteRegistration } from '@/lib/delete-registration';
@@ -50,7 +52,15 @@ const schema = z.discriminatedUnion('action', [
       version: z.number().int().positive().optional(),
     })
     .strict(),
-  z.object({ action: z.literal('company'), unitId: uuid, name }),
+  companyInput.extend({ action: z.literal('company'), unitId: uuid }).strict(),
+  companyInput
+    .extend({
+      action: z.literal('updateCompany'),
+      unitId: uuid,
+      id: uuid,
+      version: z.number().int().positive(),
+    })
+    .strict(),
   z.object({ action: z.literal('region'), unitId: uuid, name }),
   z.object({
     action: z.literal('unit'),
@@ -146,7 +156,7 @@ export async function POST(request: Request) {
     await transaction(async (c) => {
       // Serialize shared access/configuration changes before taking individual unit or membership locks.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-        `company-access:${input.action === 'deleteRegistration' && input.kind === 'company' ? input.id : unit.company_id}`,
+        `company-access:${input.action === 'updateCompany' || (input.action === 'deleteRegistration' && input.kind === 'company') ? input.id : unit.company_id}`,
       ]);
       await unitAccess(user, unit.id, ['admin'], c);
       const company = unit.company_id;
@@ -158,19 +168,16 @@ export async function POST(request: Request) {
           await deleteRegistration(c, user, input);
           break;
         case 'company': {
-          if (!user.platform_admin)
-            throw new HttpError(
-              403,
-              'Cadastro de empresa restrito ao administrador da plataforma.',
-            );
-          const {
-            rows: [co],
-          } = await c.query('INSERT INTO companies(name) VALUES($1) RETURNING id', [input.name]);
+          const companyId = await saveCompany(c, user, {
+            name: input.name,
+            cnpj: input.cnpj,
+            details: input.details,
+          });
           const {
             rows: [u],
           } = await c.query(
             "INSERT INTO units(company_id,name,kind) VALUES($1,'Unidade inicial','Escritório') RETURNING id",
-            [co.id],
+            [companyId],
           );
           await c.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
             user.id,
@@ -178,6 +185,14 @@ export async function POST(request: Request) {
           ]);
           break;
         }
+        case 'updateCompany':
+          await saveCompany(
+            c,
+            user,
+            { name: input.name, cnpj: input.cnpj, details: input.details },
+            { id: input.id, version: input.version },
+          );
+          break;
         case 'region':
           await c.query('INSERT INTO regions(company_id,name) VALUES($1,$2)', [
             company,

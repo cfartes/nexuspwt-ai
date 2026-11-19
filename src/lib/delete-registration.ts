@@ -91,6 +91,7 @@ export async function deleteRegistration(
         } = await c.query('SELECT * FROM companies WHERE id=$1 FOR UPDATE', [input.id]);
         if (!row) missing();
         name = row.name;
+        if (input.version !== undefined && input.version !== row.version) stale();
         const { rowCount } = await c.query(
           "SELECT 1 FROM company_integrations WHERE company_id=$1 AND service='whatsapp' AND COALESCE(settings->>'sessionId','')<>''",
           [input.id],

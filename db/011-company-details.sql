@@ -1,0 +1,4 @@
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS cnpj text;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS details jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1;
+CREATE UNIQUE INDEX IF NOT EXISTS companies_cnpj_unique ON companies(cnpj) WHERE cnpj IS NOT NULL;

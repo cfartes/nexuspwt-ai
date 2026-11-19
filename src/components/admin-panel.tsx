@@ -6,6 +6,8 @@ import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { api } from './workspace';
 import ContractorFields from './contractor-fields';
 import { contractorDetails } from '@/lib/contractors';
+import CompanyFields from './company-fields';
+import { companyDetails } from '@/lib/companies';
 export default function AdminPanel({
   ws,
   online,
@@ -56,11 +58,12 @@ export default function AdminPanel({
               data[key] = value;
             });
             if (action === 'unit') data.regionId = data.regionId || null;
-            if (action === 'contractor') {
+            if (action === 'contractor' || action === 'company') {
+              const shape = action === 'company' ? companyDetails.shape : contractorDetails.shape;
               data.details = Object.fromEntries(
-                Object.keys(contractorDetails.shape).map((key) => [key, fd.get(key) || '']),
+                Object.keys(shape).map((key) => [key, fd.get(key) || '']),
               );
-              for (const key of Object.keys(contractorDetails.shape)) delete data[key];
+              for (const key of Object.keys(shape)) delete data[key];
             }
             if (['user', 'membership'].includes(action))
               data.contractorId = data.contractorId || null;
@@ -101,28 +104,34 @@ export default function AdminPanel({
           <fieldset disabled={!online || busy} key={action} className="form-grid">
             {['contractor', 'user', 'region', 'unit', 'company'].includes(action) && (
               <label>
-                {action === 'contractor' ? 'Razão social' : 'Nome'} *
+                {action === 'contractor' || action === 'company' ? 'Razão social' : 'Nome'} *
                 <input name="name" required minLength={2} maxLength={200} />
               </label>
             )}
-            {action === 'contractor' && (
+            {(action === 'contractor' || action === 'company') && (
               <>
                 <label>
-                  CNPJ (somente números) *
+                  CNPJ ({action === 'company' ? 'sem pontuação' : 'somente números'}) *
                   <input
                     name="cnpj"
-                    inputMode="numeric"
-                    pattern="[0-9]{14}"
+                    inputMode={action === 'company' ? 'text' : 'numeric'}
+                    pattern={action === 'company' ? '[A-Za-z0-9]{12}[0-9]{2}' : '[0-9]{14}'}
                     minLength={14}
                     maxLength={14}
                     required
                   />
                 </label>
-                <p className="muted span-2">
-                  Se o CNPJ já existir nesta empresa, será criado somente o vínculo com a unidade
-                  atual.
-                </p>
-                <ContractorFields unitId={ws.unit.id} />
+                {action === 'contractor' && (
+                  <p className="muted span-2">
+                    Se o CNPJ já existir nesta empresa, será criado somente o vínculo com a unidade
+                    atual.
+                  </p>
+                )}
+                {action === 'company' ? (
+                  <CompanyFields unitId={ws.unit.id} />
+                ) : (
+                  <ContractorFields unitId={ws.unit.id} />
+                )}
               </>
             )}
             {['user', 'membership'].includes(action) && (

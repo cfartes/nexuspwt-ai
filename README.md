@@ -89,6 +89,10 @@ O teste de integração abre temporariamente um PostgreSQL embarcado na porta lo
 
 ## Subir o app na VPS
 
+Empresas possuem cadastro fiscal e de contato em **Empresas → Novo cadastro / Ver e editar cadastro**: razão social, nome fantasia, CNPJ, responsável, e-mail, telefone, endereço completo com consulta de CEP, inscrições municipal/estadual, código IBGE e e-mail financeiro. Criação e edição são restritas ao superadmin. O CNPJ é único na plataforma, aceita formato numérico ou alfanumérico sem pontuação e é normalizado em maiúsculas; a validação de formato não consulta a situação cadastral na Receita. Referência: [CNPJ alfanumérico — Receita Federal](https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/acoes-e-programas/programas-e-atividades/cnpj-alfanumerico). A edição usa controle de versão para impedir sobrescrever alterações de outro administrador. Exclusão exige ausência de vínculos e preserva documentos e histórico. A emissão de NFS-e ainda não está integrada.
+
+A migração `011-company-details.sql` mantém empresas existentes sem inventar dados fiscais: aparecem como cadastro fiscal pendente até serem completadas pelo superadmin. Execute `npm run db:setup` no desenvolvimento ou reexecute o instalador da VPS para atualizar o schema.
+
 ### Instalação com o Traefik existente (recomendada)
 
 Usa **PostgreSQL 17** em container próprio, volume persistente, sem publicar a porta 5432. O domínio é **https://nexusptw.nexusdataanalytics.tech**. Aponte o registro DNS A para a VPS (e remova/corrija AAAA se não houver IPv6 funcional). Docker Engine, plugin Docker Compose com `--wait`, Git e Python 3.9+ devem estar instalados. O Traefik existente precisa usar o provider Docker e já ter HTTPS/ACME configurados.

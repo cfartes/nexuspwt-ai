@@ -8,6 +8,7 @@ import ApproverSettings from './approver-settings';
 import Popup from './popup';
 import ContractorEditor from './contractor-editor';
 import DeleteRegistration from './delete-registration';
+import CompanyEditor from './company-editor';
 
 export type RegistrationTab =
   'companies' | 'regions' | 'units' | 'contractors' | 'people' | 'approvers';
@@ -54,6 +55,7 @@ export default function RegistrationPanel({
   const [creating, setCreating] = useState(false),
     [search, setSearch] = useState(''),
     [notice, setNotice] = useState(''),
+    [company, setCompany] = useState<WorkspaceData['companies'][number] | null>(null),
     [contractor, setContractor] = useState<WorkspaceData['contractors'][number] | null>(null);
   const section = sections[type];
   const canManage = ws.unit.role === 'admin' && (type !== 'companies' || ws.user.platform_admin);
@@ -61,7 +63,19 @@ export default function RegistrationPanel({
     type === 'units' && !!ws.unitQuota && ws.unitQuota.used >= ws.unitQuota.limit;
   const rows =
     type === 'companies'
-      ? (ws.companies || []).map((c) => ({ id: c.id, name: c.name, detail: 'Empresa cadastrada' }))
+      ? (ws.companies || []).map((c) => ({
+          id: c.id,
+          name: c.name,
+          detail: [
+            c.cnpj ? `CNPJ ${c.cnpj}` : 'Cadastro fiscal pendente',
+            c.details.contactName,
+            c.details.email,
+            c.details.phone,
+            [c.details.city, c.details.state].filter(Boolean).join('/'),
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        }))
       : type === 'regions'
         ? ws.regions.map((r) => ({ id: r.id, name: r.name, detail: ws.unit.company_name }))
         : type === 'units'
@@ -136,6 +150,15 @@ export default function RegistrationPanel({
           onClose={() => setContractor(null)}
         />
       )}
+      {company && canManage && (
+        <CompanyEditor
+          ws={ws}
+          company={company}
+          online={online}
+          reload={reload}
+          onClose={() => setCompany(null)}
+        />
+      )}
       {type !== 'people' && type !== 'approvers' && (
         <section className="card">
           <div className="admin-form">
@@ -178,6 +201,17 @@ export default function RegistrationPanel({
                       {canManage && (
                         <td>
                           <div className="actions">
+                            {type === 'companies' && (
+                              <button
+                                className="secondary"
+                                disabled={!online}
+                                onClick={() =>
+                                  setCompany(ws.companies.find((c) => c.id === row.id)!)
+                                }
+                              >
+                                Ver / editar cadastro
+                              </button>
+                            )}
                             {type === 'contractors' && (
                               <button
                                 className="secondary"
@@ -196,9 +230,11 @@ export default function RegistrationPanel({
                               name={row.name}
                               online={online}
                               version={
-                                type === 'contractors'
-                                  ? ws.contractors.find((c) => c.id === row.id)?.version
-                                  : undefined
+                                type === 'companies'
+                                  ? ws.companies.find((c) => c.id === row.id)?.version
+                                  : type === 'contractors'
+                                    ? ws.contractors.find((c) => c.id === row.id)?.version
+                                    : undefined
                               }
                               onDeleted={async () => {
                                 await reload(
