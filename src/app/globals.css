@@ -1649,6 +1649,30 @@ fieldset {
     padding: 20px 16px;
   }
 }
+.app-update-notice {
+  position: fixed;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 2000;
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid #cbd8e2;
+  border-radius: 12px;
+  background: white;
+  color: #122d43;
+  box-shadow: 0 4px 24px #122d4326;
+}
+.app-update-notice p {
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+@media print {
+  .app-update-notice {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *:before,

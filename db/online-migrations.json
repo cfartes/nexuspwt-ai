@@ -1,0 +1,20 @@
+{
+  "001-initial.sql": "66031921cbbcee62afd30bc6b71713c652146286f6e494d6af3570879d495806",
+  "002-integrations.sql": "3f285fe642d5614483462945acb4c4b57bfd0a418181127cac71d1ef9cf2c934",
+  "003-notifications.sql": "01b5b4f0fb18521f4054bd5cab08b1d61b10ef5eb6c9f07390699ff2d457d963",
+  "004-membership-management.sql": "9679c6860b844c4b11d5c1f1f04f0168515ea802e2be2b7fc39f640a2e97b3ef",
+  "005-approver-management.sql": "f4e38fb2a84ab3a9fe9bdab3ba464063762c242c52761abdcf6cdfd645395c15",
+  "006-whatsapp-gateway.sql": "816e60bbbdb9d260a0f0f227f3e307bb11854357c2179b433c3718bb153e480a",
+  "007-contractor-details.sql": "d524df7b7beef3cc3ce4d57c17adf52b09e5820375c4077b59e8d13a307674cc",
+  "008-user-invitations.sql": "8e2795299e67a42f564a998a5ac99b19c327eff5d7b85e2b11e2b32c572a069a",
+  "009-apr-removal.sql": "8c95f9cb1a553b2b7a596e93f0669b120a59a2ff623aa28c6cce59fb7f149204",
+  "010-company-unit-limit.sql": "7534926f176aaac6ea1e4e732c70f43751df1338de9f3932a695d85829eb0dc4",
+  "011-company-details.sql": "edbee4d33141c33881a0276ec0341697ba8a7cc87cc02788bf684f6554cae849",
+  "012-safety-role.sql": "2914ba8eec418b81a4e84a0842aec96a3922226b3edb38bb22193887c022ea04",
+  "013-approval-identity.sql": "e06224205ce2bc74add8ec4aed2cec4afe9cd1677594018bd05fd6f4bc442235",
+  "014-company-administrators.sql": "3dc6ff79d72f193afc14b34609b64dc8a83aabe7db909bb143b93f673899881a",
+  "015-company-audit.sql": "205463be947b7375e229f77450adcb0be1de5848692a503dab353a248dfdc754",
+  "016-contractor-executors.sql": "75291d5f216d9f8a215b8f45179cbfe58a8d18ba2c368cdae44405879b6816c9",
+  "017-login-mfa.sql": "df13f0f2918866226b26ce018aa746b061a0432bec99c05255b28cec74562c2d",
+  "018-identity-upload-policy.sql": "d751c0829b2af72468fd6b77fb627552fc6f173c495691189c2b454009396f57"
+}

@@ -4,6 +4,8 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 
 ## Adequação às diretrizes de C:\Projetos
 
+- Validar a primeira adoção do deploy blue/green na VPS real, incluindo Traefik/HTTPS, capacidade para duas instâncias e espaço para backups/bundles. A implementação não substitui alta disponibilidade de PostgreSQL ou da própria VPS. Abas anteriores à instalação do detector precisam ser recarregadas uma vez.
+
 - A migração para Python/FastAPI/SQLAlchemy/Alembic foi descartada pelo responsável pelo projeto. Manter Next.js/TypeScript, Zod, `pg`, PostgreSQL e migrações SQL incrementais. Não há pendência de substituir o backend ou reorganizar toda a aplicação para seguir a estrutura Python genérica.
 - Melhorar a separação entre transporte, regras de negócio e acesso a dados dentro da stack atual, somente nos escopos autorizados, sem refatoração geral como efeito colateral.
 - Manter lint completo, typecheck e testes aprovados nas próximas alterações. Os diagnósticos do GTS foram corrigidos em 19/11/2026, sem desativar regras; o detalhamento está em `IMPLEMENTADO.md`.

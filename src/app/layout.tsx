@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import AppUpdateNotice from '@/components/AppUpdateNotice';
 export const metadata: Metadata = {
   title: 'Nexus PTW AI · Segurança em cada etapa',
   description: 'Gestão de análises preliminares de riscos e permissões de trabalho',
@@ -16,7 +17,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AppUpdateNotice />
+      </body>
     </html>
   );
 }

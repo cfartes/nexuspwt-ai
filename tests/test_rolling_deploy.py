@@ -1,0 +1,59 @@
+import copy
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+spec = importlib.util.spec_from_file_location('rolling', Path(__file__).parents[1] / 'scripts' / 'rolling_deploy.py')
+rolling = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(rolling)
+
+
+class RollingTests(unittest.TestCase):
+    def test_candidate_has_no_database_service_or_public_router(self):
+        base = {
+            'services': {name: {'image': name, 'build': {}, 'labels': {'traefik.enable': 'true'}, 'depends_on': {'database': {}}, 'networks': ['database']} for name in ('app', 'notifications')},
+            'networks': {'traefik': {'name': 'existing-proxy'}},
+        }
+        original = copy.deepcopy(base)
+        config = rolling.candidate_config(base, 'nexus-ptw-r123', {'app': 'sha256:app', 'notifications': 'sha256:worker'}, 'existing_database')
+        self.assertEqual(base, original)
+        self.assertEqual(set(config['services']), {'app', 'notifications'})
+        self.assertEqual(config['networks']['database'], {'external': True, 'name': 'existing_database'})
+        self.assertEqual(config['services']['app']['labels'], {'traefik.enable': 'false'})
+        self.assertNotIn('build', config['services']['app'])
+        self.assertNotIn('ports', config['services']['app'])
+
+    def test_gateway_keeps_assets_and_does_not_buffer_requests(self):
+        config = rolling.gateway_config('nexus-ptw-r123-app')
+        self.assertIn('resolve;', config)
+        self.assertIn('alias /srv/static/', config)
+        self.assertIn('proxy_buffering off', config)
+        with self.assertRaises(ValueError):
+            rolling.gateway_config('other; arbitrary config')
+
+    def test_legacy_rollback_reloads_gateway_without_stopping_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deployment = rolling.RollingDeployment(Path(directory), [], {})
+            with patch.object(deployment, 'edge', return_value='running') as edge:
+                deployment.switch({'project': 'nexus-ptw', 'legacy': True, 'upstream': 'nexus-ptw-app-1'})
+            self.assertIn('nexus-ptw-app-1:3000', (deployment.gateway_dir / 'active.conf').read_text())
+            self.assertNotIn(('stop', 'gateway'), [call.args for call in edge.call_args_list])
+            self.assertIn(('exec', '-T', 'gateway', 'nginx', '-s', 'reload'), [call.args for call in edge.call_args_list])
+
+    def test_recovery_restores_app_and_worker_before_removing_failed_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deployment = rolling.RollingDeployment(Path(directory), [], {})
+            old, new = {'project': 'old'}, {'project': 'new'}
+            deployment.state = {'active': old, 'pending': new}
+            events = []
+            with patch.object(deployment, 'target', side_effect=lambda target, *args: events.append((target['project'], *args))), patch.object(deployment, 'switch', side_effect=lambda target: events.append(('route', target['project']))):
+                deployment.restore()
+            self.assertEqual(events, [('new', 'stop', 'notifications'), ('old', 'start', 'app', 'notifications'), ('route', 'old'), ('new', 'stop', 'app')])
+            self.assertIsNone(json.loads(deployment.state_path.read_text())['pending'])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -6,6 +6,7 @@ import re
 import secrets
 import subprocess
 import sys
+import fcntl
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +42,9 @@ def routing(existing):
     if proxy is None:
         raise ValueError('Traefik informado não está em execução.')
     flags = proxy['Config'].get('Cmd') or []
+    environment = proxy['Config'].get('Env') or []
+    if any(flag.lower() == '--providers.docker.allowemptyservices=true' for flag in flags) or any(value.lower() == 'traefik_providers_docker_allowemptyservices=true' for value in environment):
+        raise ValueError('Deploy online exige Traefik respeitando healthchecks (allowEmptyServices=false).')
     if any(f.lower() == '--providers.docker=false' or
            (f.lower().startswith('--providers.swarm') and not f.lower().endswith('=false')) or
            f.lower() == '--providers.docker.swarmmode=true' for f in flags):
@@ -90,6 +94,7 @@ def load_env(path):
 def main(update_only=False):
     os.umask(0o077)
     existing = load_env(ENV)
+    update_only = update_only or bool(existing)
     if update_only and not existing:
         raise ValueError('Ambiente existente não encontrado. Nenhum banco será criado.')
     config = {} if update_only else routing(existing)
@@ -128,8 +133,21 @@ def main(update_only=False):
         schema = output(*compose, 'exec', '-T', 'database', 'psql', '-U', 'nexus', '-d', 'nexus', '-Atqc', "SELECT to_regclass('public.companies') IS NOT NULL AND to_regclass('public.users') IS NOT NULL")
         if schema != 't':
             raise ValueError('Banco existente não contém o schema do app. Atualização cancelada.')
+        from rolling_deploy import RollingDeployment
+        routing(existing)  # Validate the existing Docker/Traefik topology without changing it.
+        lock_path = ROOT / 'data' / 'deploy.lock'
+        lock_path.parent.mkdir(exist_ok=True)
+        with lock_path.open('a') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise ValueError('Outra atualização já está em execução.') from None
+            base = json.loads(output(*compose, 'config', '--format', 'json'))
+            RollingDeployment(ROOT, compose, base).deploy()
+        return
     # Build antes de tocar nos serviços existentes; credenciais ficam fora das imagens.
-    subprocess.run([*compose, 'build', 'app', 'notifications'], check=True)
+    release = output('git', '-C', str(ROOT), 'rev-parse', 'HEAD')
+    subprocess.run([*compose, 'build', '--build-arg', 'APP_RELEASE=' + release, 'app', 'notifications'], check=True)
     if not update_only:
         subprocess.run([*compose, 'up', '-d', '--wait', 'database'], check=True)
     backups = ROOT / 'data' / 'backups'

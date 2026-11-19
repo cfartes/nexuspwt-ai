@@ -25,7 +25,8 @@ Por decisão explícita do responsável pelo projeto em 19/11/2026, manter o bac
 - Desativar a opção não apaga arquivos ou históricos e remove a exigência de upload para operar. A migração incremental é `018-identity-upload-policy.sql`.
 - Documentos pessoais cifrados no PostgreSQL, download autorizado e auditado, preservação de versões e retenção mínima registrada de cinco anos por envio.
 - Auditoria da empresa somente para Admin da Empresa, com filtros, paginação e detalhes em popup.
-- Scripts incrementais de instalação/atualização com PostgreSQL e Traefik; atualização preserva o banco existente.
+- Atualização blue/green com gateway Nginx atrás do Traefik existente, teste de saúde da candidata, confirmação HTTPS, retorno automático por falha e drenagem de requisições antes de parar a versão anterior. PostgreSQL não é reiniciado nem reinstalado; há backup, histórico/checksums e aprovação de migrações compatíveis para deploy online.
+- Aviso de nova versão no app, consultado a cada minuto e ao reconectar/voltar à aba. Atualização manual com confirmação para salvar formulários; preserva IndexedDB, rascunhos salvos e filas. Cache do service worker e build identificados por release; bundles públicos anteriores preservados no gateway.
 
 ## Validação e limites
 
@@ -38,3 +39,5 @@ A dependência transitiva `tmp` foi fixada em 0.2.7 por override para corrigir o
 O fechamento assíncrono do IndexedDB trata rejeições sem expor dados pessoais. Respostas sem JSON ou nulas do OpenWA/Resend mantêm o resultado incerto, com testes de regressão; a recusa explícita continua bloqueando o envio. Essas correções não exigem migração do banco, novas dependências ou mudança de stack. Outras adequações permanecem em [PENDENTE.md](PENDENTE.md).
 
 Validação desta correção: `npm run lint` sem erros ou avisos, `npm run typecheck`, `npm test` com 36 testes aprovados (incluindo compilação e lint), `npm run build` e `npm run test:integration` aprovados. Nenhum envio real por WhatsApp/e-mail, teste visual no navegador ou atualização da VPS foi executado nesta etapa.
+
+Validação do deploy online: 38 testes Node, quatro testes Python, lint, typecheck, build e integração HTTP aprovados. Imagens Docker do app e worker construídas localmente; teste isolado com PostgreSQL 17 e gateway Nginx realizou 540 requisições durante troca, retorno e nova troca sem falhas HTTP e confirmou bundles antigos acessíveis. Testes também cobrem retomada da versão anterior, recusa de migração não aprovada e rollback de migração com erro. A VPS/Traefik/HTTPS real e o aviso em navegador/celular ainda precisam de validação no ambiente de destino. A primeira adoção exige recarregar uma vez abas que ainda não possuem o detector.

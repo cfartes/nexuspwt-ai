@@ -3,8 +3,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+ARG APP_RELEASE=development
+ENV APP_RELEASE=$APP_RELEASE
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
+RUN node scripts/stamp-release.mjs
 
 FROM build AS notifications
 RUN npm prune --omit=dev
