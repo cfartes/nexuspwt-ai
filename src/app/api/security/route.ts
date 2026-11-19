@@ -5,6 +5,7 @@ import { assertOrigin, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { encryptSecret } from '@/lib/integrations';
 import { newTotpSecret } from '@/lib/totp';
+import { totpQrCode } from '@/lib/totp-qr';
 import { authenticateDecision, recordIdentity } from '@/lib/approval-security';
 
 const schema = z
@@ -195,7 +196,7 @@ export async function POST(request: Request) {
         }
       });
     return Response.json(
-      { ok: true, ...(secret ? { secret } : {}) },
+      { ok: true, ...(secret ? { secret, qrCode: await totpQrCode(secret, user.email) } : {}) },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {

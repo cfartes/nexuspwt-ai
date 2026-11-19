@@ -1407,13 +1407,16 @@ try {
   await call('/api/security', { action: 'begin', unitId: unit.id, password: 'incorreta' }, 403);
   const enrollment = await call('/api/security', { action: 'begin', unitId: unit.id, password });
   assert.match(enrollment.secret, /^[A-Z2-7]{32}$/);
+  assert.match(enrollment.qrCode, /^data:image\/png;base64,/);
   const enrollmentStep = Math.floor(Date.now() / 30000);
-  await call('/api/security', {
+  const confirmedEnrollment = await call('/api/security', {
     action: 'confirm',
     unitId: unit.id,
     password,
     code: totp(enrollment.secret, enrollmentStep - 1),
   });
+  assert(!('secret' in confirmedEnrollment));
+  assert(!('qrCode' in confirmedEnrollment));
   const policyCode = totp(enrollment.secret, enrollmentStep);
   await call('/api/security', {
     action: 'policy',

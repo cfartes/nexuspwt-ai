@@ -15,6 +15,7 @@ export default function SecuritySettings({
 }) {
   const [open, setOpen] = useState(false),
     [secret, setSecret] = useState(''),
+    [qrCode, setQrCode] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
@@ -53,6 +54,7 @@ export default function SecuritySettings({
               setOpen(true);
               setError('');
               setSecret('');
+              setQrCode('');
             }}
           >
             Configurar meu autenticador
@@ -142,6 +144,7 @@ export default function SecuritySettings({
           onClose={() => {
             setOpen(false);
             setSecret('');
+            setQrCode('');
             setError('');
           }}
         >
@@ -159,9 +162,12 @@ export default function SecuritySettings({
                   password: fields.get('password'),
                   code: fields.get('code') || '',
                 });
-                if (result.secret) setSecret(result.secret);
-                else {
+                if (result.secret) {
+                  setSecret(result.secret);
+                  setQrCode(result.qrCode || '');
+                } else {
                   setSecret('');
+                  setQrCode('');
                   setOpen(false);
                   await reload();
                   setNotice(
@@ -194,12 +200,26 @@ export default function SecuritySettings({
               {secret && (
                 <>
                   <p className="span-2">
-                    No aplicativo autenticador, adicione uma conta com entrada manual, nome “Nexus
-                    PTW · {ws.user.email}”, tipo baseado em tempo (TOTP), 6 dígitos e intervalo de
-                    30 segundos.
+                    No Google Authenticator ou Microsoft Authenticator, adicione uma conta e escolha
+                    a opção de ler um QR Code. Aponte a câmera do aplicativo para o código abaixo.
+                  </p>
+                  {qrCode && (
+                    <div className="span-2">
+                      <img
+                        src={qrCode}
+                        width={320}
+                        height={320}
+                        style={{ maxWidth: '100%', height: 'auto' }}
+                        alt="QR Code para cadastrar sua conta Nexus PTW no aplicativo autenticador. Não compartilhe."
+                      />
+                    </div>
+                  )}
+                  <p className="muted span-2">
+                    Depois de escanear, informe abaixo os seis números gerados no celular. Não
+                    compartilhe o QR Code nem a chave.
                   </p>
                   <label className="span-2">
-                    Chave de configuração (não compartilhe)
+                    Chave manual alternativa (TOTP, 6 dígitos, 30 segundos)
                     <input value={secret} readOnly autoComplete="off" />
                   </label>
                   <p className="muted span-2">
@@ -220,7 +240,7 @@ export default function SecuritySettings({
                 </>
               )}
               <button className="primary">
-                {secret ? 'Confirmar autenticador' : 'Gerar chave de configuração'}
+                {secret ? 'Confirmar autenticador' : 'Gerar QR Code'}
               </button>
             </fieldset>
           </form>
