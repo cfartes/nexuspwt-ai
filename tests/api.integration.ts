@@ -27,6 +27,9 @@ await db.exec(await readFile(new URL('../db/010-company-unit-limit.sql', import.
 await db.exec(await readFile(new URL('../db/011-company-details.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/012-safety-role.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/013-approval-identity.sql', import.meta.url), 'utf8'));
+await db.exec(
+  await readFile(new URL('../db/014-company-administrators.sql', import.meta.url), 'utf8'),
+);
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -1119,7 +1122,7 @@ try {
     { action: 'setUnitLimit', unitId: unit.id, limit: 5, version: quotaAfter.version },
     403,
   );
-  await call('/api/admin', { ...secondUnitInput, name: 'Não ultrapassar limite' }, 409);
+  await call('/api/admin', { ...secondUnitInput, name: 'Não ultrapassar limite' }, 403);
   await call('/api/email-gateway', undefined, 403);
   await call(
     '/api/email-gateway',
@@ -1133,8 +1136,8 @@ try {
   );
   assert.equal(
     unitAdminRegistrations.companies.length,
-    0,
-    'Admin de unidade não lista empresas da plataforma',
+    1,
+    'Admin de unidade consulta somente a própria empresa',
   );
   assert(
     unitAdminRegistrations.registeredUnits.every(
@@ -1147,7 +1150,7 @@ try {
     { version: 0, baseUrl: 'https://openwa.example.com', secret: 'chave-teste' },
     403,
   );
-  const companyConnection = await call(`/api/whatsapp?unit=${unit.id}`);
+  const companyConnection = await call(`/api/whatsapp?unit=${unit.id}`, undefined, 403);
   assert(
     (await call(`/api/workspace?unit=${secondUnit.id}`)).companyPeople.some(
       (p: { id: string }) => p.id === person.id,
@@ -1549,6 +1552,218 @@ try {
     body: JSON.stringify({ action: 'region', unitId: unit.id, name: 'Externa' }),
   });
   assert.equal(foreign.status, 403);
+  cookie = adminCookie;
+  const matrixUsers: Record<string, string> = {};
+  for (const role of [
+    'owner',
+    'admin',
+    'gestor',
+    'seguranca_trabalho',
+    'aprovador',
+    'executante',
+  ]) {
+    const {
+      rows: [member],
+    } = await db.query<{ id: string }>(
+      'INSERT INTO users(name,email,phone,password_hash) VALUES($1,$2,$3,$4) RETURNING id',
+      [`Matriz ${role}`, `matrix-${role}@example.com`, '5511999999999', hashPassword(password)],
+    );
+    matrixUsers[role] = member.id;
+    await db.query('INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,$3)', [
+      member.id,
+      unit.id,
+      role === 'owner' ? 'admin' : role,
+    ]);
+  }
+  await call('/api/admin', {
+    action: 'updateMembership',
+    unitId: unit.id,
+    userId: matrixUsers.owner,
+    version: 1,
+    role: 'admin_empresa',
+    contractorId: null,
+    active: true,
+    phone: '5511999999999',
+  });
+  await call('/api/auth', { email: 'matrix-owner@example.com', password });
+  const ownerView = await call(`/api/workspace?unit=${unassignedUnit.id}`);
+  assert.equal(ownerView.unit.company_admin, true);
+  assert(ownerView.units.some((un: { id: string }) => un.id === unit.id));
+  assert.equal(ownerView.companies.length, 1);
+  await call(`/api/workspace?unit=${isolatedUnit.id}`, undefined, 403);
+  await call('/api/admin', {
+    action: 'region',
+    unitId: unit.id,
+    name: 'Regional gerenciada pela empresa',
+  });
+  await call(
+    '/api/admin',
+    {
+      action: 'updateCompany',
+      unitId: unit.id,
+      id: isolatedUnit.company_id,
+      version: 1,
+      ...companyData,
+    },
+    403,
+  );
+  await call('/api/whatsapp/gateway', undefined, 403);
+  await call('/api/email-gateway', undefined, 403);
+  const tenantIntegrations = await call(`/api/integrations?unit=${unit.id}`);
+  assert(
+    tenantIntegrations.integrations.every(
+      (integration: { service: string }) => integration.service === 'signature',
+    ),
+  );
+  assert.equal(tenantIntegrations.openwaDefaultUrl, '');
+  await call('/api/admin', {
+    action: 'contractor',
+    unitId: unassignedUnit.id,
+    name: 'Contratada compartilhada',
+    cnpj: '44555666000177',
+  });
+  const sharedContractor = (
+    await call(`/api/workspace?unit=${unassignedUnit.id}`)
+  ).contractors.find((c: { cnpj: string }) => c.cnpj === '44555666000177');
+  await call('/api/auth', { email: 'matrix-admin@example.com', password });
+  const localView = await call(`/api/workspace?unit=${unit.id}`);
+  assert.equal(localView.unit.company_admin, false);
+  assert(localView.registeredUnits.every((un: { id: string }) => un.id === unit.id));
+  await call(`/api/workspace?unit=${unassignedUnit.id}`, undefined, 403);
+  await call('/api/admin', { action: 'region', unitId: unit.id, name: 'Regional indevida' }, 403);
+  await call(
+    '/api/admin',
+    { action: 'unit', unitId: unit.id, name: 'Unidade indevida', kind: 'CDD', regionId: null },
+    403,
+  );
+  await call(
+    '/api/admin',
+    { action: 'contractor', unitId: unit.id, name: 'Cadastro indevido', cnpj: '77888999000100' },
+    403,
+  );
+  await call(
+    '/api/admin',
+    {
+      action: 'updateMembership',
+      unitId: unit.id,
+      userId: matrixUsers.owner,
+      version: 2,
+      role: 'admin',
+      contractorId: null,
+      active: true,
+      phone: '5511999999999',
+    },
+    403,
+  );
+  await call(
+    '/api/admin',
+    {
+      action: 'user',
+      unitId: unit.id,
+      name: 'Elevação indevida',
+      email: 'elevated@example.com',
+      role: 'admin_empresa',
+      phone: '5511999999999',
+      contractorId: null,
+    },
+    403,
+  );
+  await call(
+    '/api/security',
+    { action: 'policy', unitId: unit.id, required: false, version: 1, password },
+    403,
+  );
+  await call('/api/whatsapp?unit=' + unit.id, undefined, 403);
+  await call('/api/admin', {
+    action: 'linkContractor',
+    unitId: unit.id,
+    contractorId: sharedContractor.id,
+  });
+  await call(
+    '/api/admin',
+    {
+      action: 'updateContractor',
+      unitId: unit.id,
+      id: sharedContractor.id,
+      version: sharedContractor.version,
+      name: 'Alteração indevida',
+      details: {},
+    },
+    403,
+  );
+  await call('/api/admin', {
+    action: 'deleteRegistration',
+    kind: 'contractor',
+    unitId: unit.id,
+    id: sharedContractor.id,
+    version: sharedContractor.version,
+  });
+  assert.equal(
+    (await db.query('SELECT 1 FROM contractors WHERE id=$1', [sharedContractor.id])).rowCount,
+    1,
+  );
+  let matrixDocument: { id: string; version: number } | undefined;
+  for (const role of ['gestor', 'seguranca_trabalho', 'executante']) {
+    await call('/api/auth', { email: `matrix-${role}@example.com`, password });
+    const scoped = await call(`/api/workspace?unit=${unit.id}`);
+    for (const field of ['companies', 'regions', 'registeredUnits', 'companyPeople'])
+      assert.equal(scoped[field].length, 0, `${role}: ${field}`);
+    assert(
+      scoped.people.every(
+        (p: { id: string; email: string }) => p.id === matrixUsers[role] || !p.email,
+      ),
+    );
+    await call('/api/admin', { action: 'region', unitId: unit.id, name: 'Sem permissão' }, 403);
+    await call('/api/integrations?unit=' + unit.id, undefined, 403);
+    const draft = await call('/api/documents', {
+      ...d,
+      id: randomUUID(),
+      title: `Rascunho de ${role}`,
+    });
+    if (role === 'seguranca_trabalho') matrixDocument = draft;
+    if (role === 'executante') {
+      assert(
+        !(await call(`/api/workspace?unit=${unit.id}`)).documents.some(
+          (doc: { id: string }) => doc.id === pt.id,
+        ),
+      );
+      await call(`/api/documents/${pt.id}/history`, undefined, 403);
+    }
+  }
+  cookie = adminCookie;
+  await call(`/api/documents/${matrixDocument!.id}/workflow`, { action: 'submit', version: 1 });
+  const assignedApproval = (await call(`/api/workspace?unit=${unit.id}`)).approvals.find(
+    (a: { document_id: string; profile: string }) =>
+      a.document_id === matrixDocument!.id && a.profile === aprProfiles[2],
+  );
+  await call('/api/admin', {
+    action: 'reassignApproval',
+    unitId: unit.id,
+    id: assignedApproval.id,
+    assignmentVersion: assignedApproval.assignment_version,
+    userId: matrixUsers.aprovador,
+    reason: 'Designação para teste de acesso',
+  });
+  await call('/api/auth', { email: 'matrix-aprovador@example.com', password });
+  const approverScope = await call(`/api/workspace?unit=${unit.id}`);
+  assert.equal(approverScope.documents.length, 1);
+  assert.equal(approverScope.documents[0].id, matrixDocument!.id);
+  for (const field of ['companies', 'regions', 'registeredUnits', 'companyPeople', 'approvers'])
+    assert.equal(approverScope[field].length, 0);
+  await call('/api/documents', { ...d, id: randomUUID() }, 403);
+  await call(`/api/documents/${d.id}/history`, undefined, 403);
+  await call(`/api/documents/${matrixDocument!.id}/history`);
+  await call(`/api/documents/${pt.id}/photos`, undefined, 403);
+  assert.equal(
+    (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
+    403,
+  );
+  assert.equal((await fetch(`${base}/print/${d.id}`, { headers: { Cookie: cookie } })).status, 404);
+  assert.equal(
+    (await fetch(`${base}/print/${matrixDocument!.id}`, { headers: { Cookie: cookie } })).status,
+    200,
+  );
+  cookie = adminCookie;
   console.log(
     'Integração OK: APR/PT, integrações, gestão de acessos por unidade, contatos independentes, isolamento de documentos/fotos por terceirizada, desativação sem exclusão, proteção do último administrador e CSRF. Nenhuma chamada a provedores reais.',
   );

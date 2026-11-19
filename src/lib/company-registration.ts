@@ -10,7 +10,14 @@ export async function saveCompany(
   input: z.infer<typeof companyInput>,
   existing?: { id: string; version: number },
 ) {
-  if (!actor.platform_admin)
+  const { rowCount: companyAdmin } =
+    existing && !actor.platform_admin
+      ? await c.query(
+          'SELECT 1 FROM company_admins WHERE company_id=$1 AND user_id=$2 AND active',
+          [existing.id, actor.id],
+        )
+      : { rowCount: 0 };
+  if (!actor.platform_admin && !companyAdmin)
     throw new HttpError(403, 'Somente o superadmin pode cadastrar ou alterar empresas.');
   const data = companyInput.parse(input);
   if (existing) {

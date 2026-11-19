@@ -12,11 +12,12 @@ import {
   type IntegrationRow,
 } from '@/lib/integrations';
 import { checkOpenwaSession, openwaBaseUrl } from '@/lib/openwa';
+import { companyManager } from '@/lib/permissions';
 
 async function access(unitId: string) {
   const user = await currentUser();
   const unit = await unitAccess(user, unitId, ['admin']);
-  if (!user.platform_admin)
+  if (!companyManager(user, unit))
     throw new HttpError(
       403,
       'As integrações da empresa são gerenciadas pelo administrador da plataforma.',
@@ -26,16 +27,18 @@ async function access(unitId: string) {
 export async function GET(request: Request) {
   try {
     const unitId = uuid.parse(new URL(request.url).searchParams.get('unit'));
-    const { unit } = await access(unitId);
+    const { user, unit } = await access(unitId);
     const { rows } = await db.query<IntegrationRow>(
       'SELECT * FROM company_integrations WHERE company_id=$1',
       [unit.company_id],
     );
     return Response.json(
       {
-        integrations: rows.map(publicIntegration),
+        integrations: rows
+          .filter((row) => user.platform_admin || row.service === 'signature')
+          .map(publicIntegration),
         encryptionReady: /^[a-f\d]{64}$/i.test(process.env.INTEGRATIONS_ENCRYPTION_KEY || ''),
-        openwaDefaultUrl: process.env.OPENWA_DEFAULT_URL || '',
+        openwaDefaultUrl: user.platform_admin ? process.env.OPENWA_DEFAULT_URL || '' : '',
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );
@@ -48,6 +51,8 @@ export async function POST(request: Request) {
     assertOrigin(request);
     const input = integrationSchema.parse(await request.json());
     const { user, unit } = await access(input.unitId);
+    if (input.service === 'whatsapp' && !user.platform_admin)
+      throw new HttpError(403, 'Gateway restrito ao superadmin.');
     if (input.clearSecret && input.secret)
       throw new HttpError(400, 'Escolha substituir ou remover a credencial.');
     const result = await transaction(async (c) => {
@@ -139,6 +144,7 @@ export async function PUT(request: Request) {
       .strict()
       .parse(await request.json());
     const { user, unit } = await access(input.unitId);
+    if (!user.platform_admin) throw new HttpError(403, 'Gateway restrito ao superadmin.');
     const {
       rows: [row],
     } = await db.query<IntegrationRow>(

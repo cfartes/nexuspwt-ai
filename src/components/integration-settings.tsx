@@ -5,6 +5,7 @@ import type { WorkspaceData } from '@/lib/types';
 import type { IntegrationSettings } from '@/lib/integrations';
 import { api } from './workspace';
 import WhatsappSettings from './whatsapp-settings';
+import { companyManager } from '@/lib/permissions';
 
 type ConfigResponse = {
   integrations: IntegrationSettings[];
@@ -25,7 +26,7 @@ export default function IntegrationPanel({
   const [config, setConfig] = useState<ConfigResponse | null>(null),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
-  const canManage = ws.unit.role === 'admin';
+  const canManage = ws.unit.role === 'admin' && companyManager(ws.user, ws.unit);
   async function load() {
     const data = await api(`/api/integrations?unit=${ws.unit.id}`);
     setConfig(data);
@@ -35,7 +36,7 @@ export default function IntegrationPanel({
     setConfig(null);
     setError('');
     setNotice('');
-    if (!canManage || !online || !ws.user.platform_admin) return;
+    if (!canManage || !online) return;
     let active = true;
     api(`/api/integrations?unit=${ws.unit.id}`)
       .then((data) => {
@@ -76,8 +77,6 @@ export default function IntegrationPanel({
         </button>
       </div>
     );
-  if (!ws.user.platform_admin)
-    return <WhatsappSettings key={ws.unit.company_id} unitId={ws.unit.id} superadmin={false} />;
   if (!config)
     return (
       <p className="muted" role="status">
@@ -120,7 +119,11 @@ export default function IntegrationPanel({
           save={save}
           onError={onError}
         />
-        <WhatsappSettings key={ws.unit.company_id} unitId={ws.unit.id} superadmin />
+        <WhatsappSettings
+          key={ws.unit.company_id}
+          unitId={ws.unit.id}
+          superadmin={ws.user.platform_admin}
+        />
       </div>
     </>
   );

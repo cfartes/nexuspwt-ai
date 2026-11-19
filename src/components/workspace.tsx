@@ -30,8 +30,10 @@ import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
 import RemoveApr from './remove-apr';
+import { allowedMenus, companyManager, roleLabels } from '@/lib/permissions';
+import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
-type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | RegistrationTab;
+type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | 'account' | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
     method: method || (body ? 'POST' : 'GET'),
@@ -90,7 +92,7 @@ export default function Workspace() {
     } catch (e) {
       const status = (e as { status?: number }).status;
       const session = JSON.parse(sessionStorage.getItem('nexus-offline-session') || 'null');
-      if (!navigator.onLine && session?.expires > Date.now()) {
+      if (!navigator.onLine && status !== 401 && status !== 403 && session?.expires > Date.now()) {
         const cached = await offline.getWorkspace(session.userId);
         if (cached) {
           setWs(cached);
@@ -99,7 +101,12 @@ export default function Workspace() {
           return cached as WorkspaceData;
         }
       }
-      if (status === 401 || status === 403) setWs(null);
+      if (status === 401 || status === 403) {
+        setWs(null);
+        sessionStorage.removeItem('nexus-offline-session');
+        if (session?.userId)
+          await offline.cacheWorkspace(session.userId, null).catch(() => undefined);
+      }
       if (status !== 401) setError((e as Error).message);
       return null;
     } finally {
@@ -256,7 +263,7 @@ export default function Workspace() {
       !a.decision &&
       ws.documents.some((d) => d.id === a.document_id && d.status === 'em_aprovacao'),
   );
-  const nav: [Tab, string, typeof LayoutDashboard][] = [
+  const menuList: [Tab, string, typeof LayoutDashboard][] = [
     ['overview', 'Visão geral', LayoutDashboard],
     ['APR', 'Análises de risco', FileCheck2],
     ['PT', 'Permissões de trabalho', ClipboardList],
@@ -270,12 +277,16 @@ export default function Workspace() {
           ['units', 'Unidades', Building2] as [Tab, string, typeof LayoutDashboard],
         ]
       : []),
-    ...(ws.user.platform_admin && unit.role === 'admin'
+    ...(unit.role === 'admin'
       ? [['companies', 'Empresas', Building2] as [Tab, string, typeof LayoutDashboard]]
       : []),
-    ['settings', 'Configurações', Settings2],
+    ['account', 'Minha conta e segurança', ShieldCheck],
+    ['settings', 'Configurações da empresa', Settings2],
   ];
-  const title = nav.find((n) => n[0] === tab)?.[1];
+  const permitted = allowedMenus(ws.user, unit);
+  const nav = menuList.filter(([id]) => permitted.includes(id));
+  const currentTab = permitted.includes(tab) ? tab : 'overview';
+  const title = nav.find((n) => n[0] === currentTab)?.[1];
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -292,8 +303,8 @@ export default function Workspace() {
           {nav.map(([id, label, Icon]) => (
             <button
               key={id}
-              className={tab === id ? 'nav active' : 'nav'}
-              aria-current={tab === id ? 'page' : undefined}
+              className={currentTab === id ? 'nav active' : 'nav'}
+              aria-current={currentTab === id ? 'page' : undefined}
               onClick={() => {
                 setTab(id);
                 setSearch('');
@@ -316,7 +327,11 @@ export default function Workspace() {
           <span>
             {ws.user.name}
             <small>
-              {unit.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : unit.role}
+              {ws.user.platform_admin
+                ? 'Superadmin'
+                : unit.company_admin
+                  ? roleLabels.admin_empresa
+                  : roleLabels[unit.role] || unit.role}
             </small>
           </span>
           <LogOut size={17} />
@@ -356,19 +371,22 @@ export default function Workspace() {
               <div className="eyebrow">NEXUS / {unit.name}</div>
               <h1>{title}</h1>
               <p>
-                {tab === 'overview'
+                {currentTab === 'overview'
                   ? 'Acompanhe os riscos, as permissões e as pessoas da sua operação.'
-                  : tab === 'APR'
+                  : currentTab === 'APR'
                     ? 'Planeje cada etapa do serviço e suas medidas de controle.'
-                    : tab === 'PT'
+                    : currentTab === 'PT'
                       ? 'Organize as permissões vinculadas às análises de risco.'
                       : 'Gestão da segurança com rastreabilidade em cada decisão.'}
               </p>
             </div>
-            {['overview', 'APR', 'PT'].includes(tab) && (
-              <button className="primary" onClick={() => create(tab === 'PT' ? 'PT' : 'APR')}>
+            {unit.role !== 'aprovador' && ['overview', 'APR', 'PT'].includes(currentTab) && (
+              <button
+                className="primary"
+                onClick={() => create(currentTab === 'PT' ? 'PT' : 'APR')}
+              >
                 <Plus size={18} />
-                {tab === 'PT' ? 'Nova PT' : 'Nova APR'}
+                {currentTab === 'PT' ? 'Nova PT' : 'Nova APR'}
               </button>
             )}
           </div>
@@ -413,7 +431,7 @@ export default function Workspace() {
               </button>
             </div>
           )}
-          {tab === 'overview' && (
+          {currentTab === 'overview' && (
             <>
               <div className="stats">
                 {[
@@ -519,12 +537,14 @@ export default function Workspace() {
               </div>
             </>
           )}
-          {(tab === 'APR' || tab === 'PT') && (
+          {(currentTab === 'APR' || currentTab === 'PT') && (
             <section className="card">
               <div className="card-heading">
                 <div>
                   <h2>
-                    {tab === 'APR' ? 'Análises preliminares de riscos' : 'Permissões de trabalho'}
+                    {currentTab === 'APR'
+                      ? 'Análises preliminares de riscos'
+                      : 'Permissões de trabalho'}
                   </h2>
                   <p>Documentos e rascunhos da unidade</p>
                 </div>
@@ -562,7 +582,7 @@ export default function Workspace() {
               />
             </section>
           )}
-          {tab === 'approvals' && (
+          {currentTab === 'approvals' && (
             <section className="card">
               <div className="card-heading">
                 <div>
@@ -619,19 +639,22 @@ export default function Workspace() {
               )}
             </section>
           )}
-          {tab === 'approvals' && <NotificationPanel unitId={unit.id} online={online} />}
+          {currentTab === 'approvals' && <NotificationPanel unitId={unit.id} online={online} />}
           {(
             ['companies', 'regions', 'units', 'contractors', 'people', 'approvers'] as string[]
-          ).includes(tab) && (
+          ).includes(currentTab) && (
             <RegistrationPanel
               key={`${unit.id}:${tab}`}
-              type={tab as RegistrationTab}
+              type={currentTab as RegistrationTab}
               ws={ws}
               online={online}
               reload={(nextUnitId?: string) => load(nextUnitId || unit.id)}
             />
           )}
-          {tab === 'settings' && (
+          {currentTab === 'account' && (
+            <SecuritySettings key={unit.id} ws={ws} online={online} reload={() => load(unit.id)} />
+          )}
+          {currentTab === 'settings' && (
             <SettingsPanel
               ws={ws}
               online={online}

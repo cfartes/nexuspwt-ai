@@ -7,6 +7,7 @@ import { encryptSecret } from '@/lib/integrations';
 import { newTotpSecret } from '@/lib/totp';
 import { totpQrCode } from '@/lib/totp-qr';
 import { authenticateDecision, recordIdentity } from '@/lib/approval-security';
+import { companyManager } from '@/lib/permissions';
 
 const schema = z
   .object({
@@ -61,6 +62,8 @@ export async function POST(request: Request) {
     const input = schema.parse(await request.json());
     const admin = ['policy', 'verify', 'reset'].includes(input.action);
     const unit = await unitAccess(user, input.unitId, admin ? ['admin'] : undefined);
+    if (['policy', 'reset'].includes(input.action) && !companyManager(user, unit))
+      throw new HttpError(403, 'Operação restrita ao Admin da empresa.');
     const {
       rows: [policy],
     } = await db.query(
@@ -94,7 +97,9 @@ export async function POST(request: Request) {
           await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
             `authenticator-reset:${input.userId}`,
           ]);
-        await unitAccess(user, unit.id, admin ? ['admin'] : undefined, c);
+        const freshUnit = await unitAccess(user, unit.id, admin ? ['admin'] : undefined, c);
+        if (['policy', 'reset'].includes(input.action) && !companyManager(user, freshUnit))
+          throw new HttpError(403, 'Operação restrita ao Admin da empresa.');
         const {
           rows: [current],
         } = await c.query(

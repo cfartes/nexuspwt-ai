@@ -10,6 +10,7 @@ export type Unit = {
   region_id: string | null;
   role: string;
   contractor_id: string | null;
+  company_admin?: boolean;
 };
 export type Person = {
   id: string;
@@ -21,6 +22,7 @@ export type Person = {
   contractor_id: string | null;
   membership_version: number;
   password_pending: boolean;
+  company_admin?: boolean;
   identity_verified_at?: string | null;
   identity_verified_by?: string | null;
   authenticator_enabled?: boolean;
@@ -78,8 +80,10 @@ export type WorkspaceData = {
     version: number;
   }[];
   companyPeople: { id: string; name: string; email: string; units: string[] }[];
+  availableContractors?: { id: string; name: string; cnpj: string }[];
   unitQuota: { limit: number; used: number; version: number } | null;
   securityPolicy?: { required: boolean; version: number };
+  authenticatorEnabled?: boolean;
   people: Person[];
   regions: { id: string; name: string }[];
   approvers: {

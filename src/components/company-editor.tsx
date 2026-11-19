@@ -14,12 +14,14 @@ export default function CompanyEditor({
   online,
   reload,
   onClose,
+  readOnly = false,
 }: {
   ws: WorkspaceData;
   company: Company;
   online: boolean;
   reload: () => Promise<unknown>;
   onClose: () => void;
+  readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
@@ -58,7 +60,7 @@ export default function CompanyEditor({
             {error}
           </div>
         )}
-        <fieldset className="form-grid" disabled={busy || !online}>
+        <fieldset className="form-grid" disabled={readOnly || busy || !online}>
           <label>
             Razão social *
             <input name="name" required minLength={2} maxLength={200} defaultValue={company.name} />
@@ -69,9 +71,11 @@ export default function CompanyEditor({
           </label>
           <CompanyFields unitId={ws.unit.id} initial={company.details} />
         </fieldset>
-        <button className="primary" disabled={busy || !online}>
-          {busy ? 'Salvando…' : 'Salvar empresa'}
-        </button>
+        {!readOnly && (
+          <button className="primary" disabled={busy || !online}>
+            {busy ? 'Salvando…' : 'Salvar empresa'}
+          </button>
+        )}
       </form>
     </Popup>
   );

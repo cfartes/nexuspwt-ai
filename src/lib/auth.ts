@@ -30,12 +30,48 @@ export async function unitAccess(
   const {
     rows: [unit],
   } = await client.query(
-    'SELECT u.*,c.name company_name,m.role,m.contractor_id FROM units u JOIN companies c ON c.id=u.company_id JOIN memberships m ON m.unit_id=u.id WHERE u.id=$1 AND m.user_id=$2 AND m.active',
+    `SELECT u.*,c.name company_name,CASE WHEN ca.user_id IS NOT NULL THEN 'admin' ELSE m.role END role,
+      CASE WHEN ca.user_id IS NOT NULL THEN NULL ELSE m.contractor_id END contractor_id,(ca.user_id IS NOT NULL) company_admin
+      FROM units u JOIN companies c ON c.id=u.company_id
+      LEFT JOIN memberships m ON m.unit_id=u.id AND m.user_id=$2 AND m.active
+      LEFT JOIN company_admins ca ON ca.company_id=u.company_id AND ca.user_id=$2 AND ca.active
+      WHERE u.id=$1 AND (m.user_id IS NOT NULL OR ca.user_id IS NOT NULL)`,
     [unitId, user.id],
   );
   if (!unit || (roles && !roles.includes(unit.role)))
     throw new HttpError(403, 'Sem permissão nesta unidade.');
   return unit;
+}
+export async function assertDocumentRead(
+  client: Pool | PoolClient,
+  user: User,
+  unit: { role: string; contractor_id: string | null },
+  document: {
+    id: string;
+    contractor_id: string;
+    created_by: string;
+    kind: string;
+    status: string;
+    version: number;
+    data: { executors: { userId: string }[] };
+  },
+  approved = false,
+) {
+  assertContractorAccess(unit, document.contractor_id);
+  if (unit.role === 'aprovador') {
+    const { rowCount } = await client.query(
+      'SELECT 1 FROM approvals WHERE document_id=$1 AND version=$2 AND user_id=$3',
+      [document.id, document.version, user.id],
+    );
+    if (!rowCount) throw new HttpError(403, 'Documento não atribuído a você.');
+  }
+  if (
+    unit.role === 'executante' &&
+    document.created_by !== user.id &&
+    !(document.kind === 'APR' && (approved || document.status === 'aprovado')) &&
+    !document.data.executors.some((e) => e.userId === user.id)
+  )
+    throw new HttpError(403, 'Documento indisponível para seu acesso.');
 }
 export function assertContractorAccess(
   unit: { contractor_id: string | null },

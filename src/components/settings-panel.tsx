@@ -20,6 +20,7 @@ export default function SettingsPanel({
   return (
     <>
       <SecuritySettings
+        mode="company"
         key={`${ws.unit.company_id}:${ws.unit.id}`}
         ws={ws}
         online={online}

@@ -89,6 +89,16 @@ O teste de integração abre temporariamente um PostgreSQL embarcado na porta lo
 
 ## Subir o app na VPS
 
+### Perfis e permissões
+
+A matriz aprovada está em [Perfis e permissões de acesso](docs/Nexus%20PTW%20AI%20Perfis%20e%20Permissoes.docx). A migração `014-company-administrators.sql` separa a administração da empresa da administração local, sem promover usuários existentes. Os perfis `admin` atuais são apresentados como **Admin da unidade**. O Superadmin designa o primeiro **Admin da empresa** em Pessoas e acessos; esse perfil vale para todas as unidades daquela empresa e permite designar outros administradores da empresa. O cadastro continua com vínculo local para contatos e conferência de identidade. Nenhum perfil dá aprovação automática.
+
+O Admin da empresa gerencia dados da própria empresa, regionais, unidades dentro da cota, cadastros compartilhados de contratadas, aprovadores regionais/locais e configurações da empresa. Criação/exclusão de empresas, exclusão global de contas, cotas e chaves técnicas de OpenWA/Resend continuam exclusivas do Superadmin. O Admin da unidade gerencia pessoas e aprovadores locais, consulta os dados da própria empresa/unidade/regional e autoriza/remove vínculos locais de contratadas; não altera seus dados compartilhados nem cria unidades. Recuperação global de autenticador exige Admin da empresa ou Superadmin; conferência humana local continua disponível ao Admin da unidade.
+
+Gestor e Segurança do Trabalho acessam a operação das unidades autorizadas e as contratadas do seu escopo, sem administrar cadastros. Aprovador só consulta documentos e versões atribuídos, sem editar conteúdo ou evidências. Executante cria rascunhos próprios e acessa documentos vinculados e APRs aprovadas do seu escopo. Pessoas de contratadas continuam isoladas pelo vínculo. As regras são aplicadas nas APIs, impressão, fotos e histórico, além dos menus. Dados mínimos de pessoas/contratadas necessários aos formulários podem ser retornados sem conceder acesso aos menus administrativos.
+
+**Minha conta e segurança** fica disponível para todos; **Configurações da empresa** somente para Admin da empresa e Superadmin. O cache anterior a esta política precisa ser atualizado online antes do uso offline. Rascunhos e fila de sincronização são mantidos, e o servidor revalida cada envio. Alterações de acesso não apagam remotamente arquivos já baixados de um aparelho que permanece offline.
+
 ### Conferência humana e segurança das decisões
 
 Execute a migração `013-approval-identity.sql` pelo atualizador da VPS (ou `npm run db:setup` no desenvolvimento). Nenhuma identidade existente é marcada automaticamente como conferida e nenhum autenticador é ativado automaticamente.

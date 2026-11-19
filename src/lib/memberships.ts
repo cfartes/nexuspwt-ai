@@ -17,7 +17,21 @@ export async function saveMembership(
 ) {
   // Serialize membership changes so two administrators cannot remove the last access concurrently.
   await client.query('SELECT id FROM units WHERE id=$1 FOR UPDATE', [unitId]);
-  await unitAccess(actor, unitId, ['admin'], client);
+  const actorUnit = await unitAccess(actor, unitId, ['admin'], client);
+  const { rowCount: existingCompanyAdmin } = await client.query(
+    'SELECT 1 FROM company_admins WHERE company_id=$1 AND user_id=$2 AND active',
+    [actorUnit.company_id, userId],
+  );
+  if (
+    (input.role === 'admin_empresa' || existingCompanyAdmin) &&
+    !actor.platform_admin &&
+    !actorUnit.company_admin
+  )
+    throw new HttpError(403, 'Somente o Admin da empresa pode gerenciar este perfil.');
+  if (input.role === 'admin_empresa' && input.contractorId)
+    throw new HttpError(400, 'Admin da empresa deve pertencer à equipe própria.');
+  const requestedRole = input.role;
+  const storedRole = input.role === 'admin_empresa' ? 'admin' : input.role;
   const {
     rows: [account],
   } = await client.query('SELECT active,platform_admin FROM users WHERE id=$1', [userId]);
@@ -59,7 +73,15 @@ export async function saveMembership(
         'Aprovador regional precisa permanecer na equipe própria. Ajuste a atribuição regional antes de vincular uma terceirizada.',
       );
   }
-  if (existing?.active && existing.role === 'admin' && (!active || input.role !== 'admin')) {
+  if (existingCompanyAdmin && (requestedRole !== 'admin_empresa' || !active)) {
+    const { rowCount: others } = await client.query(
+      'SELECT 1 FROM company_admins ca JOIN users u ON u.id=ca.user_id AND u.active AND NOT u.password_pending WHERE ca.company_id=$1 AND ca.user_id<>$2 AND ca.active',
+      [actorUnit.company_id, userId],
+    );
+    if (!others && !actor.platform_admin)
+      throw new HttpError(409, 'Defina outro Admin da empresa antes de remover este perfil.');
+  }
+  if (existing?.active && existing.role === 'admin' && (!active || storedRole !== 'admin')) {
     const {
       rows: [count],
     } = await client.query(
@@ -77,12 +99,22 @@ export async function saveMembership(
     [
       userId,
       unitId,
-      input.role,
+      storedRole,
       input.contractorId,
       active,
       input.phone === undefined ? (existing?.phone ?? null) : input.phone,
     ],
   );
+  if (requestedRole === 'admin_empresa' && active)
+    await client.query(
+      'INSERT INTO company_admins(company_id,user_id) VALUES($1,$2) ON CONFLICT(company_id,user_id) DO UPDATE SET active=true',
+      [actorUnit.company_id, userId],
+    );
+  else if (existingCompanyAdmin)
+    await client.query(
+      'UPDATE company_admins SET active=false WHERE company_id=$1 AND user_id=$2',
+      [actorUnit.company_id, userId],
+    );
   await client.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [
     actor.id,
     'acesso.atualizado',
@@ -90,6 +122,7 @@ export async function saveMembership(
       unitId,
       userId,
       role: saved.role,
+      companyAdmin: requestedRole === 'admin_empresa' && active,
       active: saved.active,
       contractorId: saved.contractor_id,
       version: saved.version,

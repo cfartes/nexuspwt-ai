@@ -57,9 +57,11 @@ export default function DocumentEditor({
     [photos, setPhotos] = useState<Photo[]>([]);
   const saved = ws.documents.find((doc) => doc.id === d.id);
   const readOnly =
-    !!saved &&
-    (['aprovado', 'em_aprovacao'].includes(saved.status) ||
-      (saved.created_by !== ws.user.id && !['admin', 'gestor'].includes(ws.unit.role)));
+    ws.unit.role === 'aprovador' ||
+    (!!saved &&
+      (['aprovado', 'em_aprovacao'].includes(saved.status) ||
+        (saved.created_by !== ws.user.id &&
+          !['admin', 'gestor', 'seguranca_trabalho'].includes(ws.unit.role))));
   const update = (patch: Partial<DocumentInput>) => setD((prev) => ({ ...prev, ...patch }));
   const answer = (key: string, value: string) =>
     setD((prev) => ({
@@ -832,7 +834,9 @@ export default function DocumentEditor({
             {saved?.kind === 'APR' &&
               saved.status === 'aprovado' &&
               online &&
-              (saved.created_by === ws.user.id || ['admin', 'gestor'].includes(ws.unit.role)) && (
+              ws.unit.role !== 'aprovador' &&
+              (saved.created_by === ws.user.id ||
+                ['admin', 'gestor', 'seguranca_trabalho'].includes(ws.unit.role)) && (
                 <button
                   className="primary"
                   disabled={busy}

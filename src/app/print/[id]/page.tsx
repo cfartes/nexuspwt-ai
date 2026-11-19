@@ -1,4 +1,4 @@
-import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess, assertDocumentRead } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { uuid } from '@/lib/validation';
 import { visibleSections } from '@/lib/forms';
@@ -58,6 +58,7 @@ export default async function PrintPage({
     [id, d.version],
   );
   const approved = approvals.length > 0 && approvals.every((a) => a.decision === 'aprovado');
+  try { await assertDocumentRead(db, user, unit, d, approved); } catch { notFound(); }
   if (
     unit.role === 'executante' &&
     d.created_by !== user.id &&

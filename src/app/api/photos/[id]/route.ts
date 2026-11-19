@@ -1,4 +1,4 @@
-import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess, assertDocumentRead } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { uuid } from '@/lib/validation';
 import { HttpError } from '@/lib/security';
@@ -11,11 +11,12 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const {
       rows: [p],
     } = await db.query(
-      'SELECT p.*,d.unit_id,d.created_by,d.data,d.contractor_id FROM photos p JOIN documents d ON d.id=p.document_id WHERE p.id=$1',
+      'SELECT p.*,d.unit_id,d.created_by,d.data,d.contractor_id,d.kind,d.status,d.version FROM photos p JOIN documents d ON d.id=p.document_id WHERE p.id=$1',
       [id],
     );
     if (!p) throw new HttpError(404, 'Foto não encontrada.');
     const unit = await unitAccess(user, p.unit_id);
+    await assertDocumentRead(db, user, unit, { ...p, id: p.document_id });
     assertContractorAccess(unit, p.contractor_id);
     if (
       unit.role === 'executante' &&

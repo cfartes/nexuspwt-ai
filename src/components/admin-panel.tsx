@@ -9,6 +9,7 @@ import { contractorDetails } from '@/lib/contractors';
 import CompanyFields from './company-fields';
 import { companyDetails } from '@/lib/companies';
 import MaskedInput from './masked-input';
+import { companyManager } from '@/lib/permissions';
 export default function AdminPanel({
   ws,
   online,
@@ -139,14 +140,23 @@ export default function AdminPanel({
                   E-mail *<input name="email" type="email" required defaultValue={initialEmail} />
                 </label>
                 <label>
-                  Perfil nesta unidade
+                  Perfil de acesso
                   <select name="role">
                     <option value="executante">Executante</option>
                     <option value="aprovador">Aprovador</option>
                     <option value="seguranca_trabalho">Segurança do Trabalho</option>
                     <option value="gestor">Gestor</option>
-                    <option value="admin">Administrador da unidade</option>
+                    <option value="admin">Admin da unidade</option>
+                    {companyManager(ws.user, ws.unit) && (
+                      <option value="admin_empresa">Admin da empresa</option>
+                    )}
                   </select>
+                  {companyManager(ws.user, ws.unit) && (
+                    <small>
+                      Admin da empresa concede administração em todas as unidades desta empresa. Os
+                      demais perfis valem para esta unidade.
+                    </small>
+                  )}
                 </label>
                 <label>
                   Vínculo nesta unidade
@@ -230,7 +240,7 @@ export default function AdminPanel({
                   Abrangência
                   <select name="scope">
                     <option value="unit">Somente esta unidade</option>
-                    <option value="region" disabled={!ws.user.platform_admin}>
+                    <option value="region" disabled={!companyManager(ws.user, ws.unit)}>
                       Todas as unidades da regional (administração da plataforma)
                     </option>
                   </select>

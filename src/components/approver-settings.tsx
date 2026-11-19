@@ -5,6 +5,7 @@ import type { WorkspaceData } from '@/lib/types';
 import { api } from './workspace';
 import Popup from './popup';
 import DeleteRegistration from './delete-registration';
+import { companyManager } from '@/lib/permissions';
 type Assignment = WorkspaceData['approvers'][number];
 export default function ApproverSettings({
   ws,
@@ -164,7 +165,7 @@ export default function ApproverSettings({
                     : 'Ativa'}
               </small>
             </div>
-            {ws.unit.role === 'admin' && (!a.region_id || ws.user.platform_admin) && (
+            {ws.unit.role === 'admin' && (!a.region_id || companyManager(ws.user, ws.unit)) && (
               <div className="actions">
                 <button
                   className="secondary"

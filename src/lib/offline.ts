@@ -1,5 +1,6 @@
 import { openDB, deleteDB } from 'idb';
 import type { DocumentInput } from './validation';
+import { ACCESS_POLICY_VERSION } from './permissions';
 export type Pending = { id: string; path: string; body: unknown; error?: string };
 const connections = new Map<string, ReturnType<typeof openDB>>();
 function store(userId: string) {
@@ -26,7 +27,8 @@ export async function cacheWorkspace(userId: string, value: unknown) {
 }
 export async function getWorkspace(userId: string) {
   const db = await store(userId);
-  return db.get('cache', 'workspace');
+  const workspace = await db.get('cache', 'workspace');
+  return workspace?.accessPolicyVersion === ACCESS_POLICY_VERSION ? workspace : undefined;
 }
 export async function saveLocal(userId: string, d: DocumentInput) {
   const db = await store(userId);

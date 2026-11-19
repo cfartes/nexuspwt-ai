@@ -12,6 +12,24 @@ import {
   getLocal,
 } from '../src/lib/offline';
 import type { DocumentInput } from '../src/lib/validation';
+import { ACCESS_POLICY_VERSION } from '../src/lib/permissions';
+
+test('cache anterior à matriz de acesso exige reconexão sem apagar a fila local', async () => {
+  const user = crypto.randomUUID();
+  try {
+    await enqueue(user, { id: crypto.randomUUID(), path: '/api/documents', body: {} });
+    await cacheWorkspace(user, { unit: { id: 'legacy' } });
+    assert.equal(await getWorkspace(user), undefined);
+    assert.equal((await jobs(user)).length, 1);
+    await cacheWorkspace(user, {
+      accessPolicyVersion: ACCESS_POLICY_VERSION,
+      unit: { id: 'current' },
+    });
+    assert.equal((await getWorkspace(user)).unit.id, 'current');
+  } finally {
+    await clearLocal(user);
+  }
+});
 test('fila offline separa usuários e não apaga uma edição mais nova ao confirmar envio anterior', async () => {
   const user = crypto.randomUUID(),
     other = crypto.randomUUID(),

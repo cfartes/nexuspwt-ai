@@ -50,7 +50,7 @@ export async function updateApprover(
     [input.id, unit.company_id, unitId, unit.region_id],
   );
   if (!assignment) throw new HttpError(404, 'Atribuição não encontrada nesta unidade ou regional.');
-  if (assignment.region_id && !actor.platform_admin)
+  if (assignment.region_id && !actor.platform_admin && !unit.company_admin)
     throw new HttpError(
       403,
       'Atribuições regionais são gerenciadas pelo administrador da plataforma.',

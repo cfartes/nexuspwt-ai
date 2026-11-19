@@ -7,6 +7,7 @@ import Popup from './popup';
 import AdminPanel from './admin-panel';
 import DeleteRegistration from './delete-registration';
 import IdentityReview from './identity-review';
+import { companyManager, roleLabels } from '@/lib/permissions';
 
 export default function PeoplePanel({
   ws,
@@ -188,13 +189,25 @@ export default function PeoplePanel({
               </label>
               <label>
                 Perfil
-                <select name="role" defaultValue={selected.role}>
+                <select
+                  name="role"
+                  defaultValue={selected.company_admin ? 'admin_empresa' : selected.role}
+                >
                   <option value="executante">Executante</option>
                   <option value="aprovador">Aprovador</option>
                   <option value="seguranca_trabalho">Segurança do Trabalho</option>
                   <option value="gestor">Gestor</option>
-                  <option value="admin">Administrador da unidade</option>
+                  <option value="admin">Admin da unidade</option>
+                  {companyManager(ws.user, ws.unit) && (
+                    <option value="admin_empresa">Admin da empresa</option>
+                  )}
                 </select>
+                {companyManager(ws.user, ws.unit) && (
+                  <small>
+                    Alterar o perfil Admin da empresa concede ou remove a administração de toda a
+                    empresa.
+                  </small>
+                )}
               </label>
               <label>
                 Vínculo nesta unidade
@@ -266,7 +279,9 @@ export default function PeoplePanel({
                 </td>
                 <td>
                   <span className="badge">
-                    {person.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : person.role}
+                    {person.company_admin
+                      ? roleLabels.admin_empresa
+                      : roleLabels[person.role] || person.role}
                   </span>
                 </td>
                 <td>
@@ -335,7 +350,11 @@ export default function PeoplePanel({
                     <div className="actions">
                       <button
                         className="secondary"
-                        disabled={!online || busy}
+                        disabled={
+                          !online ||
+                          busy ||
+                          (!!person.company_admin && !companyManager(ws.user, ws.unit))
+                        }
                         onClick={() => {
                           setSelected(person);
                           setError('');

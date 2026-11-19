@@ -14,6 +14,7 @@ import { randomBytes } from 'node:crypto';
 import { createInvitation } from '@/lib/invitations';
 import { deleteRegistration } from '@/lib/delete-registration';
 import { assertUnitCapacity, setUnitLimit } from '@/lib/unit-limit';
+import { companyManager } from '@/lib/permissions';
 import {
   eligibleApprover,
   grantRegionalAccess,
@@ -33,7 +34,14 @@ const phone = z
       return false;
     }
   }, 'Informe telefone internacional com DDI e DDD.');
-const role = z.enum(['admin', 'gestor', 'aprovador', 'seguranca_trabalho', 'executante']);
+const role = z.enum([
+  'admin_empresa',
+  'admin',
+  'gestor',
+  'aprovador',
+  'seguranca_trabalho',
+  'executante',
+]);
 const schema = z.discriminatedUnion('action', [
   z
     .object({
@@ -158,7 +166,23 @@ export async function POST(request: Request) {
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
         `company-access:${input.action === 'updateCompany' || (input.action === 'deleteRegistration' && input.kind === 'company') ? input.id : unit.company_id}`,
       ]);
-      await unitAccess(user, unit.id, ['admin'], c);
+      const freshUnit = await unitAccess(user, unit.id, ['admin'], c);
+      const managesCompany = companyManager(user, freshUnit);
+      if (
+        ['region', 'unit', 'contractor', 'updateContractor', 'updateCompany'].includes(
+          input.action,
+        ) &&
+        !managesCompany
+      )
+        throw new HttpError(403, 'Operação restrita ao Admin da empresa.');
+      if (input.action === 'updateCompany' && !user.platform_admin && input.id !== unit.company_id)
+        throw new HttpError(403, 'Empresa indisponível.');
+      if (
+        input.action === 'deleteRegistration' &&
+        ['company', 'region', 'unit'].includes(input.kind) &&
+        !managesCompany
+      )
+        throw new HttpError(403, 'Operação restrita ao Admin da empresa.');
       const company = unit.company_id;
       if (!user.platform_admin) {
         const target =
@@ -327,7 +351,7 @@ export async function POST(request: Request) {
             throw new HttpError(400, 'Perfil de aprovação inválido.');
           if (input.scope === 'region' && !unit.region_id)
             throw new HttpError(400, 'Esta unidade não pertence a uma regional.');
-          if (input.scope === 'region' && !user.platform_admin)
+          if (input.scope === 'region' && !managesCompany)
             throw new HttpError(
               403,
               'Atribuições regionais são gerenciadas pelo administrador da plataforma.',
@@ -357,7 +381,11 @@ export async function POST(request: Request) {
       await c.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [
         user.id,
         `cadastro.${input.action}`,
-        JSON.stringify({ unitId: unit.id }),
+        JSON.stringify({
+          unitId: unit.id,
+          companyId: input.action === 'updateCompany' ? input.id : company,
+          targetId: 'id' in input ? input.id : 'userId' in input ? input.userId : undefined,
+        }),
       ]);
     });
     return Response.json({ ok: true });

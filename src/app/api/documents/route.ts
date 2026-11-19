@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       const unit = await unitAccess(
         user,
         d.unitId,
-        ['admin', 'gestor', 'aprovador', 'seguranca_trabalho', 'executante'],
+        ['admin', 'gestor', 'seguranca_trabalho', 'executante'],
         c,
       );
       assertContractorAccess(unit, d.contractorId);
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
             'PT com evidências não pode mudar de terceirizada ou APR. Crie uma nova PT.',
           );
       }
-      if (existing && existing.created_by !== user.id && !['admin', 'gestor'].includes(unit.role))
+      if (existing && existing.created_by !== user.id && !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role))
         throw new HttpError(403, 'Somente o autor ou gestor pode editar.');
       if (existing && existing.status === 'em_aprovacao')
         throw new HttpError(409, 'Documento em aprovação. Não pode ser alterado.');

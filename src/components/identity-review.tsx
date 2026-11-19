@@ -4,6 +4,7 @@ import type { Person, WorkspaceData } from '@/lib/types';
 import Popup from './popup';
 import MaskedInput from './masked-input';
 import { api } from './workspace';
+import { companyManager } from '@/lib/permissions';
 
 export default function IdentityReview({
   person,
@@ -33,7 +34,7 @@ export default function IdentityReview({
       >
         Conferir identidade
       </button>
-      {person.authenticator_enabled && (
+      {person.authenticator_enabled && companyManager(ws.user, ws.unit) && (
         <button
           className="secondary"
           disabled={!online || !person.active}

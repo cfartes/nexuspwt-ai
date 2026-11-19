@@ -3,15 +3,18 @@ import { useState } from 'react';
 import type { WorkspaceData } from '@/lib/types';
 import { api } from './workspace';
 import Popup from './popup';
+import { companyManager } from '@/lib/permissions';
 
 export default function SecuritySettings({
   ws,
   online,
   reload,
+  mode = 'account',
 }: {
   ws: WorkspaceData;
   online: boolean;
   reload: () => Promise<unknown>;
+  mode?: 'account' | 'company';
 }) {
   const [open, setOpen] = useState(false),
     [secret, setSecret] = useState(''),
@@ -20,7 +23,7 @@ export default function SecuritySettings({
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
   const self = ws.people.find((p) => p.id === ws.user.id);
-  const enabled = self?.authenticator_enabled;
+  const enabled = ws.authenticatorEnabled ?? self?.authenticator_enabled;
   return (
     <section className="card">
       <div className="card-heading">
@@ -38,15 +41,17 @@ export default function SecuritySettings({
             {notice}
           </p>
         )}
-        <p>
-          Seu autenticador: {enabled ? 'Configurado' : 'Não configurado'}. Sua identidade nesta
-          unidade:{' '}
-          {self?.identity_verified_at
-            ? 'Conferida'
-            : 'Pendente de conferência por outro administrador'}
-          .
-        </p>
-        {!enabled && (
+        {mode === 'account' && (
+          <p>
+            Seu autenticador: {enabled ? 'Configurado' : 'Não configurado'}. Sua identidade nesta
+            unidade:{' '}
+            {self?.identity_verified_at
+              ? 'Conferida'
+              : 'Pendente de conferência por outro administrador'}
+            .
+          </p>
+        )}
+        {mode === 'account' && !enabled && (
           <button
             className="secondary"
             disabled={!online}
@@ -60,12 +65,14 @@ export default function SecuritySettings({
             Configurar meu autenticador
           </button>
         )}
-        <p className="muted">
-          Cadastre uma conta por pessoa no Google Authenticator, Microsoft Authenticator ou
-          aplicativo TOTP compatível. Recuperação após perda do aparelho exige nova conferência por
-          outro administrador, encerra suas sessões e bloqueia decisões até nova conferência.
-        </p>
-        {ws.unit.role === 'admin' && (
+        {mode === 'account' && (
+          <p className="muted">
+            Cadastre uma conta por pessoa no Google Authenticator, Microsoft Authenticator ou
+            aplicativo TOTP compatível. Recuperação após perda do aparelho exige nova conferência
+            por outro administrador, encerra suas sessões e bloqueia decisões até nova conferência.
+          </p>
+        )}
+        {mode === 'company' && companyManager(ws.user, ws.unit) && (
           <form
             className="form-grid"
             onSubmit={async (e) => {

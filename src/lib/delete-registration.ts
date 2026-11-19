@@ -63,6 +63,7 @@ export async function deleteRegistration(
             'O usuário é o único administrador ativo de uma unidade. Defina outro administrador antes de excluir.',
           );
         await c.query('UPDATE users SET active=false WHERE id=$1', [input.id]);
+        await c.query('UPDATE company_admins SET active=false WHERE user_id=$1', [input.id]);
         await c.query('UPDATE memberships SET active=false,version=version+1 WHERE user_id=$1', [
           input.id,
         ]);
@@ -102,6 +103,7 @@ export async function deleteRegistration(
             'A empresa possui uma sessão de WhatsApp vinculada. Encerre e remova o vínculo antes de excluir a empresa.',
           );
         await c.query('DELETE FROM company_integrations WHERE company_id=$1', [input.id]);
+        await c.query('DELETE FROM company_admins WHERE company_id=$1', [input.id]);
         await c.query('DELETE FROM companies WHERE id=$1', [input.id]);
         break;
       }
@@ -185,7 +187,7 @@ export async function deleteRegistration(
           UNION ALL SELECT 1 FROM document_versions WHERE snapshot->>'contractor_id'=$1::text LIMIT 1`,
           [input.id],
         );
-        if (!references) await c.query('DELETE FROM contractors WHERE id=$1', [input.id]);
+        if (!references && (actor.platform_admin || unit.company_admin)) await c.query('DELETE FROM contractors WHERE id=$1', [input.id]);
         break;
       }
       case 'approver': {
@@ -197,7 +199,7 @@ export async function deleteRegistration(
         );
         if (!row) missing();
         if (row.version !== input.version) stale();
-        if (row.region_id && !actor.platform_admin)
+        if (row.region_id && !actor.platform_admin && !unit.company_admin)
           throw new HttpError(403, 'Somente o superadmin pode excluir uma atribuição regional.');
         name = `${row.kind} · ${row.profile}`;
         await c.query('DELETE FROM approvers WHERE id=$1', [input.id]);

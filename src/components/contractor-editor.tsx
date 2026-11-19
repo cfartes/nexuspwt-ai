@@ -12,12 +12,14 @@ export default function ContractorEditor({
   online,
   reload,
   onClose,
+  readOnly = false,
 }: {
   ws: WorkspaceData;
   contractor: WorkspaceData['contractors'][number];
   online: boolean;
   reload: () => Promise<unknown>;
   onClose: () => void;
+  readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
@@ -61,7 +63,7 @@ export default function ContractorEditor({
         <p className="muted">
           O cadastro é compartilhado com as unidades desta empresa que atendem o mesmo CNPJ.
         </p>
-        <fieldset className="form-grid" disabled={busy || !online}>
+        <fieldset className="form-grid" disabled={readOnly || busy || !online}>
           <label>
             Razão social *
             <input
@@ -78,9 +80,11 @@ export default function ContractorEditor({
           </label>
           <ContractorFields unitId={ws.unit.id} initial={contractor.details} />
         </fieldset>
-        <button className="primary" disabled={busy || !online}>
-          {busy ? 'Salvando…' : 'Salvar contratada'}
-        </button>
+        {!readOnly && (
+          <button className="primary" disabled={busy || !online}>
+            {busy ? 'Salvando…' : 'Salvar contratada'}
+          </button>
+        )}
       </form>
     </Popup>
   );

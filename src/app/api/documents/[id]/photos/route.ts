@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { db, transaction } from '@/lib/db';
-import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
+import { currentUser, unitAccess, assertContractorAccess, assertDocumentRead } from '@/lib/auth';
 import { assertOrigin, digest, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { uuid } from '@/lib/validation';
@@ -40,9 +40,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
       if (!doc || doc.kind !== 'PT') throw new HttpError(404, 'PT não encontrada.');
       const unit = await unitAccess(user, doc.unit_id, undefined, c);
+      if (unit.role === 'aprovador') throw new HttpError(403, 'Aprovador não pode alterar evidências.');
       assertContractorAccess(unit, doc.contractor_id);
       if (
-        !['admin', 'gestor'].includes(unit.role) &&
+        !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role) &&
         doc.created_by !== user.id &&
         !doc.data.executors.some((e: { userId: string }) => e.userId === user.id)
       )
@@ -88,6 +89,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     } = await db.query('SELECT * FROM documents WHERE id=$1', [id]);
     if (!doc) throw new HttpError(404, 'Documento não encontrado.');
     const unit = await unitAccess(user, doc.unit_id);
+    await assertDocumentRead(db, user, unit, doc);
     assertContractorAccess(unit, doc.contractor_id);
     if (
       unit.role === 'executante' &&
