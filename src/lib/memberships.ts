@@ -20,7 +20,9 @@ export async function saveMembership(
   await unitAccess(actor, unitId, ['admin'], client);
   const {
     rows: [account],
-  } = await client.query('SELECT active FROM users WHERE id=$1', [userId]);
+  } = await client.query('SELECT active,platform_admin FROM users WHERE id=$1', [userId]);
+  if (account?.platform_admin && !actor.platform_admin)
+    throw new HttpError(403, 'Conta indisponível para administração nesta empresa.');
   if (!account?.active)
     throw new HttpError(
       409,

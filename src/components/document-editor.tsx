@@ -192,7 +192,24 @@ export default function DocumentEditor({
                   Terceirizada *
                   <select
                     value={d.contractorId}
-                    onChange={(e) => update({ contractorId: e.target.value })}
+                    onChange={(e) =>
+                      setD((prev) => ({
+                        ...prev,
+                        contractorId: e.target.value,
+                        data: {
+                          ...prev.data,
+                          answers: {
+                            ...prev.data.answers,
+                            companyUserId: '',
+                            companyOwner: '',
+                            companyPhone: '',
+                            safetyUserId: '',
+                            safetyOwner: '',
+                            safetyPhone: '',
+                          },
+                        },
+                      }))
+                    }
                   >
                     <option value="">Selecione</option>
                     {ws.contractors.map((c) => (
@@ -271,10 +288,6 @@ export default function DocumentEditor({
                     {[
                       { key: 'issuedAt', label: 'Data de elaboração/emissão', type: 'date' },
                       { key: 'revisionDate', label: 'Data da revisão', type: 'date' },
-                      { key: 'companyOwner', label: 'Responsável da empresa' },
-                      { key: 'companyPhone', label: 'Telefone do responsável' },
-                      { key: 'safetyOwner', label: 'Responsável segurança da empresa' },
-                      { key: 'safetyPhone', label: 'Telefone da segurança' },
                     ].map((f) => (
                       <label key={f.key}>
                         {f.label}
@@ -285,6 +298,76 @@ export default function DocumentEditor({
                         />
                       </label>
                     ))}
+                    {(['company', 'safety'] as const).map((prefix) => {
+                      const candidates = ws.people.filter(
+                        (p) =>
+                          p.active &&
+                          p.contractor_id === d.contractorId &&
+                          p.role !== 'executante' &&
+                          (prefix !== 'safety' || p.role === 'seguranca_trabalho'),
+                      );
+                      const selected = d.data.answers[`${prefix}UserId`] || '';
+                      return (
+                        <div className="form-grid span-2" key={prefix}>
+                          <label>
+                            {prefix === 'company'
+                              ? 'Responsável da contratada'
+                              : 'Responsável pela segurança da contratada'}{' '}
+                            *
+                            <select
+                              value={selected}
+                              onChange={(e) => {
+                                const person = candidates.find((p) => p.id === e.target.value);
+                                setD((prev) => ({
+                                  ...prev,
+                                  data: {
+                                    ...prev.data,
+                                    answers: {
+                                      ...prev.data.answers,
+                                      [`${prefix}UserId`]: person?.id || '',
+                                      [`${prefix}Owner`]: person?.name || '',
+                                      [`${prefix}Phone`]: person?.phone || '',
+                                    },
+                                  },
+                                }));
+                              }}
+                            >
+                              <option value="">Selecione em Pessoas e acessos</option>
+                              {selected && !candidates.some((p) => p.id === selected) && (
+                                <option value={selected}>
+                                  {d.data.answers[`${prefix}Owner`] || 'Responsável vinculado'} ·
+                                  confira o cadastro
+                                </option>
+                              )}
+                              {candidates.map((p) => (
+                                <option value={p.id} key={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Telefone do responsável da contratada
+                            <input
+                              type="tel"
+                              value={d.data.answers[`${prefix}Phone`] || ''}
+                              readOnly
+                            />
+                          </label>
+                          {!selected && d.data.answers[`${prefix}Owner`] && (
+                            <p className="muted span-2">
+                              Registro anterior: {d.data.answers[`${prefix}Owner`]}. Vincule uma
+                              pessoa cadastrada antes de enviar para aprovação.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <p className="muted span-2">
+                      Cadastre os responsáveis com acesso ativo à unidade e vínculo com esta
+                      contratada. O responsável pela segurança deve ter perfil Segurança do
+                      Trabalho. Os selecionados receberão os dois perfis de aprovação da contratada.
+                    </p>
                   </>
                 )}
               </fieldset>
@@ -637,6 +720,12 @@ export default function DocumentEditor({
                     a.eligible &&
                     (!a.approver_contractor_id || a.approver_contractor_id === d.contractorId),
                 );
+                const selectedPrefix =
+                  d.kind === 'APR' && profile === aprProfiles[0]
+                    ? 'company'
+                    : d.kind === 'APR' && profile === aprProfiles[1]
+                      ? 'safety'
+                      : null;
                 return (
                   <div className="approval-profile" key={profile}>
                     <CheckCircle2 size={21} />
@@ -644,6 +733,10 @@ export default function DocumentEditor({
                       <strong>{profile}</strong>
                       <small>
                         {decision?.user_name ||
+                          (selectedPrefix
+                            ? d.data.answers[`${selectedPrefix}Owner`] ||
+                              'Selecione o responsável na identificação'
+                            : '') ||
                           assignment?.user_name ||
                           'Aprovador não configurado'}
                       </small>

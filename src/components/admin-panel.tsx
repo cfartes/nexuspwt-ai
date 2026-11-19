@@ -138,6 +138,7 @@ export default function AdminPanel({
                   <select name="role">
                     <option value="executante">Executante</option>
                     <option value="aprovador">Aprovador</option>
+                    <option value="seguranca_trabalho">Segurança do Trabalho</option>
                     <option value="gestor">Gestor</option>
                     <option value="admin">Administrador da unidade</option>
                   </select>

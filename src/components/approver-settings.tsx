@@ -28,6 +28,10 @@ export default function ApproverSettings({
             Aprovação por perfil
           </h2>
           <p>Alterações de configuração valem para novas submissões.</p>
+          <p>
+            Na APR, os dois perfis da contratada são definidos pelas pessoas selecionadas na
+            identificação. Os perfis da contratante usam esta configuração.
+          </p>
         </div>
       </div>
       {error && !selected && (

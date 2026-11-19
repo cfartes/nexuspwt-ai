@@ -13,7 +13,7 @@ export async function eligibleApprover(
     rows: [member],
   } = await client.query(
     `SELECT m.contractor_id FROM memberships m JOIN users u ON u.id=m.user_id AND u.active
-    WHERE m.user_id=$1 AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador')`,
+    WHERE m.user_id=$1 AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho')`,
     [userId, unitId],
   );
   if (!member)

@@ -4,6 +4,7 @@ import { assertOrigin, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { documentSchema } from '@/lib/validation';
 import { isDeepStrictEqual } from 'node:util';
+import { aprResponsibles } from '@/lib/apr-responsibles';
 export async function POST(request: Request) {
   try {
     assertOrigin(request);
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       const unit = await unitAccess(
         user,
         d.unitId,
-        ['admin', 'gestor', 'aprovador', 'executante'],
+        ['admin', 'gestor', 'aprovador', 'seguranca_trabalho', 'executante'],
         c,
       );
       assertContractorAccess(unit, d.contractorId);
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
         );
         if (!rowCount) throw new HttpError(400, 'Executante sem acesso à unidade.');
       }
+      await aprResponsibles(c, d);
       const payload = JSON.stringify(d.data);
       if (existing) {
         if (existing.kind !== d.kind)

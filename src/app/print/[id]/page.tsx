@@ -130,11 +130,11 @@ export default async function PrintPage({
             {d.kind === 'APR' && (
               <>
                 <tr>
-                  <th>Responsável empresa</th>
+                  <th>Responsável da contratada</th>
                   <td>
                     {d.data.answers.companyOwner} {d.data.answers.companyPhone}
                   </td>
-                  <th>Segurança empresa</th>
+                  <th>Segurança da contratada</th>
                   <td>
                     {d.data.answers.safetyOwner} {d.data.answers.safetyPhone}
                   </td>

@@ -25,7 +25,7 @@ async function stillPending(client: PoolClient, id: string) {
     rows: [row],
   } = await client.query(
     `SELECT 1 FROM notification_outbox n JOIN documents d ON d.id=n.document_id
-    JOIN users u ON u.id=n.user_id AND u.active JOIN memberships m ON m.user_id=n.user_id AND m.unit_id=d.unit_id AND m.active AND m.role IN ('admin','gestor','aprovador') AND (m.contractor_id IS NULL OR m.contractor_id=d.contractor_id)
+    JOIN users u ON u.id=n.user_id AND u.active JOIN memberships m ON m.user_id=n.user_id AND m.unit_id=d.unit_id AND m.active AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho') AND (m.contractor_id IS NULL OR m.contractor_id=d.contractor_id)
     WHERE n.id=$1 AND d.removed_at IS NULL AND d.version=n.version AND d.status='em_aprovacao'
     AND EXISTS(SELECT 1 FROM approvals a WHERE a.document_id=n.document_id AND a.version=n.version AND a.user_id=n.user_id AND a.decision IS NULL)`,
     [id],

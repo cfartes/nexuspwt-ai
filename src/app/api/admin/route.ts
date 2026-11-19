@@ -33,7 +33,7 @@ const phone = z
       return false;
     }
   }, 'Informe telefone internacional com DDI e DDD.');
-const role = z.enum(['admin', 'gestor', 'aprovador', 'executante']);
+const role = z.enum(['admin', 'gestor', 'aprovador', 'seguranca_trabalho', 'executante']);
 const schema = z.discriminatedUnion('action', [
   z
     .object({
@@ -160,6 +160,22 @@ export async function POST(request: Request) {
       ]);
       await unitAccess(user, unit.id, ['admin'], c);
       const company = unit.company_id;
+      if (!user.platform_admin) {
+        const target =
+          'userId' in input
+            ? input.userId
+            : input.action === 'deleteRegistration' &&
+                (input.kind === 'user' || input.kind === 'account')
+              ? input.id
+              : null;
+        if (target) {
+          const { rowCount } = await c.query('SELECT 1 FROM users WHERE id=$1 AND platform_admin', [
+            target,
+          ]);
+          if (rowCount)
+            throw new HttpError(403, 'Conta indisponível para administração nesta empresa.');
+        }
+      }
       switch (input.action) {
         case 'setUnitLimit':
           await setUnitLimit(c, user, company, input.limit, input.version);

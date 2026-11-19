@@ -190,6 +190,7 @@ export default function PeoplePanel({
                 <select name="role" defaultValue={selected.role}>
                   <option value="executante">Executante</option>
                   <option value="aprovador">Aprovador</option>
+                  <option value="seguranca_trabalho">Segurança do Trabalho</option>
                   <option value="gestor">Gestor</option>
                   <option value="admin">Administrador da unidade</option>
                 </select>
@@ -263,7 +264,7 @@ export default function PeoplePanel({
                     : 'Equipe própria'}
                 </td>
                 <td>
-                  <span className="badge">{person.role}</span>
+                  <span className="badge">{person.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : person.role}</span>
                 </td>
                 <td>
                   <span className={'badge ' + (person.active ? 'aprovado' : 'rejeitado')}>

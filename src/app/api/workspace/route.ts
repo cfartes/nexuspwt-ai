@@ -50,18 +50,27 @@ export async function GET(request: Request) {
           (SELECT jsonb_object_agg(d.channel,jsonb_build_object('status',d.status,'error',d.last_error)) FROM invitation_deliveries d
            WHERE d.invitation_id=(SELECT i.id FROM user_invitations i WHERE i.user_id=u.id AND i.unit_id=m.unit_id ORDER BY i.created_at DESC,i.id DESC LIMIT 1)) invitation_status
          FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.unit_id=$1 AND u.active
-         AND ($2='admin' OR m.active) AND ($3::uuid IS NULL OR m.contractor_id=$3 OR (m.contractor_id IS NULL AND m.role IN ('admin','gestor','aprovador'))) ORDER BY u.name`,
-        [unit.id, unit.role, unit.contractor_id],
+         AND ($4::boolean OR NOT u.platform_admin)
+         AND ($2='admin' OR m.active) AND ($3::uuid IS NULL OR m.contractor_id=$3 OR (m.contractor_id IS NULL AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho'))) ORDER BY u.name`,
+        [unit.id, unit.role, unit.contractor_id, user.platform_admin],
       ),
       db.query('SELECT * FROM regions WHERE company_id=$1 ORDER BY name', [unit.company_id]),
       db.query(
         `SELECT a.*,u.name user_name,m.contractor_id approver_contractor_id,
-          COALESCE(u.active AND m.active AND m.role IN ('admin','gestor','aprovador'),false) eligible
+          COALESCE(u.active AND m.active AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho'),false) eligible
          FROM approvers a JOIN users u ON u.id=a.user_id LEFT JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2
          WHERE a.company_id=$1 AND (a.unit_id=$2 OR a.region_id=$3)
-          AND ($5='admin' OR (a.active AND u.active AND m.active AND m.role IN ('admin','gestor','aprovador')))
+          AND ($6::boolean OR NOT u.platform_admin)
+          AND ($5='admin' OR (a.active AND u.active AND m.active AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho')))
           AND ($4::uuid IS NULL OR m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY a.unit_id NULLS LAST,a.kind,a.profile`,
-        [unit.company_id, unit.id, unit.region_id, unit.contractor_id, unit.role],
+        [
+          unit.company_id,
+          unit.id,
+          unit.region_id,
+          unit.contractor_id,
+          unit.role,
+          user.platform_admin,
+        ],
       ),
       db.query(
         'SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND d.removed_at IS NULL AND a.version=d.version AND ($2::uuid IS NULL OR d.contractor_id=$2)',
@@ -74,8 +83,8 @@ export async function GET(request: Request) {
         ? db.query(
             `SELECT u.id,u.name,u.email,array_agg(DISTINCT un.name ORDER BY un.name) units
           FROM users u JOIN memberships m ON m.user_id=u.id JOIN units un ON un.id=m.unit_id
-          WHERE un.company_id=$1 AND u.active GROUP BY u.id ORDER BY u.name`,
-            [unit.company_id],
+          WHERE un.company_id=$1 AND u.active AND ($2::boolean OR NOT u.platform_admin) GROUP BY u.id ORDER BY u.name`,
+            [unit.company_id, user.platform_admin],
           )
         : Promise.resolve({ rows: [] }),
       unit.role === 'admin'

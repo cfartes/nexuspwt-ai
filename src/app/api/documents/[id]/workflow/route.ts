@@ -5,6 +5,7 @@ import { assertOrigin, HttpError } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import { uuid, documentSchema, submissionErrors } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
+import { aprResponsibles } from '@/lib/apr-responsibles';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     assertOrigin(request);
@@ -71,12 +72,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
             'Liberação da PT ainda depende das regras de segurança do contratante e da integração de assinaturas. O preenchimento pode ser salvo como rascunho.',
           );
         const profiles = d.kind === 'APR' ? aprProfiles : ptProfiles;
+        const selected = await aprResponsibles(c, data, true);
         const { rows: assignments } = await c.query(
-          "SELECT DISTINCT ON(profile) a.* FROM approvers a JOIN users u ON u.id=a.user_id AND u.active JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador') WHERE a.company_id=$1 AND a.active AND (a.unit_id=$2 OR a.region_id=$3) AND (m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY profile,a.unit_id NULLS LAST",
+          "SELECT DISTINCT ON(profile) a.* FROM approvers a JOIN users u ON u.id=a.user_id AND u.active JOIN memberships m ON m.user_id=a.user_id AND m.unit_id=$2 AND m.active AND m.role IN ('admin','gestor','aprovador','seguranca_trabalho') WHERE a.company_id=$1 AND a.active AND (a.unit_id=$2 OR a.region_id=$3) AND (m.contractor_id IS NULL OR m.contractor_id=$4) ORDER BY profile,a.unit_id NULLS LAST",
           [unit.company_id, unit.id, unit.region_id, d.contractor_id],
         );
+        for (const person of selected) {
+          const configured = assignments.findIndex((a) => a.profile === person.profile);
+          if (configured >= 0) assignments.splice(configured, 1);
+          assignments.push(person);
+        }
         if (profiles.some((p) => !assignments.some((a) => a.profile === p)))
           throw new HttpError(400, 'Cadastre um aprovador para cada perfil deste documento.');
+        // Congela os contatos do cadastro na versão submetida, sem alterar versões anteriores.
+        d.data = data.data;
+        await c.query('UPDATE documents SET data=$2 WHERE id=$1', [id, JSON.stringify(d.data)]);
         await c.query(
           'INSERT INTO document_versions(document_id,version,snapshot) VALUES($1,$2,$3)',
           [id, d.version, JSON.stringify(d)],
@@ -98,7 +108,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           id,
         ]);
       } else {
-        if (!['admin', 'gestor', 'aprovador'].includes(unit.role))
+        if (!['admin', 'gestor', 'aprovador', 'seguranca_trabalho'].includes(unit.role))
           throw new HttpError(403, 'Seu perfil não permite registrar decisões de aprovação.');
         if (d.status !== 'em_aprovacao')
           throw new HttpError(409, 'Documento não está em aprovação.');

@@ -312,7 +312,7 @@ export default function Workspace() {
           <span className="avatar">{ws.user.name.slice(0, 2).toUpperCase()}</span>
           <span>
             {ws.user.name}
-            <small>{unit.role}</small>
+            <small>{unit.role === 'seguranca_trabalho' ? 'Segurança do Trabalho' : unit.role}</small>
           </span>
           <LogOut size={17} />
         </button>

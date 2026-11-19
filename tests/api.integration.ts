@@ -24,6 +24,7 @@ await db.exec(await readFile(new URL('../db/008-user-invitations.sql', import.me
 await db.exec(await readFile(new URL('../db/009-apr-removal.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/010-company-unit-limit.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/011-company-details.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/012-safety-role.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -329,6 +330,32 @@ try {
   );
   assert(!JSON.stringify(audits).includes(signature.secret));
   assert(!JSON.stringify(audits).includes(key));
+  const seedResponsible = async (contractorId: string, email: string) => {
+    await call('/api/admin', {
+      action: 'user',
+      unitId: unit.id,
+      name: 'Segurança da contratada',
+      email,
+      phone: '5511999999999',
+      role: 'seguranca_trabalho',
+      contractorId,
+    });
+    const {
+      rows: [responsible],
+    } = await db.query<{ id: string }>(
+      'UPDATE users SET password_pending=false,password_hash=$2 WHERE email=$1 RETURNING id',
+      [email, hashPassword(password)],
+    );
+    return responsible.id;
+  };
+  const responsibleEmail = 'safety-first@example.com';
+  const responsibleId = await seedResponsible(ws.contractors[0].id, responsibleEmail);
+  const approveAsResponsible = async (documentId: string, version: number, email: string) => {
+    const previous = cookie;
+    await call('/api/auth', { email, password });
+    await call(`/api/documents/${documentId}/workflow`, { action: 'approve', version });
+    cookie = previous;
+  };
   const d = {
     id: randomUUID(),
     unitId: unit.id,
@@ -341,7 +368,7 @@ try {
     aprId: null,
     version: 0,
     data: {
-      answers: {},
+      answers: { companyUserId: responsibleId, safetyUserId: responsibleId },
       types: [],
       ppe: [],
       risks: [
@@ -359,6 +386,17 @@ try {
   };
   const created = await call('/api/documents', d);
   assert.equal(created.version, 1);
+  assert.equal(created.data.answers.companyOwner, 'Segurança da contratada');
+  assert.equal(created.data.answers.safetyPhone, '5511999999999');
+  await call(
+    '/api/documents',
+    {
+      ...d,
+      id: randomUUID(),
+      data: { ...d.data, answers: { ...d.data.answers, safetyUserId: user.id } },
+    },
+    400,
+  );
   const retry = await call('/api/documents', d);
   assert.equal(retry.version, 1, 'Reenvio não cria revisão extra');
   await call('/api/documents', { ...d, title: 'Alteração desatualizada' }, 409);
@@ -378,9 +416,28 @@ try {
       profile,
       scope: 'unit',
     });
+  await db.query('UPDATE memberships SET active=false WHERE user_id=$1 AND unit_id=$2', [
+    responsibleId,
+    unit.id,
+  ]);
+  await call(`/api/documents/${d.id}/workflow`, { action: 'submit', version: 2 }, 400);
+  await db.query('UPDATE memberships SET active=true WHERE user_id=$1 AND unit_id=$2', [
+    responsibleId,
+    unit.id,
+  ]);
+  const legacyApr = await call('/api/documents', {
+    ...d,
+    id: randomUUID(),
+    data: { ...d.data, answers: { companyOwner: 'Nome antigo sem vínculo' } },
+  });
+  await call(`/api/documents/${legacyApr.id}/workflow`, { action: 'submit', version: 1 }, 400);
   await call(`/api/documents/${d.id}/workflow`, { action: 'submit', version: 2 });
   const queued = (await call(`/api/notifications?unit=${unit.id}`)).notifications;
-  assert.equal(queued.length, 1, 'Quatro perfis do mesmo aprovador geram um único aviso');
+  assert.equal(
+    queued.length,
+    2,
+    'Perfis da contratada e contratante avisam as pessoas correspondentes sem duplicar por perfil',
+  );
   assert.equal(queued[0].status, 'pending');
   assert.equal((await call(`/api/notifications?unit=${isolatedUnit.id}`)).notifications.length, 0);
   await call('/api/notifications', { unitId: isolatedUnit.id, id: queued[0].id }, 404);
@@ -396,6 +453,7 @@ try {
   });
   await call('/api/documents', { ...d, version: 2 }, 409);
   await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 2 });
+  await approveAsResponsible(d.id, 2, responsibleEmail);
   ws = await call('/api/workspace');
   assert.equal(ws.documents.find((x: { id: string }) => x.id === d.id).status, 'aprovado');
   assert.equal(ws.approvals.length, 4);
@@ -462,11 +520,17 @@ try {
   const nextContractor = ws.contractors.find(
     (contractor: { cnpj: string }) => contractor.cnpj === '98765432000198',
   );
+  const nextResponsibleEmail = 'safety-next@example.com';
+  const nextResponsibleId = await seedResponsible(nextContractor.id, nextResponsibleEmail);
   const revision = await call('/api/documents', {
     ...d,
     version: 3,
     title: 'Nova revisão da cobertura',
     contractorId: nextContractor.id,
+    data: {
+      ...d.data,
+      answers: { companyUserId: nextResponsibleId, safetyUserId: nextResponsibleId },
+    },
     startsAt: '2026-11-19',
   });
   assert.equal(revision.version, 4);
@@ -482,6 +546,7 @@ try {
   );
   await call(`/api/documents/${d.id}/workflow`, { action: 'submit', version: 4 });
   await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 4 });
+  await approveAsResponsible(d.id, 4, nextResponsibleEmail);
   await call('/api/documents', { ...pt, id: randomUUID() }, 400);
   const newPt = await call('/api/documents', {
     ...pt,
@@ -811,10 +876,43 @@ try {
   );
   await call('/api/admin', change(self, { role: 'gestor' }));
   cookie = contractorCookie;
-  const changedSelf = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
-    (p: { id: string }) => p.id === user.id,
+  const restrictedPeople = await call(`/api/workspace?unit=${unit.id}`);
+  const changedSelf = restrictedPeople.people.find((p: { id: string }) => p.id === user.id);
+  assert.equal(changedSelf, undefined, 'Superadmin não aparece na lista de pessoas da empresa');
+  assert(!restrictedPeople.companyPeople.some((p: { id: string }) => p.id === user.id));
+  assert(!restrictedPeople.approvers.some((p: { user_id: string }) => p.user_id === user.id));
+  await call(
+    '/api/admin',
+    {
+      action: 'membership',
+      unitId: unit.id,
+      email: 'test@nexus.local',
+      role: 'aprovador',
+      contractorId: null,
+    },
+    403,
   );
-  await call('/api/admin', change(changedSelf, { role: 'admin' }));
+  await call(
+    '/api/admin',
+    {
+      action: 'approver',
+      unitId: unit.id,
+      userId: user.id,
+      kind: 'APR',
+      profile: aprProfiles[2],
+      scope: 'unit',
+    },
+    403,
+  );
+  await call(
+    '/api/admin',
+    change({ ...self, membership_version: self.membership_version + 1 }, { role: 'admin' }),
+    403,
+  );
+  await db.query(
+    "UPDATE memberships SET role='admin',version=version+1 WHERE user_id=$1 AND unit_id=$2",
+    [user.id, unit.id],
+  );
   cookie = adminCookie;
   await call(
     '/api/admin',
@@ -841,7 +939,9 @@ try {
   );
   await call('/api/admin', change(person, { active: true, role: 'aprovador', contractorId: null }));
   ws = await call(`/api/workspace?unit=${unit.id}`);
-  const assignment = ws.approvers.find((a: { kind: string }) => a.kind === 'APR');
+  const assignment = ws.approvers.find(
+    (a: { kind: string; profile: string }) => a.kind === 'APR' && a.profile === aprProfiles[2],
+  );
   const editAssignment = {
     action: 'updateApprover',
     unitId: unit.id,
@@ -883,7 +983,7 @@ try {
     'SELECT user_id,status FROM notification_outbox WHERE document_id=$1',
     [owned.id],
   );
-  assert.equal(jobs.rows.length, 2);
+  assert.equal(jobs.rows.length, 3);
   assert.equal(jobs.rows.find((j) => j.user_id === user.id)?.status, 'cancelled');
   assert.equal(jobs.rows.find((j) => j.user_id === person.id)?.status, 'pending');
   await call(
