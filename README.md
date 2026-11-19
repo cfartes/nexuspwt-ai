@@ -109,6 +109,8 @@ A migração idempotente `015-company-audit.sql`, aplicada pelo atualizador exis
 
 ### Conferência humana e segurança das decisões
 
+O **Superadmin Nexus** é uma conta exclusiva da plataforma e está dispensado de conferência humana e da exigência TOTP das empresas. A dispensa é aplicada no servidor, registrada na evidência das decisões e identificada na interface; não promove perfis locais nem concede aprovação sem atribuição. Login, confirmação de senha nas ações sensíveis, escopo de acesso e versionamento continuam validados. As exigências de identidade e TOTP permanecem para os demais perfis. No popup de conferência, senha e código iniciam vazios, não são reaproveitados entre tentativas e solicitam ao navegador que não os preencha automaticamente.
+
 Execute a migração `013-approval-identity.sql` pelo atualizador da VPS (ou `npm run db:setup` no desenvolvimento). Nenhuma identidade existente é marcada automaticamente como conferida e nenhum autenticador é ativado automaticamente.
 
 - Em **Pessoas e acessos → Conferir identidade**, outro administrador confere documento, nome/CPF, contatos e vínculo com a empresa, registra o procedimento e confirma com a própria senha. Quando a empresa exige MFA, o administrador também informa o próprio código. Não é permitida autoconferência. O usuário precisa ter definido a senha do convite. O CPF é validado quanto aos dígitos, armazenado cifrado e identificado por HMAC para impedir duplicidade entre contas; não há consulta cadastral ou biometria nesta etapa. Não anexe documentos nem inclua seus números no campo de procedimento.

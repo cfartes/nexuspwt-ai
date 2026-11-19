@@ -30,8 +30,9 @@ export default function SecuritySettings({
         <div>
           <h2>Segurança das aprovações</h2>
           <p>
-            Conferência humana e senha são obrigatórias. O autenticador pode ser exigido pela
-            empresa.
+            {ws.user.platform_admin
+              ? 'Conta de administração Nexus: conferência de identidade e autenticador dispensados.'
+              : 'Conferência humana e senha são obrigatórias. O autenticador pode ser exigido pela empresa.'}
           </p>
         </div>
       </div>
@@ -41,7 +42,13 @@ export default function SecuritySettings({
             {notice}
           </p>
         )}
-        {mode === 'account' && (
+        {mode === 'account' && ws.user.platform_admin && (
+          <p>
+            Acesso exclusivo da Nexus. A política de identidade e autenticador da empresa se aplica
+            aos demais usuários.
+          </p>
+        )}
+        {mode === 'account' && !ws.user.platform_admin && (
           <p>
             Seu autenticador: {enabled ? 'Configurado' : 'Não configurado'}. Sua identidade nesta
             unidade:{' '}
@@ -51,7 +58,7 @@ export default function SecuritySettings({
             .
           </p>
         )}
-        {mode === 'account' && !enabled && (
+        {mode === 'account' && !ws.user.platform_admin && !enabled && (
           <button
             className="secondary"
             disabled={!online}
@@ -65,7 +72,7 @@ export default function SecuritySettings({
             Configurar meu autenticador
           </button>
         )}
-        {mode === 'account' && (
+        {mode === 'account' && !ws.user.platform_admin && (
           <p className="muted">
             Cadastre uma conta por pessoa no Google Authenticator, Microsoft Authenticator ou
             aplicativo TOTP compatível. Recuperação após perda do aparelho exige nova conferência
@@ -119,20 +126,22 @@ export default function SecuritySettings({
                   maxLength={256}
                 />
               </label>
-              <label>
-                Seu código do autenticador
-                <input
-                  name="code"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                />
-              </label>
+              {!ws.user.platform_admin && (
+                <label>
+                  Seu código do autenticador
+                  <input
+                    name="code"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                  />
+                </label>
+              )}
               <p className="muted span-2">
-                Configure seu autenticador antes de ativar esta opção. Ativar ou desativar a
-                exigência requer seu código. Com a opção desativada, as decisões continuam exigindo
-                identidade conferida e senha.
+                {ws.user.platform_admin
+                  ? 'Esta exigência vale para os usuários da empresa. O Superadmin Nexus confirma a alteração com sua senha, sem autenticador.'
+                  : 'Configure seu autenticador antes de ativar esta opção. Ativar ou desativar a exigência requer seu código. Com a opção desativada, as decisões continuam exigindo identidade conferida e senha.'}
               </p>
               <button className="primary">Salvar política de segurança</button>
             </fieldset>

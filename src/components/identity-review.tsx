@@ -20,6 +20,17 @@ export default function IdentityReview({
   const [action, setAction] = useState<'verify' | 'reset' | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [codeFocused, setCodeFocused] = useState(false);
+  const clearCredentials = () => {
+    setPassword('');
+    setCode('');
+    setPasswordFocused(false);
+    setCodeFocused(false);
+  };
+  if (person.platform_admin) return null;
   if (person.id === ws.user.id)
     return <small>Outro administrador deve conferir sua identidade.</small>;
   return (
@@ -29,6 +40,7 @@ export default function IdentityReview({
         disabled={!online || !person.active || person.password_pending}
         onClick={() => {
           setAction('verify');
+          clearCredentials();
           setError('');
         }}
       >
@@ -40,6 +52,7 @@ export default function IdentityReview({
           disabled={!online || !person.active}
           onClick={() => {
             setAction('reset');
+            clearCredentials();
             setError('');
           }}
         >
@@ -54,10 +67,14 @@ export default function IdentityReview({
               : 'Recuperação assistida do autenticador'
           }
           busy={busy}
-          onClose={() => setAction(null)}
+          onClose={() => {
+            clearCredentials();
+            setAction(null);
+          }}
         >
           <form
             className="admin-form"
+            autoComplete="off"
             onSubmit={async (e) => {
               e.preventDefault();
               const fields = new FormData(e.currentTarget);
@@ -72,14 +89,15 @@ export default function IdentityReview({
                   ...(action === 'verify' ? { cpf: fields.get('cpf') } : {}),
                   reference: fields.get('reference'),
                   confirmed: fields.get('confirmed') === 'on',
-                  password: fields.get('password'),
-                  code: fields.get('code') || '',
+                  password,
+                  code,
                 });
                 await reload();
                 setAction(null);
               } catch (error) {
                 setError((error as Error).message);
               } finally {
+                clearCredentials();
                 setBusy(false);
               }
             }}
@@ -123,23 +141,31 @@ export default function IdentityReview({
               <label>
                 Sua senha de administrador *
                 <input
-                  name="password"
+                  name="identity-review-password"
                   type="password"
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  readOnly={!passwordFocused}
+                  onFocus={() => setPasswordFocused(true)}
                   maxLength={256}
                 />
               </label>
-              {ws.securityPolicy?.required && (
+              {!ws.user.platform_admin && ws.securityPolicy?.required && (
                 <label>
                   Seu código do autenticador *
                   <input
-                    name="code"
+                    name="identity-review-code"
                     required
                     inputMode="numeric"
                     pattern="[0-9]{6}"
                     maxLength={6}
-                    autoComplete="one-time-code"
+                    autoComplete="off"
+                    readOnly={!codeFocused}
+                    onFocus={() => setCodeFocused(true)}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   />
                 </label>
               )}

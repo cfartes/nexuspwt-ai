@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       input.code,
       input.action === 'confirm'
         ? 'confirm'
-        : admin && (policy.required || input.required === true)
+        : admin && !user.platform_admin && (policy.required || input.required === true)
           ? 'totp'
           : 'password',
     );
@@ -106,9 +106,14 @@ export async function POST(request: Request) {
           'SELECT approval_mfa_required required,security_version version FROM companies WHERE id=$1 FOR UPDATE',
           [unit.company_id],
         );
-        if (admin && current.required && evidence.method !== 'password_totp')
+        if (
+          admin &&
+          !user.platform_admin &&
+          current.required &&
+          evidence.method !== 'password_totp'
+        )
           throw new HttpError(409, 'A política mudou. Confirme novamente com o autenticador.');
-        if (admin && (current.required || input.required === true)) {
+        if (admin && !user.platform_admin && (current.required || input.required === true)) {
           const {
             rows: [factor],
           } = await c.query('SELECT enabled_at FROM user_security WHERE user_id=$1 FOR SHARE', [

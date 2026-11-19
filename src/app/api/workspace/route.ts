@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         [unit.id, unit.contractor_id],
       ),
       db.query(
-        `SELECT u.id,u.name,u.email,u.password_pending,COALESCE(m.phone,u.phone) phone,m.role,m.active,m.contractor_id,m.version membership_version,m.identity_verified_at,m.identity_verified_by,(s.enabled_at IS NOT NULL) authenticator_enabled,EXISTS(SELECT 1 FROM company_admins ca JOIN units un ON un.company_id=ca.company_id WHERE un.id=m.unit_id AND ca.user_id=u.id AND ca.active) company_admin,
+        `SELECT u.id,u.name,u.email,u.platform_admin,u.password_pending,COALESCE(m.phone,u.phone) phone,m.role,m.active,m.contractor_id,m.version membership_version,m.identity_verified_at,m.identity_verified_by,(s.enabled_at IS NOT NULL) authenticator_enabled,EXISTS(SELECT 1 FROM company_admins ca JOIN units un ON un.company_id=ca.company_id WHERE un.id=m.unit_id AND ca.user_id=u.id AND ca.active) company_admin,
           (SELECT jsonb_object_agg(d.channel,jsonb_build_object('status',d.status,'error',d.last_error)) FROM invitation_deliveries d
            WHERE d.invitation_id=(SELECT i.id FROM user_invitations i WHERE i.user_id=u.id AND i.unit_id=m.unit_id ORDER BY i.created_at DESC,i.id DESC LIMIT 1)) invitation_status
          FROM users u JOIN memberships m ON m.user_id=u.id LEFT JOIN user_security s ON s.user_id=u.id WHERE m.unit_id=$1 AND u.active

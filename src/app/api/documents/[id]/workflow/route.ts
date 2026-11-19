@@ -39,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         user,
         input.password,
         input.code,
-        policy.approval_mfa_required ? 'totp' : 'password',
+        policy.approval_mfa_required && !user.platform_admin ? 'totp' : 'password',
       );
     }
     await transaction(async (c) => {
@@ -55,8 +55,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (d.version !== input.version)
         throw new HttpError(409, 'Versão desatualizada. Recarregue o documento.');
       if (input.action === 'revise') {
-        if (unit.role === 'aprovador') throw new HttpError(403, 'Aprovador possui acesso somente para consulta e decisão.');
-        if (d.created_by !== user.id && !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role))
+        if (unit.role === 'aprovador')
+          throw new HttpError(403, 'Aprovador possui acesso somente para consulta e decisão.');
+        if (
+          d.created_by !== user.id &&
+          !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role)
+        )
           throw new HttpError(403, 'Somente o autor ou gestor pode criar uma revisão.');
         if (d.kind !== 'APR' || d.status !== 'aprovado')
           throw new HttpError(409, 'Somente uma APR aprovada pode originar uma nova revisão.');
@@ -71,8 +75,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           [id],
         );
       } else if (input.action === 'submit') {
-        if (unit.role === 'aprovador') throw new HttpError(403, 'Aprovador possui acesso somente para consulta e decisão.');
-        if (d.created_by !== user.id && !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role))
+        if (unit.role === 'aprovador')
+          throw new HttpError(403, 'Aprovador possui acesso somente para consulta e decisão.');
+        if (
+          d.created_by !== user.id &&
+          !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role)
+        )
           throw new HttpError(403, 'Sem permissão para enviar.');
         if (d.status !== 'rascunho')
           throw new HttpError(409, 'Somente rascunhos podem ser enviados.');

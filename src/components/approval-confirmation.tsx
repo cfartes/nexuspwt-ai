@@ -8,12 +8,14 @@ export default function ApprovalConfirmation({
   document,
   action,
   mfa,
+  identityExempt = false,
   onClose,
   onDone,
 }: {
   document: DocumentRow;
   action: 'approve' | 'reject';
   mfa: boolean;
+  identityExempt?: boolean;
   onClose: () => void;
   onDone: () => Promise<unknown>;
 }) {
@@ -56,8 +58,9 @@ export default function ApprovalConfirmation({
         </p>
         <p>{document.title}</p>
         <p className="muted">
-          Confirme a decisão com suas próprias credenciais. Sua identidade deve ter sido conferida
-          por outro administrador nesta unidade.
+          {identityExempt
+            ? 'Confirme a decisão com sua senha Nexus. O Superadmin é dispensado de conferência humana e autenticador.'
+            : 'Confirme a decisão com suas próprias credenciais. Sua identidade deve ter sido conferida por outro administrador nesta unidade.'}
         </p>
         {error && (
           <p role="alert" className="alert error">

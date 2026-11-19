@@ -194,6 +194,32 @@ test('decisões exigem conferência humana, senha e MFA conforme a empresa; erro
     assert(!text.includes(password));
     assert(!text.includes(secret));
     assert(!text.includes('52998224725'));
+    const passwordOnly = await authenticateDecision(pool, admin, password);
+    await assert.rejects(
+      tx((c) => assertDecisionIdentity(c, admin, unit.id, passwordOnly)),
+      status(403),
+      'flag in the caller cannot exempt an ordinary database account',
+    );
+    await pool.query('UPDATE users SET platform_admin=true WHERE id=$1', [admin.id]);
+    const exempt = await tx((c) => assertDecisionIdentity(c, admin, unit.id, passwordOnly));
+    assert('exemption' in exempt);
+    assert.equal(exempt.exemption, 'nexus_superadmin');
+    assert.equal(exempt.method, 'password');
+    assert.equal(exempt.verifiedBy, null);
+    await assert.rejects(
+      tx((c) =>
+        recordIdentity(
+          c,
+          person,
+          unit.id,
+          admin.id,
+          '52998224725',
+          'Tentativa de conferir conta Nexus',
+          1,
+        ),
+      ),
+      status(403),
+    );
   } finally {
     clock.mock.restore();
     await pool.end();

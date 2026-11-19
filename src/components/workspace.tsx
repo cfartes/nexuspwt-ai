@@ -679,7 +679,8 @@ export default function Workspace() {
         <ApprovalConfirmation
           document={decision.document}
           action={decision.action}
-          mfa={!!ws.securityPolicy?.required}
+          mfa={!!ws.securityPolicy?.required && !ws.user.platform_admin}
+          identityExempt={ws.user.platform_admin}
           onClose={() => setDecision(null)}
           onDone={async () => {
             await load(ws.unit.id);

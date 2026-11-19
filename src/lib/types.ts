@@ -14,6 +14,7 @@ export type Unit = {
 };
 export type Person = {
   id: string;
+  platform_admin?: boolean;
   name: string;
   email: string;
   phone: string;

@@ -1394,6 +1394,12 @@ try {
     await call('/api/auth', { email, password: 'senha-definida-por-admin' }, 401);
   }
   cookie = adminCookie;
+  // Exercise the tenant administrator's MFA rules independently of the Nexus exemption.
+  await db.query('UPDATE users SET platform_admin=false WHERE id=$1', [user.id]);
+  await db.query('INSERT INTO company_admins(company_id,user_id) VALUES($1,$2)', [
+    company.id,
+    user.id,
+  ]);
   const securityPolicy = await call(`/api/security?unit=${unit.id}`);
   assert.equal(securityPolicy.required, false);
   await call(
@@ -1535,6 +1541,41 @@ try {
   assert(!securityText.includes(enrollment.secret));
   assert(!securityText.includes(ownEnrollment.secret));
   assert(!securityText.includes('52998224725'));
+  await db.query('UPDATE users SET platform_admin=true WHERE id=$1', [user.id]);
+  await db.query('DELETE FROM company_admins WHERE user_id=$1', [user.id]);
+  await db.query(
+    'UPDATE user_security SET secret_ciphertext=NULL,enabled_at=NULL WHERE user_id=$1',
+    [user.id],
+  );
+  await call('/api/security', {
+    action: 'policy',
+    unitId: unit.id,
+    required: true,
+    version: securityPolicy.version + 2,
+    password,
+  });
+  await call(
+    '/api/security',
+    {
+      action: 'policy',
+      unitId: unit.id,
+      required: false,
+      version: securityPolicy.version + 3,
+      password: 'incorreta',
+    },
+    403,
+  );
+  await call('/api/security', {
+    action: 'policy',
+    unitId: unit.id,
+    required: false,
+    version: securityPolicy.version + 3,
+    password,
+  });
+  const rootPerson = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === user.id,
+  );
+  assert.equal(rootPerson.platform_admin, true);
   const decisions = await db.query<{
     details: { verification?: { method: string; snapshotHash: string } };
   }>("SELECT details FROM audit_events WHERE action='workflow.approve'");

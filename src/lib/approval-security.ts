@@ -140,11 +140,13 @@ export async function assertDecisionIdentity(
   const {
     rows: [row],
   } = await c.query(
-    `SELECT u.name,u.email,COALESCE(m.phone,u.phone) phone,m.contractor_id,m.identity_verified_at,m.identity_verified_by,m.identity_snapshot,
+    `SELECT u.name,u.email,u.platform_admin,COALESCE(m.phone,u.phone) phone,m.contractor_id,m.identity_verified_at,m.identity_verified_by,m.identity_snapshot,
     co.approval_mfa_required,s.enabled_at FROM users u JOIN memberships m ON m.user_id=u.id JOIN units un ON un.id=m.unit_id JOIN companies co ON co.id=un.company_id
     LEFT JOIN user_security s ON s.user_id=u.id WHERE u.id=$1 AND m.unit_id=$2 AND u.active AND m.active FOR SHARE OF u,m,co`,
     [user.id, unitId],
   );
+  if (row?.platform_admin)
+    return { verifiedAt: null, verifiedBy: null, exemption: 'nexus_superadmin', ...evidence };
   const expected = row ? identitySnapshot(row) : null;
   if (
     !row?.identity_verified_at ||
@@ -193,6 +195,8 @@ export async function recordIdentity(
   );
   if (!person || person.password_pending || (!actor.platform_admin && person.platform_admin))
     throw new HttpError(403, 'Conta indisponível ou aguardando definição de senha.');
+  if (person.platform_admin)
+    throw new HttpError(403, 'Superadmin Nexus é dispensado de conferência de identidade.');
   if (person.version !== version)
     throw new HttpError(409, 'Cadastro alterado. Recarregue e confira os dados novamente.');
   if (!person.phone)

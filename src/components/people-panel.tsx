@@ -279,9 +279,11 @@ export default function PeoplePanel({
                 </td>
                 <td>
                   <span className="badge">
-                    {person.company_admin
-                      ? roleLabels.admin_empresa
-                      : roleLabels[person.role] || person.role}
+                    {person.platform_admin
+                      ? 'Superadmin Nexus'
+                      : person.company_admin
+                        ? roleLabels.admin_empresa
+                        : roleLabels[person.role] || person.role}
                   </span>
                 </td>
                 <td>
@@ -289,12 +291,22 @@ export default function PeoplePanel({
                     {person.active ? 'Ativo' : 'Desativado'}
                   </span>
                   {person.password_pending && <small>Aguardando definição de senha</small>}
-                  <small>
-                    Identidade: {person.identity_verified_at ? 'Conferida' : 'Pendente'}
-                  </small>
-                  <small>
-                    Autenticador: {person.authenticator_enabled ? 'Configurado' : 'Não configurado'}
-                  </small>
+                  {!person.platform_admin && (
+                    <>
+                      <small>
+                        Identidade: {person.identity_verified_at ? 'Conferida' : 'Pendente'}
+                      </small>
+                      <small>
+                        Autenticador:{' '}
+                        {person.authenticator_enabled ? 'Configurado' : 'Não configurado'}
+                      </small>
+                    </>
+                  )}
+                  {person.platform_admin && (
+                    <small>
+                      Conta Nexus · conferência de identidade e autenticador dispensados
+                    </small>
+                  )}
                 </td>
                 {canManage && (
                   <td>
