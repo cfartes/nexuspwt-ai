@@ -29,4 +29,6 @@ Por decisão explícita do responsável pelo projeto em 19/11/2026, manter o bac
 
 A última entrega funcional (`a4f8cfa`) passou pelos testes automatizados, build e integração locais informados no README e na entrega. Não houve validação visual completa no navegador nesta etapa nem atualização da VPS por esta sessão.
 
-Ao receber as novas diretrizes, `npm run lint` foi tentado e falhou porque o executável `gts` não está disponível no ambiente. Isso não representa aprovação do lint. As diferenças arquiteturais e verificações necessárias estão em [PENDENTE.md](PENDENTE.md).
+O GTS 7.0.0 foi instalado como dependência de desenvolvimento com versão fixa e lockfile atualizado. A configuração ESLint foi adaptada ao ESM do projeto, preservando o estilo Prettier existente e ignorando somente saídas geradas/dependências/dados locais. Scripts de teste usam `npm` de forma compatível com Windows/Linux; não há hook `prepare` que tente compilar durante a instalação de dependências antes da cópia do código no Docker.
+
+A dependência transitiva `tmp` foi fixada em 0.2.7 por override para corrigir os alertas encontrados na instalação. `npm audit`, typecheck e lint dos arquivos de configuração passaram. O lint completo executa, mas a execução local revelou 405 erros e 5 avisos no código existente; não foi aplicada correção automática ampla. Isso não representa aprovação do lint global. As pendências estão em [PENDENTE.md](PENDENTE.md).
