@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         : Promise.resolve({ rows: [] }),
       unit.role === 'admin'
         ? db.query(
-            `SELECT u.id,u.name,u.email,array_agg(DISTINCT un.name ORDER BY un.name) units
+            `SELECT u.id,u.name,u.email,u.platform_admin,array_agg(DISTINCT un.name ORDER BY un.name) units
           FROM users u JOIN memberships m ON m.user_id=u.id JOIN units un ON un.id=m.unit_id
           WHERE un.company_id=$1 AND u.active AND ($2::boolean OR NOT u.platform_admin) GROUP BY u.id ORDER BY u.name`,
             [unit.company_id, user.platform_admin],
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
         : Promise.resolve({ rows: [] }),
     ]);
     const managesCompany = companyManager(user, unit);
-    const documents = results[0].rows;
+    const documents = unit.role === 'admin_contratada' ? [] : results[0].rows;
     const ids = new Set(documents.map((d) => d.id));
     const linkedPeople = new Set(
       documents.flatMap((d) => [

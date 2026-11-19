@@ -8,12 +8,15 @@ import { newTotpSecret } from '@/lib/totp';
 import { totpQrCode } from '@/lib/totp-qr';
 import { authenticateDecision, recordIdentity } from '@/lib/approval-security';
 import { companyManager } from '@/lib/permissions';
+import { sessionEvidence } from '@/lib/session-security';
+import { cookies } from 'next/headers';
+import { digest } from '@/lib/security';
 
 const schema = z
   .object({
     action: z.enum(['begin', 'confirm', 'policy', 'verify', 'reset']),
     unitId: z.uuid(),
-    password: z.string().min(1).max(256),
+    password: z.string().max(256).default(''),
     code: z
       .string()
       .regex(/^$|^\d{6}$/)
@@ -79,17 +82,20 @@ export async function POST(request: Request) {
       throw new HttpError(400, 'Confirme a conferência humana e informe a referência.');
     if (input.action === 'verify' && !input.cpf)
       throw new HttpError(400, 'Informe o CPF conferido.');
-    const evidence = await authenticateDecision(
-      db,
-      user,
-      input.password,
-      input.code,
-      input.action === 'confirm'
-        ? 'confirm'
-        : admin && !user.platform_admin && (policy.required || input.required === true)
-          ? 'totp'
-          : 'password',
-    );
+    const evidence =
+      input.action === 'verify' && !input.password
+        ? sessionEvidence(user)
+        : await authenticateDecision(
+            db,
+            user,
+            input.password,
+            input.code,
+            input.action === 'confirm'
+              ? 'confirm'
+              : admin && !user.platform_admin && (policy.required || input.required === true)
+                ? 'totp'
+                : 'password',
+          );
     let secret: string | undefined;
     if (input.action !== 'confirm')
       await transaction(async (c) => {
@@ -144,6 +150,14 @@ export async function POST(request: Request) {
             'UPDATE companies SET approval_mfa_required=$2,security_version=security_version+1 WHERE id=$1',
             [unit.company_id, input.required],
           );
+          if (evidence.method === 'password_totp') {
+            const token = (await cookies()).get('nexus_session')?.value;
+            if (token)
+              await c.query(
+                'UPDATE sessions SET mfa_verified_at=now(),factor_enabled_at=$2 WHERE token_hash=$1',
+                [digest(token), evidence.enabledAt],
+              );
+          }
           await c.query(
             "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'seguranca.politica_atualizada',$2)",
             [

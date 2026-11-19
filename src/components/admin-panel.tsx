@@ -130,7 +130,7 @@ export default function AdminPanel({
                 {action === 'company' ? (
                   <CompanyFields unitId={ws.unit.id} />
                 ) : (
-                  <ContractorFields unitId={ws.unit.id} />
+                  <ContractorFields unitId={ws.unit.id} requireContact />
                 )}
               </>
             )}
@@ -143,6 +143,7 @@ export default function AdminPanel({
                   Perfil de acesso
                   <select name="role">
                     <option value="executante">Executante</option>
+                    <option value="admin_contratada">Responsável da contratada</option>
                     <option value="aprovador">Aprovador</option>
                     <option value="seguranca_trabalho">Segurança do Trabalho</option>
                     <option value="gestor">Gestor</option>

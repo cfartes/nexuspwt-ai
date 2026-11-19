@@ -7,14 +7,12 @@ import { api } from './workspace';
 export default function ApprovalConfirmation({
   document,
   action,
-  mfa,
   identityExempt = false,
   onClose,
   onDone,
 }: {
   document: DocumentRow;
   action: 'approve' | 'reject';
-  mfa: boolean;
   identityExempt?: boolean;
   onClose: () => void;
   onDone: () => Promise<unknown>;
@@ -39,8 +37,6 @@ export default function ApprovalConfirmation({
               action,
               version: document.version,
               comment: fields.get('comment') || '',
-              password: fields.get('password'),
-              code: fields.get('code') || '',
             });
             await onDone();
             onClose();
@@ -59,8 +55,8 @@ export default function ApprovalConfirmation({
         <p>{document.title}</p>
         <p className="muted">
           {identityExempt
-            ? 'Confirme a decisão com sua senha Nexus. O Superadmin é dispensado de conferência humana e autenticador.'
-            : 'Confirme a decisão com suas próprias credenciais. Sua identidade deve ter sido conferida por outro administrador nesta unidade.'}
+            ? 'A decisão será vinculada à sua sessão Nexus. O Superadmin é dispensado de conferência humana e autenticador.'
+            : 'A decisão será vinculada à sua sessão autenticada e à versão acima. Sua identidade deve estar conferida nesta unidade.'}
         </p>
         {error && (
           <p role="alert" className="alert error">
@@ -71,33 +67,6 @@ export default function ApprovalConfirmation({
           {action === 'reject' && (
             <label className="span-2">
               Motivo da rejeição *<textarea name="comment" required maxLength={2000} />
-            </label>
-          )}
-          <label>
-            Sua senha *
-            <input
-              name="password"
-              type="password"
-              required
-              maxLength={256}
-              autoComplete="current-password"
-            />
-          </label>
-          {mfa && (
-            <label>
-              Código do autenticador *
-              <input
-                name="code"
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                required
-                autoComplete="one-time-code"
-              />
-              <small>
-                Se já usou o código, aguarde o próximo. Configure em Configurações → Segurança das
-                aprovações.
-              </small>
             </label>
           )}
           <button className="primary">

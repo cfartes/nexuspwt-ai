@@ -32,6 +32,8 @@ export async function saveMembership(
     throw new HttpError(400, 'Admin da empresa deve pertencer à equipe própria.');
   const requestedRole = input.role;
   const storedRole = input.role === 'admin_empresa' ? 'admin' : input.role;
+  if (storedRole === 'admin_contratada' && !input.contractorId)
+    throw new HttpError(400, 'Responsável da contratada exige vínculo com a contratada.');
   const {
     rows: [account],
   } = await client.query('SELECT active,platform_admin FROM users WHERE id=$1', [userId]);
@@ -114,6 +116,15 @@ export async function saveMembership(
     await client.query(
       'UPDATE company_admins SET active=false WHERE company_id=$1 AND user_id=$2',
       [actorUnit.company_id, userId],
+    );
+  if (
+    storedRole === 'executante' &&
+    input.contractorId &&
+    (!existing || existing.contractor_id !== input.contractorId)
+  )
+    await client.query(
+      'UPDATE memberships SET identity_document_required=true WHERE user_id=$1 AND unit_id=$2',
+      [userId, unitId],
     );
   await client.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [
     actor.id,

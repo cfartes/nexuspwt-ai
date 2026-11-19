@@ -94,19 +94,21 @@ export default function PeoplePanel({
                       >
                         Vincular à unidade
                       </button>
-                      {ws.user.platform_admin && person.id !== ws.user.id && (
-                        <DeleteRegistration
-                          unitId={ws.unit.id}
-                          kind="account"
-                          id={person.id}
-                          name={person.name}
-                          online={online}
-                          onDeleted={async () => {
-                            await reload();
-                            setNotice('Usuário excluído da plataforma e da lista de vinculação.');
-                          }}
-                        />
-                      )}
+                      {ws.user.platform_admin &&
+                        !person.platform_admin &&
+                        person.id !== ws.user.id && (
+                          <DeleteRegistration
+                            unitId={ws.unit.id}
+                            kind="account"
+                            id={person.id}
+                            name={person.name}
+                            online={online}
+                            onDeleted={async () => {
+                              await reload();
+                              setNotice('Usuário excluído da plataforma e da lista de vinculação.');
+                            }}
+                          />
+                        )}
                     </td>
                   </tr>
                 ))}
@@ -194,6 +196,7 @@ export default function PeoplePanel({
                   defaultValue={selected.company_admin ? 'admin_empresa' : selected.role}
                 >
                   <option value="executante">Executante</option>
+                  <option value="admin_contratada">Responsável da contratada</option>
                   <option value="aprovador">Aprovador</option>
                   <option value="seguranca_trabalho">Segurança do Trabalho</option>
                   <option value="gestor">Gestor</option>
@@ -376,31 +379,35 @@ export default function PeoplePanel({
                         Editar acesso
                       </button>
                       <IdentityReview person={person} ws={ws} online={online} reload={reload} />
-                      <DeleteRegistration
-                        unitId={ws.unit.id}
-                        kind="user"
-                        id={person.id}
-                        version={person.membership_version}
-                        name={person.name}
-                        online={online}
-                        onDeleted={async () => {
-                          await reload();
-                          setNotice('Acesso excluído desta unidade.');
-                        }}
-                      />
-                      {ws.user.platform_admin && person.id !== ws.user.id && (
+                      {!person.platform_admin && (
                         <DeleteRegistration
                           unitId={ws.unit.id}
-                          kind="account"
+                          kind="user"
                           id={person.id}
+                          version={person.membership_version}
                           name={person.name}
                           online={online}
                           onDeleted={async () => {
                             await reload();
-                            setNotice('Usuário excluído da plataforma em todas as unidades.');
+                            setNotice('Acesso excluído desta unidade.');
                           }}
                         />
                       )}
+                      {ws.user.platform_admin &&
+                        !person.platform_admin &&
+                        person.id !== ws.user.id && (
+                          <DeleteRegistration
+                            unitId={ws.unit.id}
+                            kind="account"
+                            id={person.id}
+                            name={person.name}
+                            online={online}
+                            onDeleted={async () => {
+                              await reload();
+                              setNotice('Usuário excluído da plataforma em todas as unidades.');
+                            }}
+                          />
+                        )}
                     </div>
                   </td>
                 )}

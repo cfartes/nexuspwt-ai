@@ -225,7 +225,7 @@ test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões 
       (await db.query('SELECT 1 FROM user_invitations WHERE user_id=$1', [unused])).rows.length,
       0,
     );
-    await assert.rejects(remove('user', rootId, 1), status(409));
+    await assert.rejects(remove('user', rootId, 1), status(403));
     await assert.rejects(remove('user', rootId, 1, local), status(403));
     const used = await user('used');
     const listed = await user('listed');
@@ -274,7 +274,7 @@ test('exclusão: seis cadastros, isolamento, vínculos compartilhados, versões 
       1,
     );
     await assert.rejects(remove('account', used, undefined, local), status(403));
-    await assert.rejects(remove('account', rootId), status(409));
+    await assert.rejects(remove('account', rootId), status(403));
     await db.query(
       "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES('session-used',$1,now()+interval '1 hour')",
       [used],

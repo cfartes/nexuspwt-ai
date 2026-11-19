@@ -138,21 +138,23 @@ export default function IdentityReview({
                   todas as empresas. Será necessária nova configuração e nova conferência humana.
                 </p>
               )}
-              <label>
-                Sua senha de administrador *
-                <input
-                  name="identity-review-password"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  readOnly={!passwordFocused}
-                  onFocus={() => setPasswordFocused(true)}
-                  maxLength={256}
-                />
-              </label>
-              {!ws.user.platform_admin && ws.securityPolicy?.required && (
+              {action === 'reset' && (
+                <label>
+                  Sua senha de administrador *
+                  <input
+                    name="identity-review-password"
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    readOnly={!passwordFocused}
+                    onFocus={() => setPasswordFocused(true)}
+                    maxLength={256}
+                  />
+                </label>
+              )}
+              {action === 'reset' && !ws.user.platform_admin && ws.securityPolicy?.required && (
                 <label>
                   Seu código do autenticador *
                   <input

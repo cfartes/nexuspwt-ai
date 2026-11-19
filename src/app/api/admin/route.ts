@@ -15,6 +15,7 @@ import { createInvitation } from '@/lib/invitations';
 import { deleteRegistration } from '@/lib/delete-registration';
 import { assertUnitCapacity, setUnitLimit } from '@/lib/unit-limit';
 import { companyManager } from '@/lib/permissions';
+import { contractorContact } from '@/lib/contractor-access';
 import {
   eligibleApprover,
   grantRegionalAccess,
@@ -41,6 +42,7 @@ const role = z.enum([
   'aprovador',
   'seguranca_trabalho',
   'executante',
+  'admin_contratada',
 ]);
 const schema = z.discriminatedUnion('action', [
   z
@@ -169,9 +171,7 @@ export async function POST(request: Request) {
       const freshUnit = await unitAccess(user, unit.id, ['admin'], c);
       const managesCompany = companyManager(user, freshUnit);
       if (
-        ['region', 'unit', 'contractor', 'updateContractor', 'updateCompany'].includes(
-          input.action,
-        ) &&
+        ['region', 'unit', 'updateContractor', 'updateCompany'].includes(input.action) &&
         !managesCompany
       )
         throw new HttpError(403, 'Operação restrita ao Admin da empresa.');
@@ -274,7 +274,7 @@ export async function POST(request: Request) {
           const {
             rows: [co],
           } = await c.query(
-            'INSERT INTO contractors(company_id,name,cnpj,details) VALUES($1,$2,$3,$4) ON CONFLICT(company_id,cnpj) DO UPDATE SET name=contractors.name RETURNING id',
+            'INSERT INTO contractors(company_id,name,cnpj,details) VALUES($1,$2,$3,$4) ON CONFLICT(company_id,cnpj) DO UPDATE SET name=contractors.name RETURNING id,details',
             [company, input.name, input.cnpj, JSON.stringify(input.details)],
           );
           auditTarget = co.id;
@@ -283,15 +283,24 @@ export async function POST(request: Request) {
             co.id,
             unit.id,
           ]);
+          await contractorContact(c, user, unit.id, co.id, co.details);
           break;
         }
-        case 'linkContractor':
+        case 'linkContractor': {
           await c.query('INSERT INTO contractor_units VALUES($1,$2,$3) ON CONFLICT DO NOTHING', [
             company,
             input.contractorId,
             unit.id,
           ]);
+          const {
+            rows: [contact],
+          } = await c.query('SELECT details FROM contractors WHERE id=$1 AND company_id=$2', [
+            input.contractorId,
+            company,
+          ]);
+          await contractorContact(c, user, unit.id, input.contractorId, contact.details);
           break;
+        }
         case 'updateContractor': {
           const {
             rows: [existing],

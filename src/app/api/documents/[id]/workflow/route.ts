@@ -7,6 +7,8 @@ import { uuid, documentSchema, submissionErrors } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { aprResponsibles } from '@/lib/apr-responsibles';
 import { authenticateDecision, assertDecisionIdentity } from '@/lib/approval-security';
+import { assertExecutorsValidated } from '@/lib/executor-identities';
+import { sessionEvidence } from '@/lib/session-security';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     assertOrigin(request);
@@ -34,13 +36,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         [id, user.id],
       );
       if (!policy) throw new HttpError(403, 'Documento indisponível.');
-      proof = await authenticateDecision(
-        db,
-        user,
-        input.password,
-        input.code,
-        policy.approval_mfa_required && !user.platform_admin ? 'totp' : 'password',
-      );
+      proof = !input.password
+        ? sessionEvidence(user)
+        : await authenticateDecision(
+            db,
+            user,
+            input.password,
+            input.code,
+            policy.approval_mfa_required && !user.platform_admin ? 'totp' : 'password',
+          );
     }
     await transaction(async (c) => {
       let verification: Record<string, unknown> | undefined;
@@ -49,9 +53,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
       if (!d) throw new HttpError(404, 'Documento não encontrado.');
       const unit = await unitAccess(user, d.unit_id, undefined, c);
+      if (unit.role === 'admin_contratada')
+        throw new HttpError(403, 'Este perfil administra somente os executores da contratada.');
       assertContractorAccess(unit, d.contractor_id);
       if (d.removed_at)
         throw new HttpError(409, 'APR removida. Não é possível executar ações neste documento.');
+      if (['submit', 'approve'].includes(input.action))
+        await assertExecutorsValidated(c, unit.id, d.data.executors);
       if (d.version !== input.version)
         throw new HttpError(409, 'Versão desatualizada. Recarregue o documento.');
       if (input.action === 'revise') {

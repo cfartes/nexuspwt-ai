@@ -114,7 +114,7 @@ export default function SecuritySettings({
                   type="checkbox"
                   defaultChecked={ws.securityPolicy?.required}
                 />
-                Exigir autenticador ao aprovar ou rejeitar em todas as unidades da empresa
+                Exigir autenticador no login dos usuários da empresa
               </label>
               <label>
                 Sua senha

@@ -65,10 +65,7 @@ export default function RegistrationPanel({
   const canManage =
     ws.unit.role === 'admin' &&
     (!['companies', 'regions', 'units'].includes(type) || companyAccess);
-  const canCreate =
-    canManage &&
-    (type !== 'companies' || ws.user.platform_admin) &&
-    (type !== 'contractors' || companyAccess);
+  const canCreate = canManage && (type !== 'companies' || ws.user.platform_admin);
   const canView = canManage || type === 'companies' || type === 'contractors';
   const [linking, setLinking] = useState(false),
     [linkBusy, setLinkBusy] = useState(false),

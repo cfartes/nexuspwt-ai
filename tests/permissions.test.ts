@@ -26,4 +26,9 @@ test('menus seguem a matriz e somente administradores da empresa acessam configu
   assert(!canViewAudit({ role: 'admin' }));
   assert(!allowedMenus({ platform_admin: true }, { role: 'admin' }).includes('audit'));
   assert(allowedMenus(ordinary, { role: 'admin', company_admin: true }).includes('audit'));
+  assert.deepEqual(allowedMenus(ordinary, { role: 'admin_contratada', contractor_id: 'own' }), [
+    'team',
+    'account',
+  ]);
+  assert(!allowedMenus(ordinary, { role: 'gestor', contractor_id: 'external' }).includes('team'));
 });

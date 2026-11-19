@@ -11,6 +11,13 @@ export async function deleteRegistration(
   input: { unitId: string; kind: RegistrationKind; id: string; version?: number },
 ) {
   const unit = await unitAccess(actor, input.unitId, ['admin'], c);
+  if (input.kind === 'user' || input.kind === 'account') {
+    const { rowCount } = await c.query('SELECT 1 FROM users WHERE id=$1 AND platform_admin', [
+      input.id,
+    ]);
+    if (rowCount)
+      throw new HttpError(403, 'A conta Superadmin Nexus não pode ser excluída por esta operação.');
+  }
   let name = '';
   const stale = () => {
     throw new HttpError(409, 'O cadastro foi alterado. Atualize a lista antes de excluir.');
@@ -184,6 +191,7 @@ export async function deleteRegistration(
         const { rowCount: references } = await c.query(
           `SELECT 1 FROM contractor_units WHERE contractor_id=$1
           UNION ALL SELECT 1 FROM documents WHERE contractor_id=$1
+          UNION ALL SELECT 1 FROM executor_identity_submissions WHERE contractor_id=$1
           UNION ALL SELECT 1 FROM document_versions WHERE snapshot->>'contractor_id'=$1::text LIMIT 1`,
           [input.id],
         );

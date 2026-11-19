@@ -40,7 +40,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
       if (!doc || doc.kind !== 'PT') throw new HttpError(404, 'PT não encontrada.');
       const unit = await unitAccess(user, doc.unit_id, undefined, c);
-      if (unit.role === 'aprovador')
+      if (unit.role === 'aprovador' || unit.role === 'admin_contratada')
         throw new HttpError(403, 'Aprovador não pode alterar evidências.');
       assertContractorAccess(unit, doc.contractor_id);
       if (

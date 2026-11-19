@@ -1,5 +1,9 @@
 ﻿export const auditActionLabels: Record<string, string> = {
   'cadastro.company': 'Empresa cadastrada',
+  'executor.documento_enviado': 'Documento de executor enviado',
+  'executor.documento_approved': 'Documento e identidade de executor validados',
+  'executor.documento_rejected': 'Documento de executor devolvido para correção',
+  'executor.documento_consultado': 'Documento pessoal consultado',
   'cadastro.updateCompany': 'Empresa alterada',
   'cadastro.region': 'Regional cadastrada',
   'cadastro.unit': 'Unidade cadastrada',

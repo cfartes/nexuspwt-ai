@@ -80,7 +80,13 @@ export type WorkspaceData = {
     details?: Partial<ContractorDetails>;
     version: number;
   }[];
-  companyPeople: { id: string; name: string; email: string; units: string[] }[];
+  companyPeople: {
+    id: string;
+    name: string;
+    email: string;
+    units: string[];
+    platform_admin?: boolean;
+  }[];
   availableContractors?: { id: string; name: string; cnpj: string }[];
   unitQuota: { limit: number; used: number; version: number } | null;
   securityPolicy?: { required: boolean; version: number };

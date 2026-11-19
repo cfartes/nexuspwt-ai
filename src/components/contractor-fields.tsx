@@ -8,11 +8,13 @@ export default function ContractorFields({
   initial = {},
   requiredFields = false,
   municipality = false,
+  requireContact = false,
 }: {
   unitId: string;
   initial?: Partial<ContractorDetails> & { municipalityCode?: string };
   requiredFields?: boolean;
   municipality?: boolean;
+  requireContact?: boolean;
 }) {
   const [details, setDetails] = useState<
       Partial<ContractorDetails> & { municipalityCode?: string }
@@ -63,7 +65,7 @@ export default function ContractorFields({
           }
           <input
             name={key}
-            required={requiredFields && key !== 'tradeName'}
+            required={(requiredFields || requireContact) && key !== 'tradeName'}
             type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'}
             defaultValue={initial[key] || ''}
             maxLength={key === 'email' ? 254 : key === 'phone' ? 25 : 200}

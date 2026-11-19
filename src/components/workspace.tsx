@@ -35,8 +35,17 @@ import { allowedMenus, companyManager, roleLabels } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
 import AuditPanel from './audit-panel';
+import ContractorTeam from './contractor-team';
 type Tab =
-  'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | 'account' | 'audit' | RegistrationTab;
+  | 'overview'
+  | 'APR'
+  | 'PT'
+  | 'approvals'
+  | 'settings'
+  | 'account'
+  | 'audit'
+  | 'team'
+  | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
     method: method || (body ? 'POST' : 'GET'),
@@ -286,10 +295,11 @@ export default function Workspace() {
     ['account', 'Minha conta e segurança', ShieldCheck],
     ['settings', 'Configurações da empresa', Settings2],
     ['audit', 'Auditoria', History],
+    ['team', 'Executores e documentos', Users],
   ];
   const permitted = allowedMenus(ws.user, unit);
   const nav = menuList.filter(([id]) => permitted.includes(id));
-  const currentTab = permitted.includes(tab) ? tab : 'overview';
+  const currentTab = permitted.includes(tab) ? tab : (permitted[0] as Tab);
   const title = nav.find((n) => n[0] === currentTab)?.[1];
   return (
     <div className="app-shell">
@@ -647,6 +657,7 @@ export default function Workspace() {
           {currentTab === 'audit' && (
             <AuditPanel key={unit.id} contextUnitId={unit.id} online={online} />
           )}
+          {currentTab === 'team' && <ContractorTeam key={unit.id} ws={ws} online={online} />}
           {(
             ['companies', 'regions', 'units', 'contractors', 'people', 'approvers'] as string[]
           ).includes(currentTab) && (
@@ -679,7 +690,6 @@ export default function Workspace() {
         <ApprovalConfirmation
           document={decision.document}
           action={decision.action}
-          mfa={!!ws.securityPolicy?.required && !ws.user.platform_admin}
           identityExempt={ws.user.platform_admin}
           onClose={() => setDecision(null)}
           onDone={async () => {
@@ -831,6 +841,11 @@ function DocumentTable({
 function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unknown> }) {
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(error);
+  const [mfa, setMfa] = useState(false),
+    [setup, setSetup] = useState(false),
+    [qr, setQr] = useState(''),
+    [secret, setSecret] = useState(''),
+    [mfaCode, setMfaCode] = useState('');
   return (
     <div className="login-page">
       <div className="login-story">
@@ -877,7 +892,21 @@ function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unkno
               setMessage('');
               const f = new FormData(e.currentTarget);
               try {
-                await api('/api/auth', { email: f.get('email'), password: f.get('password') });
+                const submitter = (e.nativeEvent as SubmitEvent).submitter;
+                const login = await api('/api/auth', {
+                  email: f.get('email'),
+                  password: f.get('password'),
+                  code: mfaCode,
+                  enroll: submitter?.getAttribute('name') === 'enroll',
+                });
+                if (login.mfaRequired) {
+                  setMfa(true);
+                  setSetup(login.setupRequired);
+                  setQr(login.qrCode || '');
+                  setSecret(login.secret || '');
+                  setMfaCode('');
+                  return;
+                }
                 const result = await onLogin();
                 if (!result)
                   setMessage(
@@ -898,6 +927,13 @@ function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unkno
                 autoComplete="username"
                 required
                 placeholder="voce@empresa.com.br"
+                onChange={() => {
+                  setMfa(false);
+                  setSetup(false);
+                  setQr('');
+                  setSecret('');
+                  setMfaCode('');
+                }}
               />
             </label>
             <label>
@@ -911,12 +947,53 @@ function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unkno
                 maxLength={256}
               />
             </label>
+            {mfa && (
+              <div className="alert neutral">
+                {setup
+                  ? 'Configure o autenticador para entrar nesta empresa.'
+                  : 'Confirme o código de seis dígitos do seu autenticador.'}
+              </div>
+            )}
+            {qr && (
+              <>
+                <img
+                  src={qr}
+                  alt="QR Code para cadastrar seu autenticador Nexus PTW"
+                  width={260}
+                  height={260}
+                />
+                <label>
+                  Chave manual alternativa
+                  <input readOnly value={secret} autoComplete="off" />
+                </label>
+              </>
+            )}
+            {mfa && (!setup || qr) && (
+              <label>
+                Código do autenticador
+                <input
+                  name="mfaCode"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  autoComplete="off"
+                  required
+                />
+              </label>
+            )}
+            {setup && !qr && (
+              <button className="secondary" name="enroll" type="submit" disabled={busy}>
+                Gerar QR Code do autenticador
+              </button>
+            )}
             {message && (
               <div className="alert error" role="alert">
                 {message}
               </div>
             )}
-            <button className="primary" disabled={busy}>
+            <button className="primary" disabled={busy || (setup && !qr)}>
               {busy ? 'Entrando…' : 'Entrar no workspace'}
               <ArrowUpRight size={18} />
             </button>

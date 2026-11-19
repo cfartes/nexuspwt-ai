@@ -31,6 +31,10 @@ await db.exec(
   await readFile(new URL('../db/014-company-administrators.sql', import.meta.url), 'utf8'),
 );
 await db.exec(await readFile(new URL('../db/015-company-audit.sql', import.meta.url), 'utf8'));
+await db.exec(
+  await readFile(new URL('../db/016-contractor-executors.sql', import.meta.url), 'utf8'),
+);
+await db.exec(await readFile(new URL('../db/017-login-mfa.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -88,6 +92,24 @@ try {
   }
   let cookie = '';
   const call = async (path: string, body?: unknown, expected = 200, method?: string) => {
+    if (
+      path === '/api/admin' &&
+      body &&
+      typeof body === 'object' &&
+      'action' in body &&
+      body.action === 'contractor'
+    ) {
+      const b = body as { action: unknown; cnpj: string; details?: Record<string, unknown> };
+      body = {
+        ...b,
+        details: {
+          contactName: 'Contato de teste',
+          email: `contact-${b.cnpj}@example.com`,
+          phone: '5511999999999',
+          ...b.details,
+        },
+      };
+    }
     if (
       body &&
       typeof body === 'object' &&
@@ -1468,7 +1490,8 @@ try {
     403,
   );
   const rootSecurityCookie = cookie;
-  await call('/api/auth', { email: responsibleEmail, password });
+  const loginChallenge = await call('/api/auth', { email: responsibleEmail, password });
+  assert.equal(loginChallenge.mfaRequired, true);
   await call(
     '/api/security',
     {
@@ -1478,9 +1501,9 @@ try {
       version: securityPolicy.version + 1,
       password,
     },
-    403,
+    401,
   );
-  await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 4, password }, 403);
+  await call(`/api/documents/${d.id}/workflow`, { action: 'approve', version: 4, password }, 401);
   cookie = rootSecurityCookie;
   await call('/api/security', {
     action: 'policy',
@@ -1692,11 +1715,12 @@ try {
     { action: 'unit', unitId: unit.id, name: 'Unidade indevida', kind: 'CDD', regionId: null },
     403,
   );
-  await call(
-    '/api/admin',
-    { action: 'contractor', unitId: unit.id, name: 'Cadastro indevido', cnpj: '77888999000100' },
-    403,
-  );
+  await call('/api/admin', {
+    action: 'contractor',
+    unitId: unit.id,
+    name: 'Cadastro da unidade',
+    cnpj: '77888999000100',
+  });
   await call(
     '/api/admin',
     {
@@ -1747,6 +1771,28 @@ try {
     },
     403,
   );
+  await call(
+    '/api/admin',
+    {
+      action: 'deleteRegistration',
+      kind: 'contractor',
+      unitId: unit.id,
+      id: sharedContractor.id,
+      version: sharedContractor.version,
+    },
+    409,
+  );
+  const sharedContact = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { contractor_id: string; role: string }) =>
+      p.contractor_id === sharedContractor.id && p.role === 'admin_contratada',
+  );
+  await call('/api/admin', {
+    action: 'deleteRegistration',
+    kind: 'user',
+    unitId: unit.id,
+    id: sharedContact.id,
+    version: sharedContact.membership_version,
+  });
   await call('/api/admin', {
     action: 'deleteRegistration',
     kind: 'contractor',
@@ -1822,6 +1868,209 @@ try {
     200,
   );
   cookie = adminCookie;
+  const rootRow = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { id: string }) => p.id === user.id,
+  );
+  await call(
+    '/api/admin',
+    {
+      action: 'deleteRegistration',
+      kind: 'user',
+      id: user.id,
+      unitId: unit.id,
+      version: rootRow.membership_version,
+    },
+    403,
+  );
+  const onboardingDetails = {
+    contactName: 'Contato onboarding',
+    email: 'onboarding@test.example',
+    phone: '5511999999999',
+  };
+  await call('/api/admin', {
+    action: 'contractor',
+    unitId: unit.id,
+    name: 'Contratada onboarding',
+    cnpj: '11223344000155',
+    details: onboardingDetails,
+  });
+  const onboardingView = await call(`/api/workspace?unit=${unit.id}`);
+  const onboardingContractor = onboardingView.contractors.find(
+    (c: { cnpj: string }) => c.cnpj === '11223344000155',
+  );
+  const contactA = onboardingView.people.find(
+    (p: { email: string }) => p.email === onboardingDetails.email,
+  );
+  assert.equal(contactA.role, 'admin_contratada');
+  assert.equal(contactA.password_pending, true);
+  await db.query('UPDATE users SET password_hash=$2,password_pending=false WHERE id=$1', [
+    contactA.id,
+    hashPassword(password),
+  ]);
+  await call('/api/auth', { email: onboardingDetails.email, password });
+  assert.equal((await call(`/api/workspace?unit=${unit.id}`)).documents.length, 0);
+  await call('/api/admin', { action: 'region', unitId: unit.id, name: 'Escalada indevida' }, 403);
+  const identityFile = {
+    mime: 'application/pdf',
+    base64: Buffer.from('%PDF-1.4\nDummy identity fixture only').toString('base64'),
+  };
+  const registration = {
+    action: 'register',
+    unitId: unit.id,
+    name: 'Executor onboarding',
+    email: 'executor-onboarding@test.example',
+    phone: '5511888888888',
+    documentType: 'RG',
+    files: [identityFile],
+  };
+  const submitted = await call('/api/contractor-team', registration);
+  await call(
+    '/api/contractor-team',
+    { ...registration, email: 'escalada@test.example', role: 'admin' },
+    400,
+  );
+  const teamA = await call(`/api/contractor-team?unit=${unit.id}`);
+  const executorA = teamA.people.find((p: { email: string }) => p.email === registration.email);
+  assert.equal(executorA.status, 'pending');
+  assert(!JSON.stringify(teamA).includes(identityFile.base64));
+  await call(
+    '/api/contractor-team',
+    {
+      action: 'review',
+      unitId: unit.id,
+      id: submitted.id,
+      version: 1,
+      decision: 'approved',
+      reason: 'Autovalidação indevida',
+      confirmed: true,
+    },
+    403,
+  );
+  await call(`/api/contractor-team?unit=${isolatedUnit.id}`, undefined, 403);
+  const privateDownload = await fetch(`${base}/api/executor-files/${executorA.files[0].id}`, {
+    headers: { Cookie: cookie },
+  });
+  assert.equal(privateDownload.status, 200);
+  assert(privateDownload.headers.get('cache-control')?.includes('no-store'));
+  assert(privateDownload.headers.get('content-disposition')?.startsWith('attachment;'));
+  cookie = adminCookie;
+  const executorDraft = {
+    ...d,
+    id: randomUUID(),
+    contractorId: onboardingContractor.id,
+    data: { ...d.data, answers: {}, executors: [{ userId: executorA.id, role: 'Executor' }] },
+  };
+  await call('/api/documents', executorDraft, 422);
+  await call('/api/contractor-team', {
+    action: 'review',
+    unitId: unit.id,
+    id: submitted.id,
+    version: 1,
+    decision: 'approved',
+    reason: 'Documento e dados conferidos pela unidade',
+    confirmed: true,
+  });
+  await call('/api/documents', executorDraft);
+  await call('/api/admin', {
+    action: 'contractor',
+    unitId: unit.id,
+    name: 'Outra contratada onboarding',
+    cnpj: '55667788000199',
+    details: { ...onboardingDetails, email: 'other-onboarding@test.example' },
+  });
+  const otherContact = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
+    (p: { email: string }) => p.email === 'other-onboarding@test.example',
+  );
+  await db.query('UPDATE users SET password_hash=$2,password_pending=false WHERE id=$1', [
+    otherContact.id,
+    hashPassword(password),
+  ]);
+  await call('/api/auth', { email: 'other-onboarding@test.example', password });
+  assert.equal((await call(`/api/contractor-team?unit=${unit.id}`)).people.length, 0);
+  assert.equal(
+    (
+      await fetch(`${base}/api/executor-files/${executorA.files[0].id}`, {
+        headers: { Cookie: cookie },
+      })
+    ).status,
+    403,
+  );
+  await db.query('UPDATE companies SET approval_mfa_required=true WHERE id=$1', [company.id]);
+  cookie = '';
+  const challenge = await call('/api/auth', { email: onboardingDetails.email, password });
+  assert.equal(challenge.mfaRequired, true);
+  assert.equal(challenge.setupRequired, true);
+  await call('/api/workspace', undefined, 401);
+  const setup = await call('/api/auth', { email: onboardingDetails.email, password, enroll: true });
+  assert.match(setup.qrCode, /^data:image\/png;base64,/);
+  const loginCode = totp(setup.secret, Math.floor(Date.now() / 30000) - 1);
+  await call('/api/auth', { email: onboardingDetails.email, password, code: loginCode });
+  const mfaSession = cookie;
+  assert.equal((await call(`/api/contractor-team?unit=${unit.id}`)).reviewer, false);
+  const mfaReplacement = await call('/api/contractor-team', {
+    action: 'resubmit',
+    unitId: unit.id,
+    userId: executorA.id,
+    documentType: 'CNH',
+    files: [identityFile],
+  });
+  assert.equal(
+    (await call(`/api/contractor-team?unit=${unit.id}`)).people.find(
+      (p: { id: string }) => p.id === executorA.id,
+    ).status,
+    'pending',
+  );
+  cookie = '';
+  await call('/api/auth', { email: onboardingDetails.email, password, code: loginCode }, 403);
+  await call('/api/auth', { email: 'matrix-gestor@example.com', password });
+  const reviewerSetup = await call('/api/auth', {
+    email: 'matrix-gestor@example.com',
+    password,
+    enroll: true,
+  });
+  await call('/api/auth', {
+    email: 'matrix-gestor@example.com',
+    password,
+    code: totp(reviewerSetup.secret, Math.floor(Date.now() / 30000) - 1),
+  });
+  const lastStep = (
+    await db.query<{ last_step: string }>('SELECT last_step FROM user_security WHERE user_id=$1', [
+      matrixUsers.gestor,
+    ])
+  ).rows[0].last_step;
+  await call('/api/contractor-team', {
+    action: 'review',
+    unitId: unit.id,
+    id: mfaReplacement.id,
+    version: 1,
+    decision: 'approved',
+    reason: 'Conferência feita usando a sessão MFA do gestor',
+    confirmed: true,
+  });
+  assert.equal(
+    (
+      await db.query<{ last_step: string }>(
+        'SELECT last_step FROM user_security WHERE user_id=$1',
+        [matrixUsers.gestor],
+      )
+    ).rows[0].last_step,
+    lastStep,
+    'conferência não pede nem consome outro TOTP',
+  );
+  cookie = mfaSession;
+  await db.query("UPDATE sessions SET last_seen_at=now()-interval '31 minutes' WHERE user_id=$1", [
+    contactA.id,
+  ]);
+  await call('/api/workspace', undefined, 401);
+  await call('/api/auth', { email: 'test@nexus.local', password });
+  await call(`/api/workspace?unit=${unit.id}`);
+  const sessionDecision = await fetch(`${base}/api/documents/${matrixDocument!.id}/workflow`, {
+    method: 'POST',
+    headers: { Origin: base, Cookie: cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'approve', version: matrixDocument!.version }),
+  });
+  assert.equal(sessionDecision.status, 200, await sessionDecision.text());
+  await db.query('UPDATE companies SET approval_mfa_required=false WHERE id=$1', [company.id]);
   console.log(
     'Integração OK: APR/PT, integrações, gestão de acessos por unidade, contatos independentes, isolamento de documentos/fotos por terceirizada, desativação sem exclusão, proteção do último administrador e CSRF. Nenhuma chamada a provedores reais.',
   );

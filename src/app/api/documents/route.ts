@@ -5,6 +5,7 @@ import { apiError } from '@/lib/http';
 import { documentSchema } from '@/lib/validation';
 import { isDeepStrictEqual } from 'node:util';
 import { aprResponsibles } from '@/lib/apr-responsibles';
+import { assertExecutorsValidated } from '@/lib/executor-identities';
 export async function POST(request: Request) {
   try {
     assertOrigin(request);
@@ -43,7 +44,11 @@ export async function POST(request: Request) {
             'PT com evidências não pode mudar de terceirizada ou APR. Crie uma nova PT.',
           );
       }
-      if (existing && existing.created_by !== user.id && !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role))
+      if (
+        existing &&
+        existing.created_by !== user.id &&
+        !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role)
+      )
         throw new HttpError(403, 'Somente o autor ou gestor pode editar.');
       if (existing && existing.status === 'em_aprovacao')
         throw new HttpError(409, 'Documento em aprovação. Não pode ser alterado.');
@@ -93,6 +98,7 @@ export async function POST(request: Request) {
         if (!rowCount) throw new HttpError(400, 'Executante sem acesso à unidade.');
       }
       await aprResponsibles(c, d);
+      await assertExecutorsValidated(c, unit.id, d.data.executors);
       const payload = JSON.stringify(d.data);
       if (existing) {
         if (existing.kind !== d.kind)
