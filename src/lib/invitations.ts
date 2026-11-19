@@ -62,7 +62,7 @@ export async function acceptInvitation(client: PoolClient, token: string, passwo
   const {
     rows: [invitation],
   } = await client.query(
-    `SELECT i.id,i.user_id FROM user_invitations i JOIN users u ON u.id=i.user_id
+    `SELECT i.id,i.user_id,i.unit_id,u.email FROM user_invitations i JOIN users u ON u.id=i.user_id
     JOIN memberships m ON m.user_id=i.user_id AND m.unit_id=i.unit_id WHERE i.token_hash=$1 AND i.consumed_at IS NULL
     AND i.expires_at>now() AND u.active AND u.password_pending AND m.active FOR UPDATE OF i,m`,
     [digest(token)],
@@ -95,6 +95,7 @@ export async function acceptInvitation(client: PoolClient, token: string, passwo
     'usuario.senha_definida',
     JSON.stringify({ invitationId: invitation.id }),
   ]);
+  return { email: invitation.email, unitId: invitation.unit_id };
 }
 export function invitationLink(token: string) {
   const url = new URL(process.env.APP_URL || '');

@@ -11,6 +11,7 @@ type Person = {
   phone: string;
   contractor_name: string;
   submission_id: string | null;
+  submission_unit_id: string | null;
   document_type: string;
   status: string | null;
   reason: string | null;
@@ -23,7 +24,7 @@ const statuses: Record<string, string> = {
   approved: 'Validado',
   rejected: 'Devolvido para correção',
 };
-function fileData(file: File): Promise<{ mime: string; base64: string }> {
+export function fileData(file: File): Promise<{ mime: string; base64: string }> {
   if (file.size > 5 * 1024 * 1024) throw new Error('Cada arquivo deve ter no máximo 5 MB.');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -59,15 +60,18 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
     };
   }, [ws.unit.id, online, before, reload]);
   const reviewer = ['admin', 'gestor'].includes(ws.unit.role) && !ws.unit.contractor_id;
+  const uploadEnabled = !!ws.identityPolicy?.enabled;
   return (
     <section className="card">
       <div className="card-heading">
         <div>
-          <h2>{reviewer ? 'Validação de executores' : 'Executores da contratada'}</h2>
+          <h2>{reviewer ? 'Colaboradores das contratadas' : 'Executores da contratada'}</h2>
           <p>
-            {reviewer
-              ? 'Confira o documento e o cadastro antes de validar a pessoa para a unidade.'
-              : 'Cadastre seus executores e envie RG, CNH ou passaporte para conferência da unidade.'}
+            {!uploadEnabled
+              ? 'Envio de documentos desativado pela empresa. Cadastros e convites continuam disponíveis.'
+              : reviewer
+                ? 'Confira o documento e o cadastro antes de validar a pessoa para a unidade.'
+                : 'Cadastre seus executores. Cada pessoa pode enviar seu documento após definir a senha pelo convite.'}
           </p>
         </div>
         <div className="actions">
@@ -131,9 +135,13 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                         <small>{person.phone}</small>
                       </td>
                       <td>{person.contractor_name}</td>
-                      <td>{person.document_type || 'Não enviado'}</td>
                       <td>
-                        {statuses[person.status || ''] || 'Documento não enviado'}
+                        {uploadEnabled ? person.document_type || 'Não enviado' : 'Não exigido'}
+                      </td>
+                      <td>
+                        {uploadEnabled
+                          ? statuses[person.status || ''] || 'Documento não enviado'
+                          : 'Não exigido'}
                         {person.reason && <small>{person.reason}</small>}
                       </td>
                       <td>
@@ -209,7 +217,7 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                   const files = fd
                     .getAll('files')
                     .filter((f): f is File => f instanceof File && f.size > 0);
-                  if (files.length < 1 || files.length > 2)
+                  if ((selected !== 'new' && !files.length) || files.length > 2)
                     throw new Error('Envie um PDF ou até duas imagens (frente e verso).');
                   await api('/api/contractor-team', {
                     action: selected === 'new' ? 'register' : 'resubmit',
@@ -217,7 +225,7 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                     ...(selected === 'new'
                       ? { name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone') }
                       : { userId: selected.id }),
-                    documentType: fd.get('documentType'),
+                    documentType: fd.get('documentType') || 'RG',
                     files: await Promise.all(files.map(fileData)),
                   });
                 }
@@ -246,22 +254,35 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                 <p>
                   {selected.email} · {selected.phone}
                 </p>
-                <p>{statuses[selected.status || ''] || 'Documento ainda não enviado'}</p>
-                {selected.files.map((file, i) => (
-                  <p key={file.id}>
-                    <a className="secondary" href={`/api/executor-files/${file.id}`} download>
-                      Baixar documento {i + 1}
-                    </a>
-                    <small>
-                      {' '}
-                      Guarda até {new Date(file.retain_until).toLocaleDateString('pt-BR')}
-                    </small>
-                  </p>
-                ))}
+                <p>
+                  {uploadEnabled
+                    ? statuses[selected.status || ''] || 'Documento ainda não enviado'
+                    : 'Documento não exigido'}
+                </p>
+                {uploadEnabled &&
+                  selected.submission_unit_id &&
+                  selected.submission_unit_id !== ws.unit.id && (
+                    <p className="muted">
+                      Documento enviado em outra unidade desta empresa. A conferência e os arquivos
+                      ficam na unidade de envio; a validação é compartilhada.
+                    </p>
+                  )}
+                {uploadEnabled &&
+                  selected.files.map((file, i) => (
+                    <p key={file.id}>
+                      <a className="secondary" href={`/api/executor-files/${file.id}`} download>
+                        Baixar documento {i + 1}
+                      </a>
+                      <small>
+                        {' '}
+                        Guarda até {new Date(file.retain_until).toLocaleDateString('pt-BR')}
+                      </small>
+                    </p>
+                  ))}
               </>
             )}
             <fieldset className="form-grid" disabled={busy}>
-              {!reviewer ? (
+              {!reviewer && (uploadEnabled || selected === 'new') ? (
                 <>
                   {selected === 'new' && (
                     <>
@@ -277,38 +298,51 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                       </label>
                     </>
                   )}
-                  <label>
-                    Documento *
-                    <select
-                      name="documentType"
-                      defaultValue={selected === 'new' ? 'RG' : selected.document_type}
-                    >
-                      {['RG', 'CNH', 'Passaporte'].map((t) => (
-                        <option key={t}>{t}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="span-2">
-                    Arquivo do documento *
-                    <input
-                      name="files"
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      multiple
-                      required
-                    />
-                    <small>
-                      Um PDF ou até duas imagens de frente e verso. Limite de 5 MB por arquivo.
-                      Guarda por cinco anos.
-                    </small>
-                  </label>
-                  <p className="muted span-2">
-                    O envio não confirma a identidade automaticamente. Novo envio suspende a
-                    validação anterior até nova conferência da unidade.
-                  </p>
-                  <button className="primary">Enviar para validação</button>
+                  {uploadEnabled && (
+                    <label>
+                      Documento *
+                      <select
+                        name="documentType"
+                        defaultValue={selected === 'new' ? 'RG' : selected.document_type}
+                      >
+                        {['RG', 'CNH', 'Passaporte'].map((t) => (
+                          <option key={t}>{t}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {uploadEnabled && (
+                    <label className="span-2">
+                      Arquivo do documento *
+                      <input
+                        name="files"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        multiple
+                        required={selected !== 'new'}
+                      />
+                      <small>
+                        Um PDF ou até duas imagens de frente e verso. Limite de 5 MB por arquivo.
+                        Guarda por cinco anos. Opcional neste cadastro: o colaborador pode enviar o
+                        próprio documento após definir a senha.
+                      </small>
+                    </label>
+                  )}
+                  {uploadEnabled && (
+                    <p className="muted span-2">
+                      O envio não confirma a identidade automaticamente. Novo envio suspende a
+                      validação anterior até nova conferência da unidade.
+                    </p>
+                  )}
+                  <button className="primary">
+                    {selected === 'new' ? 'Cadastrar e enviar convite' : 'Enviar para validação'}
+                  </button>
                 </>
-              ) : selected !== 'new' && selected.status === 'pending' ? (
+              ) : reviewer &&
+                uploadEnabled &&
+                selected !== 'new' &&
+                selected.submission_unit_id === ws.unit.id &&
+                selected.status === 'pending' ? (
                 <>
                   <label>
                     Resultado *

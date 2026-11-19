@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
-import { assertOrigin, HttpError } from '@/lib/security';
+import { assertOrigin } from '@/lib/security';
 import { apiError } from '@/lib/http';
 import {
   executorSubmission,
@@ -9,6 +9,7 @@ import {
   submitExecutor,
   reviewExecutor,
 } from '@/lib/executor-identities';
+import { readIdentityJson } from '@/lib/identityRequests';
 
 export async function GET(request: Request) {
   try {
@@ -20,14 +21,20 @@ export async function GET(request: Request) {
     const { unit, reviewer } = await identityAccess(db, actor, params.unit);
     const { rows } = await db.query(
       `SELECT u.id,u.name,u.email,COALESCE(m.phone,u.phone) phone,m.contractor_id,c.name contractor_name,
-      s.id submission_id,s.document_type,s.status,s.reason,s.version,s.submitted_at,
-      COALESCE((SELECT jsonb_agg(jsonb_build_object('id',f.id,'mime',f.mime,'retain_until',f.retain_until)) FROM executor_identity_files f WHERE f.submission_id=s.id),'[]') files
+      s.id submission_id,s.unit_id submission_unit_id,s.document_type,
+      CASE WHEN s.identity_snapshot->>'name'=u.name AND s.identity_snapshot->>'email'=u.email THEN s.status END status,s.reason,s.version,s.submitted_at,
+      COALESCE((SELECT jsonb_agg(jsonb_build_object('id',f.id,'mime',f.mime,'retain_until',f.retain_until)) FROM executor_identity_files f WHERE f.submission_id=s.id AND s.unit_id=m.unit_id),'[]') files
       FROM memberships m JOIN users u ON u.id=m.user_id AND u.active AND NOT u.platform_admin
       JOIN contractors c ON c.id=m.contractor_id
-      LEFT JOIN LATERAL(SELECT * FROM executor_identity_submissions es WHERE es.user_id=u.id AND es.unit_id=m.unit_id ORDER BY es.submitted_at DESC,es.id DESC LIMIT 1) s ON true
-      WHERE m.unit_id=$1 AND m.active AND m.role='executante' AND ($2::uuid IS NULL OR m.contractor_id=$2)
+      LEFT JOIN LATERAL(SELECT * FROM executor_identity_submissions es WHERE es.user_id=u.id AND es.company_id=c.company_id AND es.contractor_id=m.contractor_id ORDER BY es.submitted_at DESC,es.id DESC LIMIT 1) s ON true
+      WHERE m.unit_id=$1 AND m.active AND (m.role='executante' OR $4) AND ($2::uuid IS NULL OR m.contractor_id=$2)
       AND ($3::uuid IS NULL OR u.id<$3) ORDER BY u.id DESC LIMIT 101`,
-      [unit.id, reviewer ? null : unit.contractor_id, params.before ?? null],
+      [
+        unit.id,
+        reviewer ? null : unit.contractor_id,
+        params.before ?? null,
+        unit.identity_upload_enabled,
+      ],
     );
     return Response.json(
       { people: rows.slice(0, 100), reviewer, nextCursor: rows.length > 100 ? rows[99].id : null },
@@ -41,23 +48,8 @@ export async function POST(request: Request) {
   try {
     assertOrigin(request);
     const actor = await currentUser();
-    const reader = request.body?.getReader();
-    if (!reader) throw new HttpError(400, 'Corpo da solicitação ausente.');
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.length;
-        if (size > 14500000) throw new HttpError(413, 'Limite de dois arquivos de 5 MB.');
-        chunks.push(value);
-      }
-    } finally {
-      await reader.cancel();
-    }
-    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    if (body.action === 'review') {
+    const body = await readIdentityJson(request);
+    if (z.object({ action: z.literal('review') }).safeParse(body).success) {
       const input = z
         .object({
           action: z.literal('review'),

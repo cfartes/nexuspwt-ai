@@ -36,6 +36,7 @@ import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
 import AuditPanel from './audit-panel';
 import ContractorTeam from './contractor-team';
+import PersonalDocuments from './PersonalDocuments';
 type Tab =
   | 'overview'
   | 'APR'
@@ -45,6 +46,7 @@ type Tab =
   | 'account'
   | 'audit'
   | 'team'
+  | 'identity'
   | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
@@ -83,7 +85,9 @@ export default function Workspace() {
   workspace.current = ws;
   const load = useCallback(async (unitId?: string) => {
     try {
-      const target = new URLSearchParams(window.location.search).get('document');
+      const parameters = new URLSearchParams(window.location.search);
+      const target = parameters.get('document');
+      unitId = unitId || parameters.get('unit') || undefined;
       const data = await api(
         '/api/workspace' +
           (unitId ? '?unit=' + unitId : target ? '?document=' + encodeURIComponent(target) : ''),
@@ -141,7 +145,7 @@ export default function Workspace() {
     };
   }, [load]);
   useEffect(() => {
-    if (!ws || openedLink.current) return;
+    if (!ws || ws.identityOnboarding?.required || openedLink.current) return;
     const params = new URLSearchParams(window.location.search),
       id = params.get('document');
     if (!id) return;
@@ -263,6 +267,51 @@ export default function Workspace() {
       </div>
     );
   if (!ws) return <Login error={error} onLogin={() => load()} />;
+  if (ws.identityOnboarding?.required)
+    return (
+      <main className="password-page">
+        <div style={{ width: '100%', maxWidth: 760 }}>
+          <h1>Complete seu cadastro</h1>
+          <p>Envie seu documento e acompanhe a conferência da unidade.</p>
+          <label>
+            Unidade
+            <select
+              value={ws.unit.id}
+              disabled={!online}
+              onChange={(event) => {
+                void load(event.target.value);
+              }}
+            >
+              {ws.units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.company_name} · {unit.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <PersonalDocuments ws={ws} online={online} reload={() => load(ws.unit.id)} />
+          <button
+            className="secondary"
+            onClick={() => {
+              void api('/api/auth', undefined, 'DELETE')
+                .then(async () => {
+                  sessionStorage.removeItem('nexus-offline-session');
+                  await offline.cacheWorkspace(ws.user.id, null);
+                  setWs(null);
+                })
+                .catch((error) => setError((error as Error).message));
+            }}
+          >
+            Sair da conta
+          </button>
+          {error && (
+            <p className="alert error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      </main>
+    );
   const unit = ws.unit,
     docs = ws.documents.filter(
       (d) =>
@@ -296,6 +345,7 @@ export default function Workspace() {
     ['settings', 'Configurações da empresa', Settings2],
     ['audit', 'Auditoria', History],
     ['team', 'Executores e documentos', Users],
+    ['identity', 'Meus documentos', FileCheck2],
   ];
   const permitted = allowedMenus(ws.user, unit);
   const nav = menuList.filter(([id]) => permitted.includes(id));
@@ -658,6 +708,9 @@ export default function Workspace() {
             <AuditPanel key={unit.id} contextUnitId={unit.id} online={online} />
           )}
           {currentTab === 'team' && <ContractorTeam key={unit.id} ws={ws} online={online} />}
+          {currentTab === 'identity' && (
+            <PersonalDocuments key={unit.id} ws={ws} online={online} reload={() => load(unit.id)} />
+          )}
           {(
             ['companies', 'regions', 'units', 'contractors', 'people', 'approvers'] as string[]
           ).includes(currentTab) && (
@@ -838,11 +891,25 @@ function DocumentTable({
     </div>
   );
 }
-function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unknown> }) {
+export function Login({
+  error,
+  onLogin,
+  initialEmail = '',
+  initialPassword = '',
+  initialMfa = false,
+  initialSetup = false,
+}: {
+  error: string;
+  onLogin: () => Promise<unknown>;
+  initialEmail?: string;
+  initialPassword?: string;
+  initialMfa?: boolean;
+  initialSetup?: boolean;
+}) {
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(error);
-  const [mfa, setMfa] = useState(false),
-    [setup, setSetup] = useState(false),
+  const [mfa, setMfa] = useState(initialMfa),
+    [setup, setSetup] = useState(initialSetup),
     [qr, setQr] = useState(''),
     [secret, setSecret] = useState(''),
     [mfaCode, setMfaCode] = useState('');
@@ -923,6 +990,7 @@ function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unkno
               E-mail
               <input
                 name="email"
+                defaultValue={initialEmail}
                 type="email"
                 autoComplete="username"
                 required
@@ -940,6 +1008,7 @@ function Login({ error, onLogin }: { error: string; onLogin: () => Promise<unkno
               Senha
               <input
                 name="password"
+                defaultValue={initialPassword}
                 type="password"
                 autoComplete="current-password"
                 required

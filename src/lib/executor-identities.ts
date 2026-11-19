@@ -20,7 +20,7 @@ export const executorSubmission = z
       .transform((s) => s.toLowerCase())
       .optional(),
     phone: z.string().max(25).optional(),
-    documentType: z.enum(['RG', 'CNH', 'Passaporte']),
+    documentType: z.enum(['RG', 'CNH', 'Passaporte']).default('RG'),
     files: z
       .array(
         z
@@ -30,8 +30,8 @@ export const executorSubmission = z
           })
           .strict(),
       )
-      .min(1)
-      .max(2),
+      .max(2)
+      .default([]),
   })
   .strict();
 
@@ -62,15 +62,34 @@ export async function submitExecutor(
   c: PoolClient,
   actor: User,
   input: z.infer<typeof executorSubmission>,
+  selfService = false,
 ) {
-  const { unit, reviewer } = await identityAccess(c, actor, input.unitId);
+  const { unit, reviewer } = selfService
+    ? { unit: await unitAccess(actor, input.unitId, undefined, c, true), reviewer: false }
+    : await identityAccess(c, actor, input.unitId);
+  if (
+    selfService &&
+    (actor.platform_admin ||
+      !unit.contractor_id ||
+      input.action !== 'resubmit' ||
+      input.userId !== actor.id)
+  )
+    throw new HttpError(403, 'Envie somente o seu próprio documento.');
   if (reviewer)
     throw new HttpError(403, 'O envio deve ser realizado pelo responsável da contratada.');
+  if (!unit.identity_upload_enabled && (input.files.length || input.action === 'resubmit'))
+    throw new HttpError(403, 'O envio de documentos está desativado nesta empresa.');
+  if (input.action === 'resubmit' && !input.files.length)
+    throw new HttpError(400, 'Envie o arquivo do documento.');
   const bytes = input.files.map(identityFile);
   await c.query('SELECT id FROM units WHERE id=$1 FOR UPDATE', [unit.id]);
-  const fresh = await identityAccess(c, actor, unit.id);
+  const fresh = selfService
+    ? { unit: await unitAccess(actor, unit.id, undefined, c, true), reviewer: false }
+    : await identityAccess(c, actor, unit.id);
   if (fresh.reviewer || fresh.unit.contractor_id !== unit.contractor_id)
     throw new HttpError(403, 'Seu acesso foi alterado. Atualize a tela.');
+  if (fresh.unit.identity_upload_enabled !== unit.identity_upload_enabled)
+    throw new HttpError(409, 'Configuração alterada. Atualize a tela.');
   let person;
   if (input.action === 'register') {
     if (!input.name || !input.email || !input.phone)
@@ -112,11 +131,22 @@ export async function submitExecutor(
     const {
       rows: [existing],
     } = await c.query(
-      "SELECT u.* FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.unit_id=$2 AND m.contractor_id=$3 AND m.role='executante' AND m.active AND u.active AND NOT u.platform_admin FOR UPDATE OF m,u",
+      'SELECT u.* FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.unit_id=$2 AND m.contractor_id=$3 AND m.active AND u.active AND NOT u.platform_admin FOR UPDATE OF m,u',
       [input.userId, unit.id, unit.contractor_id],
     );
     if (!existing) throw new HttpError(403, 'Executor indisponível.');
     person = existing;
+  }
+  if (!input.files.length) {
+    if (person.password_pending) await createInvitation(c, actor.id, person.id, unit.id);
+    await c.query(
+      "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'executor.cadastrado',$2)",
+      [
+        actor.id,
+        JSON.stringify({ companyId: unit.company_id, unitId: unit.id, userId: person.id }),
+      ],
+    );
+    return { id: null, userId: person.id };
   }
   const {
     rows: [membership],
@@ -186,6 +216,8 @@ export async function reviewExecutor(
   const { unit, reviewer } = await identityAccess(c, actor, input.unitId);
   if (!reviewer)
     throw new HttpError(403, 'Somente o admin ou gestor interno da unidade pode validar.');
+  if (!unit.identity_upload_enabled)
+    throw new HttpError(403, 'A funcionalidade de documentos está desativada.');
   await c.query('SELECT id FROM units WHERE id=$1 FOR UPDATE', [unit.id]);
   const fresh = await identityAccess(c, actor, unit.id);
   if (!fresh.reviewer) throw new HttpError(403, 'Seu acesso foi alterado. Atualize a tela.');
@@ -200,8 +232,8 @@ export async function reviewExecutor(
   const {
     rows: [latest],
   } = await c.query(
-    'SELECT id FROM executor_identity_submissions WHERE user_id=$1 AND unit_id=$2 ORDER BY submitted_at DESC,id DESC LIMIT 1',
-    [submission.user_id, unit.id],
+    'SELECT id FROM executor_identity_submissions WHERE user_id=$1 AND company_id=$2 AND contractor_id=$3 ORDER BY submitted_at DESC,id DESC LIMIT 1',
+    [submission.user_id, unit.company_id, submission.contractor_id],
   );
   if (
     latest.id !== submission.id ||
@@ -241,23 +273,40 @@ export async function assertExecutorsValidated(
   unitId: string,
   executors: { userId: string }[],
 ) {
-  for (const person of executors) {
-    const {
-      rows: [latest],
-    } = await c.query(
-      'SELECT s.*,m.identity_document_required,m.identity_verified_at,m.identity_snapshot current_snapshot FROM memberships m LEFT JOIN LATERAL(SELECT * FROM executor_identity_submissions es WHERE es.user_id=m.user_id AND es.unit_id=m.unit_id ORDER BY es.submitted_at DESC,es.id DESC LIMIT 1) s ON true WHERE m.user_id=$1 AND m.unit_id=$2',
-      [person.userId, unitId],
+  const {
+    rows: [policy],
+  } = await c.query<{ enabled: boolean }>(
+    'SELECT co.identity_upload_enabled enabled FROM companies co JOIN units u ON u.company_id=co.id WHERE u.id=$1',
+    [unitId],
+  );
+  if (!policy?.enabled) return;
+  const { rows: people } = await c.query<{
+    id: string;
+    contractor_id: string | null;
+    name: string;
+    email: string;
+    status: string | null;
+    identity_snapshot: { name: string; email: string; contractorId: string } | null;
+  }>(
+    `SELECT u.id,u.name,u.email,m.contractor_id,s.status,s.identity_snapshot FROM memberships m JOIN users u ON u.id=m.user_id AND u.active
+     JOIN units un ON un.id=m.unit_id LEFT JOIN LATERAL(SELECT es.status,es.identity_snapshot FROM executor_identity_submissions es
+       WHERE es.user_id=m.user_id AND es.company_id=un.company_id AND es.contractor_id=m.contractor_id ORDER BY es.submitted_at DESC,es.id DESC LIMIT 1) s ON true
+     WHERE m.unit_id=$1 AND m.active AND m.user_id=ANY($2::uuid[])`,
+    [unitId, executors.map((person) => person.userId)],
+  );
+  const invalid =
+    people.length !== new Set(executors.map((person) => person.userId)).size ||
+    people.some(
+      (person) =>
+        person.contractor_id &&
+        (person.status !== 'approved' ||
+          person.identity_snapshot?.name !== person.name ||
+          person.identity_snapshot?.email !== person.email ||
+          person.identity_snapshot?.contractorId !== person.contractor_id),
     );
-    if (
-      latest &&
-      (latest.identity_document_required || latest.id) &&
-      (latest.status !== 'approved' ||
-        !latest.identity_verified_at ||
-        JSON.stringify(latest.identity_snapshot) !== JSON.stringify(latest.current_snapshot))
-    )
-      throw new HttpError(
-        422,
-        'Há executor com documento pendente, recusado ou cadastro alterado. Solicite a validação da unidade.',
-      );
-  }
+  if (invalid)
+    throw new HttpError(
+      422,
+      'Há colaborador com documento pendente, recusado ou cadastro alterado. Solicite a validação da unidade.',
+    );
 }

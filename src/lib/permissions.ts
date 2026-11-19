@@ -7,13 +7,20 @@ export const roleLabels: Record<string, string> = {
   executante: 'Executante',
   admin_contratada: 'Responsável da contratada',
 };
-export type AccessUnit = { role: string; company_admin?: boolean; contractor_id?: string | null };
+export type AccessUnit = {
+  role: string;
+  company_admin?: boolean;
+  contractor_id?: string | null;
+  identity_upload_enabled?: boolean;
+};
 export const companyManager = (user: { platform_admin: boolean }, unit: AccessUnit) =>
   user.platform_admin || !!unit.company_admin;
 export const canViewAudit = (unit: AccessUnit) => !!unit.company_admin;
 export function allowedMenus(user: { platform_admin: boolean }, unit: AccessUnit) {
   const menus = ['overview', 'APR', 'PT', 'account'];
-  if (unit.role === 'admin_contratada') return ['team', 'account'];
+  const personal = unit.identity_upload_enabled && unit.contractor_id ? ['identity'] : [];
+  if (unit.role === 'admin_contratada') return ['team', 'account', ...personal];
+  menus.push(...personal);
   if (['admin', 'gestor'].includes(unit.role) && !unit.contractor_id) menus.push('team');
   if (unit.role !== 'executante') menus.push('approvals');
   if (['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role)) menus.push('contractors');
@@ -22,4 +29,4 @@ export function allowedMenus(user: { platform_admin: boolean }, unit: AccessUnit
   if (canViewAudit(unit)) menus.push('audit');
   return menus;
 }
-export const ACCESS_POLICY_VERSION = 4;
+export const ACCESS_POLICY_VERSION = 5;

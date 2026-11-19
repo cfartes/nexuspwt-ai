@@ -3,6 +3,7 @@ import { db } from './db';
 import { digest, HttpError } from './security';
 import type { Pool, PoolClient } from 'pg';
 import { requiresLoginMfa } from './session-security';
+import { personalIdentityState } from './identityPolicyRepository';
 export type User = {
   id: string;
   name: string;
@@ -39,11 +40,12 @@ export async function unitAccess(
   unitId: string,
   roles?: string[],
   client: Pool | PoolClient = db,
+  allowIdentityPending = false,
 ) {
   const {
     rows: [unit],
   } = await client.query(
-    `SELECT u.*,c.name company_name,c.approval_mfa_required,CASE WHEN ca.user_id IS NOT NULL THEN 'admin' ELSE m.role END role,
+    `SELECT u.*,c.name company_name,c.approval_mfa_required,c.identity_upload_enabled,CASE WHEN ca.user_id IS NOT NULL THEN 'admin' ELSE m.role END role,
       CASE WHEN ca.user_id IS NOT NULL THEN NULL ELSE m.contractor_id END contractor_id,(ca.user_id IS NOT NULL) company_admin
       FROM units u JOIN companies c ON c.id=u.company_id
       LEFT JOIN memberships m ON m.unit_id=u.id AND m.user_id=$2 AND m.active
@@ -55,6 +57,25 @@ export async function unitAccess(
     throw new HttpError(403, 'Sem permissão nesta unidade.');
   if (unit.approval_mfa_required && !user.platform_admin && !user.session_mfa_verified_at)
     throw new HttpError(401, 'Entre novamente com o autenticador para acessar esta empresa.');
+  if (
+    !allowIdentityPending &&
+    !user.platform_admin &&
+    unit.identity_upload_enabled &&
+    unit.contractor_id
+  ) {
+    const identity = await personalIdentityState(
+      client,
+      user.id,
+      unit.company_id,
+      unit.contractor_id,
+      true,
+    );
+    if (identity.required)
+      throw new HttpError(
+        403,
+        'Complete o envio do seu documento e aguarde a validação da unidade.',
+      );
+  }
   return unit;
 }
 export async function assertDocumentRead(

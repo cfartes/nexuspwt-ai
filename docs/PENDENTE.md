@@ -20,5 +20,5 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 - Validar com o contratante regras de validade, turnos, liberação/encerramento de PT e assinaturas DocuSign/Certisign; configuração de fornecedor não equivale a integração de assinatura concluída.
 - Validar a implantação real na VPS, TLS/Traefik, credenciais, notificações, isolamento de rede, backup e restauração. Não há certificação desses controles por testes locais.
 - Definir descarte ao fim da retenção e tratamento de backups/cópias. O prazo mínimo de cinco anos está registrado para os documentos pessoais, mas não há exclusão automática ao vencê-lo.
-- Avaliar os executores legados e inseri-los no fluxo de documentos quando necessário; a migração não declara identidades antigas automaticamente validadas nem invalida todos os acessos existentes.
+- Confirmar com o cliente se deseja ativar a exigência de documentos: o padrão é desativado. Ao ativar, colaboradores externos já cadastrados também precisam de documento validado; nenhuma identidade é validada automaticamente pela migração.
 - Planejar armazenamento na cloud do cliente e dimensionamento para as unidades previstas, conforme o produto evoluir.

@@ -11,9 +11,9 @@ export async function POST(request: Request) {
       .object({ token: z.string().regex(/^[a-f\d]{64}$/), password: z.string().min(12).max(256) })
       .strict()
       .parse(await request.json());
-    await transaction((c) => acceptInvitation(c, input.token, input.password));
+    const account = await transaction((c) => acceptInvitation(c, input.token, input.password));
     (await cookies()).delete('nexus_session');
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, ...account }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return apiError(error);
   }

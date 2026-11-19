@@ -11,6 +11,17 @@ export type Unit = {
   role: string;
   contractor_id: string | null;
   company_admin?: boolean;
+  identity_upload_enabled?: boolean;
+};
+export type IdentityPolicy = { enabled: boolean; version: number };
+export type PersonalIdentityState = {
+  required: boolean;
+  status: 'disabled' | 'not_required' | 'missing' | 'pending' | 'approved' | 'rejected';
+  submissionId: string | null;
+  documentType: string | null;
+  reason: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
 };
 export type Person = {
   id: string;
@@ -61,6 +72,8 @@ export type Approval = {
   assignment_version: number;
 };
 export type WorkspaceData = {
+  identityPolicy?: IdentityPolicy;
+  identityOnboarding?: PersonalIdentityState;
   user: {
     id: string;
     name: string;

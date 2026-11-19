@@ -119,6 +119,32 @@ test('contratada cadastra somente sua equipe; documentos privados, revisão inte
         'base64',
       ),
     };
+    await pool.query('UPDATE companies SET identity_upload_enabled=true WHERE id=$1', [company]);
+    await pool.query('UPDATE users SET password_pending=false WHERE id=$1', [contact.id]);
+    const contactProof = await tx((client) =>
+      submitExecutor(
+        client,
+        actor(contact.id),
+        executorSubmission.parse({
+          action: 'resubmit',
+          unitId: unit,
+          userId: contact.id,
+          documentType: 'RG',
+          files: [file],
+        }),
+        true,
+      ),
+    );
+    assert(contactProof.id);
+    await tx((client) =>
+      reviewExecutor(client, actor(adminId), {
+        unitId: unit,
+        id: contactProof.id,
+        version: 1,
+        decision: 'approved',
+        reason: 'Responsável conferido presencialmente',
+      }),
+    );
     assert.throws(() => identityFile({ ...file, mime: 'image/png' }), status(400));
     assert(
       !executorSubmission.safeParse({
@@ -139,6 +165,7 @@ test('contratada cadastra somente sua equipe; documentos privados, revisão inte
       files: [file],
     });
     const submission = await tx((c) => submitExecutor(c, actor(contact.id), input));
+    assert(submission.id);
     const {
       rows: [executor],
     } = await pool.query("SELECT id FROM users WHERE email='executor@identity.test'");
@@ -180,6 +207,7 @@ test('contratada cadastra somente sua equipe; documentos privados, revisão inte
         }),
       ),
     );
+    assert(replacement.id);
     await assert.rejects(
       assertExecutorsValidated(pool, unit, [{ userId: executor.id }]),
       status(422),
@@ -194,7 +222,7 @@ test('contratada cadastra somente sua equipe; documentos privados, revisão inte
     );
     assert.equal(
       (await pool.query('SELECT count(*)::int n FROM executor_identity_files')).rows[0].n,
-      2,
+      3,
       'versão anterior é preservada',
     );
     const { rows: files } = await pool.query('SELECT * FROM executor_identity_files');

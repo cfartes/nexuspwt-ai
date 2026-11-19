@@ -20,14 +20,16 @@ Por decisão explícita do responsável pelo projeto em 19/11/2026, manter o bac
 - MFA TOTP no login quando exigido pela empresa, configuração por QR Code e sessão com limite de oito horas e trinta minutos sem requisições autenticadas. Ações sensíveis de segurança mantêm confirmação adicional.
 - APR/PT, revisões, decisões vinculadas à versão, histórico, impressão e evidências fotográficas. A liberação operacional de PT permanece bloqueada conforme as limitações descritas no README.
 - Rascunhos e fila de sincronização offline; documentos pessoais não entram nesse cache.
-- Responsável da contratada cadastra executores e envia RG/CNH/passaporte. Admin/gestor interno da unidade valida ou devolve. Novos executores desse fluxo ficam bloqueados para uso em APR/PT enquanto pendentes.
+- Admin da Empresa ativa ou desativa o envio de documentos em Configurações, com padrão desativado e alteração auditada. A opção vale para todas as unidades da empresa.
+- Com a opção ativa, todos os perfis vinculados à contratada enviam o próprio RG/CNH/passaporte após definir a senha e concluir o login/MFA. Enquanto pendentes, acessam somente o portal do documento. Admin/gestor interno valida ou devolve; a validação é reaproveitada entre unidades da mesma empresa e contratada. O responsável também pode cadastrar executores sem arquivo e enviar convite para o envio individual.
+- Desativar a opção não apaga arquivos ou históricos e remove a exigência de upload para operar. A migração incremental é `018-identity-upload-policy.sql`.
 - Documentos pessoais cifrados no PostgreSQL, download autorizado e auditado, preservação de versões e retenção mínima registrada de cinco anos por envio.
 - Auditoria da empresa somente para Admin da Empresa, com filtros, paginação e detalhes em popup.
 - Scripts incrementais de instalação/atualização com PostgreSQL e Traefik; atualização preserva o banco existente.
 
 ## Validação e limites
 
-A última entrega funcional (`a4f8cfa`) passou pelos testes automatizados, build e integração locais informados no README e na entrega. Não houve validação visual completa no navegador nesta etapa nem atualização da VPS por esta sessão.
+A configuração opcional de documentos e o portal de primeiro acesso passaram por 36 testes automatizados, typecheck, build e integração HTTP locais, sem chamadas a provedores reais. Os testes cobrem padrão desativado, permissões, todos os perfis externos, reutilização entre unidades, isolamento por empresa/contratada e preservação dos arquivos ao desativar. A migração 018 foi aplicada somente ao banco local de desenvolvimento. Não houve validação visual completa no navegador nem atualização da VPS por esta sessão. O lint dos arquivos novos passou; o lint global mantém o passivo descrito abaixo.
 
 O GTS 7.0.0 foi instalado como dependência de desenvolvimento com versão fixa e lockfile atualizado. A configuração ESLint foi adaptada ao ESM do projeto, preservando o estilo Prettier existente e ignorando somente saídas geradas/dependências/dados locais. Scripts de teste usam `npm` de forma compatível com Windows/Linux; não há hook `prepare` que tente compilar durante a instalação de dependências antes da cópia do código no Docker.
 

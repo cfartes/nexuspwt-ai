@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { Login } from './workspace';
 export default function DefinePassword() {
   const [token, setToken] = useState(''),
     [password, setPassword] = useState(''),
@@ -8,6 +9,12 @@ export default function DefinePassword() {
     [error, setError] = useState(''),
     [done, setDone] = useState(false);
   const read = useRef(false);
+  const [account, setAccount] = useState<{
+    email: string;
+    unitId: string;
+    mfa: boolean;
+    setup: boolean;
+  } | null>(null);
   useEffect(() => {
     if (read.current) return;
     read.current = true;
@@ -17,6 +24,20 @@ export default function DefinePassword() {
     if (!/^[a-f\d]{64}$/.test(value))
       setError('Convite inválido. Abra o link recebido por e-mail ou WhatsApp.');
   }, []);
+  if (done && account)
+    return (
+      <Login
+        error={error}
+        initialEmail={account.email}
+        initialPassword={password}
+        initialMfa={account.mfa}
+        initialSetup={account.setup}
+        onLogin={async () => {
+          window.location.replace('/?unit=' + account.unitId);
+          return true;
+        }}
+      />
+    );
   return (
     <main className="password-page">
       <section className="card">
@@ -46,6 +67,7 @@ export default function DefinePassword() {
                 return;
               }
               setBusy(true);
+              let passwordDefined = false;
               try {
                 const response = await fetch('/api/invitations/accept', {
                   method: 'POST',
@@ -53,14 +75,37 @@ export default function DefinePassword() {
                   body: JSON.stringify({ token, password }),
                   signal: AbortSignal.timeout(20000),
                 });
-                const result = await response.json();
+                const result: { email: string; unitId: string; error?: string } =
+                  await response.json();
                 if (!response.ok)
                   throw new Error(result.error || 'Não foi possível definir a senha.');
-                setDone(true);
                 setToken('');
-                setPassword('');
                 setConfirmation('');
+                const accountInfo: { email: string; unitId: string } = result;
+                setAccount({ ...accountInfo, mfa: false, setup: false });
+                passwordDefined = true;
+                const login = await fetch('/api/auth', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: accountInfo.email, password }),
+                  signal: AbortSignal.timeout(20000),
+                });
+                const loginResult: {
+                  mfaRequired?: boolean;
+                  setupRequired?: boolean;
+                  error?: string;
+                } = await login.json();
+                if (!login.ok)
+                  throw new Error(loginResult.error || 'Senha definida. Entre para continuar.');
+                if (loginResult.mfaRequired) {
+                  setAccount({ ...accountInfo, mfa: true, setup: !!loginResult.setupRequired });
+                  setDone(true);
+                  return;
+                }
+                setPassword('');
+                window.location.replace('/?unit=' + accountInfo.unitId);
               } catch (e) {
+                if (passwordDefined) setDone(true);
                 setError((e as Error).message);
               } finally {
                 setBusy(false);

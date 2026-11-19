@@ -4,6 +4,7 @@ import { ACCESS_POLICY_VERSION, companyManager } from '@/lib/permissions';
 import { apiError } from '@/lib/http';
 import { uuid } from '@/lib/validation';
 import { HttpError } from '@/lib/security';
+import { personalIdentityState, readIdentityPolicy } from '@/lib/identityPolicyRepository';
 export async function GET(request: Request) {
   try {
     const user = await currentUser();
@@ -24,7 +25,15 @@ export async function GET(request: Request) {
         documentId,
       ]);
       if (!target) throw new HttpError(403, 'Documento indisponível para sua conta.');
-      await assertDocumentRead(db, user, await unitAccess(user, target.unit_id), target);
+      const targetUnit = await unitAccess(user, target.unit_id, undefined, db, true);
+      const personal = await personalIdentityState(
+        db,
+        user.id,
+        targetUnit.company_id,
+        user.platform_admin ? null : targetUnit.contractor_id,
+        targetUnit.identity_upload_enabled,
+      );
+      if (!personal.required) await assertDocumentRead(db, user, targetUnit, target);
       unitId = target.unit_id;
     }
     if (!unitId)
@@ -32,7 +41,38 @@ export async function GET(request: Request) {
         403,
         'Sua conta não possui acesso ativo a uma unidade. Contate o administrador.',
       );
-    const unit = await unitAccess(user, uuid.parse(unitId));
+    const unit = await unitAccess(user, uuid.parse(unitId), undefined, db, true);
+    const identityPolicy = await readIdentityPolicy(db, unit.company_id);
+    const identityOnboarding = await personalIdentityState(
+      db,
+      user.id,
+      unit.company_id,
+      user.platform_admin ? null : unit.contractor_id,
+      identityPolicy.enabled,
+    );
+    if (identityOnboarding.required)
+      return Response.json(
+        {
+          user,
+          units,
+          unit,
+          accessPolicyVersion: ACCESS_POLICY_VERSION,
+          identityPolicy,
+          identityOnboarding,
+          documents: [],
+          contractors: [],
+          people: [],
+          regions: [],
+          approvers: [],
+          approvals: [],
+          companies: [],
+          registeredUnits: [],
+          companyPeople: [],
+          availableContractors: [],
+          unitQuota: null,
+        },
+        { headers: { 'Cache-Control': 'private, no-store' } },
+      );
     const results = await Promise.all([
       db.query(
         "SELECT d.*,u.name author FROM documents d JOIN users u ON u.id=d.created_by WHERE d.unit_id=$1 AND d.removed_at IS NULL AND ($6::uuid IS NULL OR d.contractor_id=$6) AND ($2 <> 'executante' OR d.created_by=$3 OR (d.kind='APR' AND d.status='aprovado') OR d.data->'executors' @> $4::jsonb) AND ($2<>'aprovador' OR EXISTS(SELECT 1 FROM approvals a WHERE a.document_id=d.id AND a.version=d.version AND a.user_id=$3)) ORDER BY (d.id=$5::uuid) DESC NULLS LAST,d.updated_at DESC LIMIT 500",
@@ -150,6 +190,8 @@ export async function GET(request: Request) {
     return Response.json(
       {
         user,
+        identityPolicy,
+        identityOnboarding,
         accessPolicyVersion: ACCESS_POLICY_VERSION,
         units,
         unit,

@@ -35,6 +35,9 @@ await db.exec(
   await readFile(new URL('../db/016-contractor-executors.sql', import.meta.url), 'utf8'),
 );
 await db.exec(await readFile(new URL('../db/017-login-mfa.sql', import.meta.url), 'utf8'));
+await db.exec(
+  await readFile(new URL('../db/018-identity-upload-policy.sql', import.meta.url), 'utf8'),
+);
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -1903,6 +1906,12 @@ try {
   );
   assert.equal(contactA.role, 'admin_contratada');
   assert.equal(contactA.password_pending, true);
+  assert.equal(onboardingView.identityPolicy.enabled, false);
+  await call('/api/identity-policy', {
+    unitId: unit.id,
+    enabled: true,
+    version: onboardingView.identityPolicy.version,
+  });
   await db.query('UPDATE users SET password_hash=$2,password_pending=false WHERE id=$1', [
     contactA.id,
     hashPassword(password),
@@ -1914,6 +1923,42 @@ try {
     mime: 'application/pdf',
     base64: Buffer.from('%PDF-1.4\nDummy identity fixture only').toString('base64'),
   };
+  const pendingContact = await call(`/api/workspace?unit=${unit.id}`);
+  assert.equal(pendingContact.identityOnboarding.required, true);
+  assert.equal(pendingContact.documents.length, 0);
+  await call(
+    '/api/contractor-team',
+    {
+      action: 'register',
+      unitId: unit.id,
+      name: 'Bloqueado',
+      email: 'blocked@test.example',
+      phone: '5511999999999',
+    },
+    403,
+  );
+  const contactSubmission = await call('/api/my-identity', {
+    unitId: unit.id,
+    documentType: 'RG',
+    files: [identityFile],
+  });
+  await call(
+    '/api/my-identity',
+    { unitId: unit.id, userId: user.id, documentType: 'RG', files: [identityFile] },
+    400,
+  );
+  cookie = adminCookie;
+  await call('/api/contractor-team', {
+    action: 'review',
+    unitId: unit.id,
+    id: contactSubmission.id,
+    version: 1,
+    decision: 'approved',
+    reason: 'Responsável da contratada conferido pela unidade',
+    confirmed: true,
+  });
+  await call('/api/auth', { email: onboardingDetails.email, password });
+  assert.equal((await call(`/api/workspace?unit=${unit.id}`)).identityOnboarding.required, false);
   const registration = {
     action: 'register',
     unitId: unit.id,
@@ -1985,6 +2030,12 @@ try {
     otherContact.id,
     hashPassword(password),
   ]);
+  const secondIdentityPolicy = (await call(`/api/workspace?unit=${unit.id}`)).identityPolicy;
+  await call('/api/identity-policy', {
+    unitId: unit.id,
+    enabled: false,
+    version: secondIdentityPolicy.version,
+  });
   await call('/api/auth', { email: 'other-onboarding@test.example', password });
   assert.equal((await call(`/api/contractor-team?unit=${unit.id}`)).people.length, 0);
   assert.equal(
@@ -2007,6 +2058,22 @@ try {
   await call('/api/auth', { email: onboardingDetails.email, password, code: loginCode });
   const mfaSession = cookie;
   assert.equal((await call(`/api/contractor-team?unit=${unit.id}`)).reviewer, false);
+  const offTeam = await call('/api/contractor-team', {
+    action: 'register',
+    unitId: unit.id,
+    name: 'Executor sem exigência',
+    email: 'optional-doc@test.example',
+    phone: '5511999999999',
+  });
+  assert.equal(offTeam.id, null);
+  cookie = adminCookie;
+  const disabledIdentityPolicy = (await call(`/api/workspace?unit=${unit.id}`)).identityPolicy;
+  await call('/api/identity-policy', {
+    unitId: unit.id,
+    enabled: true,
+    version: disabledIdentityPolicy.version,
+  });
+  cookie = mfaSession;
   const mfaReplacement = await call('/api/contractor-team', {
     action: 'resubmit',
     unitId: unit.id,
@@ -2064,6 +2131,12 @@ try {
   await call('/api/workspace', undefined, 401);
   await call('/api/auth', { email: 'test@nexus.local', password });
   await call(`/api/workspace?unit=${unit.id}`);
+  const lastPolicy = (await call(`/api/workspace?unit=${unit.id}`)).identityPolicy;
+  await call('/api/identity-policy', {
+    unitId: unit.id,
+    enabled: false,
+    version: lastPolicy.version,
+  });
   const sessionDecision = await fetch(`${base}/api/documents/${matrixDocument!.id}/workflow`, {
     method: 'POST',
     headers: { Origin: base, Cookie: cookie, 'Content-Type': 'application/json' },

@@ -5,6 +5,7 @@ import IntegrationPanel from './integration-settings';
 import ResendSettings from './resend-settings';
 import UnitLimitSettings from './unit-limit-settings';
 import SecuritySettings from './security-settings';
+import IdentityUploadSettings from './IdentityUploadSettings';
 
 export default function SettingsPanel({
   ws,
@@ -19,6 +20,7 @@ export default function SettingsPanel({
 }) {
   return (
     <>
+      <IdentityUploadSettings key={ws.unit.company_id} ws={ws} online={online} reload={reload} />
       <SecuritySettings
         mode="company"
         key={`${ws.unit.company_id}:${ws.unit.id}`}
