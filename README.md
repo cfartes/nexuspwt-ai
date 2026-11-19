@@ -120,6 +120,15 @@ docker compose --env-file deploy/.env.production -f deploy/compose.production.ym
 
 Os dumps ficam em `data/backups` com acesso restrito. São backups locais de instalação/atualização, não backups periódicos externos nem a política de guarda por cinco anos. Preserve também `.env.production` em armazenamento seguro e configure backup externo antes do uso operacional. Teste a restauração. O volume PostgreSQL contém os documentos e as fotos da implementação atual.
 
+### Atualizar a instalação existente sem reinstalar PostgreSQL
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cfartes/nexuspwt-ai/main/scripts/update_vps.sh -o /tmp/update-nexus-ptw.sh
+bash /tmp/update-nexus-ptw.sh
+```
+
+Esse script exige `/opt/nexus-ptw/deploy/.env.production` e o PostgreSQL existente em execução, com volume persistente e schema do app. Atualiza o Git (`main`, somente fast-forward e checkout limpo), constrói as imagens, faz `pg_dump`, pausa app/worker, aplica migrations em transação e sobe somente app/worker com `--no-deps`. Não recria nem reinicia o container PostgreSQL, não remove volumes, não modifica o arquivo de ambiente e desabilita o bootstrap de usuários. Credenciais, chave de criptografia e dados existentes são preservados. O backup fica em `/opt/nexus-ptw/data/backups`. Há breve indisponibilidade durante as migrations; em caso de falha após a pausa, corrija a causa e repita a atualização. Não há rollback automático de schema. Use `PTW_INSTALL_DIR` se a instalação estiver em outro diretório.
+
 ### Instalação manual com proxy para porta local
 
 1. Copie `deploy/.env.example` para `deploy/.env` e substitua os valores. A senha do banco na URL precisa estar codificada para URL; usar caracteres alfanuméricos aleatórios simplifica isso.

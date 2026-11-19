@@ -87,10 +87,12 @@ def load_env(path):
     return result
 
 
-def main():
+def main(update_only=False):
     os.umask(0o077)
     existing = load_env(ENV)
-    config = routing(existing)
+    if update_only and not existing:
+        raise ValueError('Ambiente existente não encontrado. Nenhum banco será criado.')
+    config = {} if update_only else routing(existing)
     if existing:
         required = {'POSTGRES_PASSWORD', 'DATABASE_URL', 'INTEGRATIONS_ENCRYPTION_KEY', 'BOOTSTRAP_EMAIL', 'BOOTSTRAP_PASSWORD'}
         if not required.issubset(existing):
@@ -106,18 +108,30 @@ def main():
             'OPENWA_ALLOWED_ORIGINS': 'https://openwa.187-77-58-10.sslip.io',
             'OPENWA_DEFAULT_URL': 'https://openwa.187-77-58-10.sslip.io/api',
         }
-    existing.update(config)
-    existing['APP_URL'] = 'https://nexusptw.nexusdataanalytics.tech'
-    temp = ENV.with_suffix('.tmp')
-    with temp.open('w', encoding='utf-8') as file:
-        file.write(''.join(f'{key}={value}\n' for key, value in existing.items()))
-    temp.chmod(0o600)
-    temp.replace(ENV)
+    if not update_only:
+        existing.update(config)
+        existing['APP_URL'] = 'https://nexusptw.nexusdataanalytics.tech'
+        temp = ENV.with_suffix('.tmp')
+        with temp.open('w', encoding='utf-8') as file:
+            file.write(''.join(f'{key}={value}\n' for key, value in existing.items()))
+        temp.chmod(0o600)
+        temp.replace(ENV)
     compose = ['docker', 'compose', '--env-file', str(ENV), '-f', str(ROOT / 'deploy' / 'compose.production.yml')]
     subprocess.run([*compose, 'config', '--quiet'], check=True)
+    if update_only:
+        container = output(*compose, 'ps', '-q', 'database')
+        if not container:
+            raise ValueError('PostgreSQL existente não está em execução. Inicie-o antes de atualizar.')
+        metadata = json.loads(output('docker', 'inspect', container))[0]
+        if not any(m.get('Type') == 'volume' and m.get('Destination') == '/var/lib/postgresql/data' for m in metadata.get('Mounts', [])):
+            raise ValueError('Volume persistente do PostgreSQL não encontrado. Atualização cancelada.')
+        schema = output(*compose, 'exec', '-T', 'database', 'psql', '-U', 'nexus', '-d', 'nexus', '-Atqc', "SELECT to_regclass('public.companies') IS NOT NULL AND to_regclass('public.users') IS NOT NULL")
+        if schema != 't':
+            raise ValueError('Banco existente não contém o schema do app. Atualização cancelada.')
     # Build antes de tocar nos serviços existentes; credenciais ficam fora das imagens.
     subprocess.run([*compose, 'build', 'app', 'notifications'], check=True)
-    subprocess.run([*compose, 'up', '-d', '--wait', 'database'], check=True)
+    if not update_only:
+        subprocess.run([*compose, 'up', '-d', '--wait', 'database'], check=True)
     backups = ROOT / 'data' / 'backups'
     backups.mkdir(parents=True, exist_ok=True)
     backup = backups / (datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '.dump')
@@ -125,19 +139,26 @@ def main():
         subprocess.run([*compose, 'exec', '-T', 'database', 'pg_dump', '-U', 'nexus', '-d', 'nexus', '-Fc'], stdout=file, check=True)
     # Evita que app e worker usem um schema parcialmente atualizado.
     subprocess.run([*compose, 'stop', 'app', 'notifications'], check=True)
-    subprocess.run([*compose, '--profile', 'setup', 'run', '--rm', 'bootstrap'], check=True)
-    subprocess.run([*compose, 'up', '-d', '--wait', 'app', 'notifications'], check=True)
-    print('Instalação concluída: https://nexusptw.nexusdataanalytics.tech')
+    migration = ['--no-deps', '-e', 'BOOTSTRAP_EMAIL=', '-e', 'BOOTSTRAP_PASSWORD='] if update_only else []
+    subprocess.run([*compose, '--profile', 'setup', 'run', '--rm', *migration, 'bootstrap'], check=True)
+    dependencies = ['--no-deps'] if update_only else []
+    subprocess.run([*compose, 'up', '-d', '--wait', *dependencies, 'app', 'notifications'], check=True)
+    print(('Atualização' if update_only else 'Instalação') + ' concluída: https://nexusptw.nexusdataanalytics.tech')
     print(f'Credenciais do superadmin: BOOTSTRAP_EMAIL e BOOTSTRAP_PASSWORD em {ENV} (acesso restrito).')
     print(f'Backup anterior à migração: {backup}. Copie backups para armazenamento externo.')
-    print('Configure Resend e OpenWA no superadmin; chaves locais não são copiadas automaticamente.')
-    print('Confira o DNS, certificado HTTPS e teste um convite real antes de liberar o acesso.')
+    if update_only:
+        print('PostgreSQL, dados, credenciais e configuração preservados. Confira o app após atualizar.')
+    else:
+        print('Configure Resend e OpenWA no superadmin; chaves locais não são copiadas automaticamente.')
+        print('Confira o DNS, certificado HTTPS e teste um convite real antes de liberar o acesso.')
 
 
 if __name__ == '__main__':
     try:
-        main()
+        if sys.argv[1:] not in ([], ['--update-only']):
+            raise ValueError('Uso: deploy_vps.py [--update-only]')
+        main(update_only=sys.argv[1:] == ['--update-only'])
     except (ValueError, subprocess.CalledProcessError, OSError) as error:
         # Não imprime argumentos de subprocessos ou conteúdo do ambiente com segredos.
-        print(f'Instalação interrompida: {error if isinstance(error, ValueError) else type(error).__name__}. Dados preservados.', file=sys.stderr)
+        print(f'Operação interrompida: {error if isinstance(error, ValueError) else type(error).__name__}. Dados preservados.', file=sys.stderr)
         sys.exit(1)

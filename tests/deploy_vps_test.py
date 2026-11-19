@@ -12,6 +12,49 @@ spec.loader.exec_module(deploy)
 
 
 class InstallTests(unittest.TestCase):
+    def test_update_preserves_environment_and_never_recreates_database(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            env = root / 'deploy' / '.env.production'
+            env.parent.mkdir()
+            original = 'POSTGRES_PASSWORD=keep-password\nDATABASE_URL=postgresql://nexus:keep-password@database:5432/nexus\nINTEGRATIONS_ENCRYPTION_KEY=' + 'b' * 64 + '\nBOOTSTRAP_EMAIL=admin@example.com\nBOOTSTRAP_PASSWORD=keep-admin-password\n'
+            env.write_text(original)
+            previous_umask = os.umask(0o077)
+            try:
+                with patch.object(deploy, 'ROOT', root), patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing', side_effect=AssertionError('Não redetectar Traefik')), patch.object(deploy, 'output', side_effect=['database-id', json.dumps([{'Mounts': [{'Type': 'volume', 'Destination': '/var/lib/postgresql/data'}]}]), 't']), patch.object(deploy.subprocess, 'run') as run:
+                    deploy.main(update_only=True)
+                self.assertEqual(env.read_text(), original)
+                commands = [call.args[0] for call in run.call_args_list]
+                self.assertFalse(any(command[-1] == 'database' and 'up' in command for command in commands))
+                self.assertFalse(any('down' in command or 'prune' in command or '--volumes' in command for command in commands))
+                migration = next(i for i, command in enumerate(commands) if command[-1] == 'bootstrap')
+                self.assertIn('--no-deps', commands[migration])
+                self.assertIn('BOOTSTRAP_EMAIL=', commands[migration])
+                self.assertIn('BOOTSTRAP_PASSWORD=', commands[migration])
+                self.assertIn('--no-deps', commands[migration + 1])
+                self.assertTrue(any('pg_dump' in command for command in commands[:migration]))
+            finally:
+                os.umask(previous_umask)
+
+    def test_update_refuses_missing_environment_or_database_before_build(self):
+        with tempfile.TemporaryDirectory() as folder:
+            env = Path(folder) / '.env.production'
+            previous_umask = os.umask(0o077)
+            try:
+                with patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing') as routing, patch.object(deploy.subprocess, 'run') as run:
+                    with self.assertRaises(ValueError):
+                        deploy.main(update_only=True)
+                    routing.assert_not_called()
+                    run.assert_not_called()
+                env.write_text('POSTGRES_PASSWORD=keep\nDATABASE_URL=postgresql://nexus:keep@database/nexus\nINTEGRATIONS_ENCRYPTION_KEY=keep\nBOOTSTRAP_EMAIL=admin@example.com\nBOOTSTRAP_PASSWORD=keep\n')
+                with patch.object(deploy, 'ENV', env), patch.object(deploy, 'output', return_value=''), patch.object(deploy.subprocess, 'run') as run:
+                    with self.assertRaises(ValueError):
+                        deploy.main(update_only=True)
+                    self.assertEqual(len(run.call_args_list), 1)
+                    self.assertEqual(run.call_args.args[0][-2:], ['config', '--quiet'])
+            finally:
+                os.umask(previous_umask)
+
     def test_routing_uses_existing_proxy_network_and_tls(self):
         containers = [
             {'Name': '/traefik', 'Config': {'Image': 'traefik:v3', 'Cmd': ['--entrypoints.websecure.address=:443', '--certificatesresolvers.letsencrypt.acme.email=admin@example.com']}, 'NetworkSettings': {'Networks': {'proxy': {}}}},
