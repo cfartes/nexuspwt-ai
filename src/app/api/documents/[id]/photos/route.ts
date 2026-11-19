@@ -40,7 +40,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
       if (!doc || doc.kind !== 'PT') throw new HttpError(404, 'PT não encontrada.');
       const unit = await unitAccess(user, doc.unit_id, undefined, c);
-      if (unit.role === 'aprovador') throw new HttpError(403, 'Aprovador não pode alterar evidências.');
+      if (unit.role === 'aprovador')
+        throw new HttpError(403, 'Aprovador não pode alterar evidências.');
       assertContractorAccess(unit, doc.contractor_id);
       if (
         !['admin', 'gestor', 'seguranca_trabalho'].includes(unit.role) &&
@@ -72,6 +73,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           sha,
           bytes,
         ],
+      );
+      await c.query(
+        "INSERT INTO audit_events(document_id,actor_id,action,details) VALUES($1,$2,'foto.adicionada',$3)",
+        [id, user.id, JSON.stringify({ id: p.id, version: doc.version })],
       );
       return Response.json({ ok: true });
     });

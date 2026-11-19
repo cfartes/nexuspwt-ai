@@ -187,7 +187,8 @@ export async function deleteRegistration(
           UNION ALL SELECT 1 FROM document_versions WHERE snapshot->>'contractor_id'=$1::text LIMIT 1`,
           [input.id],
         );
-        if (!references && (actor.platform_admin || unit.company_admin)) await c.query('DELETE FROM contractors WHERE id=$1', [input.id]);
+        if (!references && (actor.platform_admin || unit.company_admin))
+          await c.query('DELETE FROM contractors WHERE id=$1', [input.id]);
         break;
       }
       case 'approver': {
@@ -312,7 +313,7 @@ export async function deleteRegistration(
       kind: input.kind,
       id: input.id,
       name,
-      unitId: unit.id,
+      unitId: input.kind === 'unit' ? input.id : unit.id,
       companyId: input.kind === 'company' ? input.id : unit.company_id,
     }),
   ]);

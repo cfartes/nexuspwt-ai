@@ -184,6 +184,14 @@ export async function POST(request: Request) {
       )
         throw new HttpError(403, 'Operação restrita ao Admin da empresa.');
       const company = unit.company_id;
+      let auditCompany =
+        input.action === 'updateCompany' ||
+        (input.action === 'deleteRegistration' && input.kind === 'company')
+          ? input.id
+          : company;
+      let auditUnit =
+        input.action === 'deleteRegistration' && input.kind === 'unit' ? input.id : unit.id;
+      let auditTarget = 'id' in input ? input.id : 'userId' in input ? input.userId : undefined;
       if (!user.platform_admin) {
         const target =
           'userId' in input
@@ -213,12 +221,15 @@ export async function POST(request: Request) {
             cnpj: input.cnpj,
             details: input.details,
           });
+          auditCompany = companyId;
+          auditTarget = companyId;
           const {
             rows: [u],
           } = await c.query(
             "INSERT INTO units(company_id,name,kind) VALUES($1,'Unidade inicial','Escritório') RETURNING id",
             [companyId],
           );
+          auditUnit = u.id;
           await c.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
             user.id,
             u.id,
@@ -247,6 +258,8 @@ export async function POST(request: Request) {
             'INSERT INTO units(company_id,name,kind,region_id) VALUES($1,$2,$3,$4) RETURNING id',
             [company, input.name, input.kind, input.regionId],
           );
+          auditUnit = u.id;
+          auditTarget = u.id;
           await c.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin')", [
             user.id,
             u.id,
@@ -264,6 +277,7 @@ export async function POST(request: Request) {
             'INSERT INTO contractors(company_id,name,cnpj,details) VALUES($1,$2,$3,$4) ON CONFLICT(company_id,cnpj) DO UPDATE SET name=contractors.name RETURNING id',
             [company, input.name, input.cnpj, JSON.stringify(input.details)],
           );
+          auditTarget = co.id;
           await c.query('INSERT INTO contractor_units VALUES($1,$2,$3) ON CONFLICT DO NOTHING', [
             company,
             co.id,
@@ -326,6 +340,7 @@ export async function POST(request: Request) {
             ],
           );
           await saveMembership(c, user, unit.id, u.id, { ...input, phone: normalizedPhone });
+          auditTarget = u.id;
           await createInvitation(c, user.id, u.id, unit.id);
           break;
         }
@@ -340,6 +355,7 @@ export async function POST(request: Request) {
           );
           if (!u) throw new HttpError(404, 'Usuário não encontrado nesta empresa.');
           await saveMembership(c, user, unit.id, u.id, input);
+          auditTarget = u.id;
           break;
         }
         case 'updateMembership': {
@@ -382,9 +398,10 @@ export async function POST(request: Request) {
         user.id,
         `cadastro.${input.action}`,
         JSON.stringify({
-          unitId: unit.id,
-          companyId: input.action === 'updateCompany' ? input.id : company,
-          targetId: 'id' in input ? input.id : 'userId' in input ? input.userId : undefined,
+          unitId: auditUnit,
+          companyId: auditCompany,
+          targetId: auditTarget,
+          ...('name' in input ? { name: input.name } : {}),
         }),
       ]);
     });

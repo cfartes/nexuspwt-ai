@@ -99,6 +99,14 @@ Gestor e Segurança do Trabalho acessam a operação das unidades autorizadas e 
 
 **Minha conta e segurança** fica disponível para todos; **Configurações da empresa** somente para Admin da empresa e Superadmin. O cache anterior a esta política precisa ser atualizado online antes do uso offline. Rascunhos e fila de sincronização são mantidos, e o servidor revalida cada envio. Alterações de acesso não apagam remotamente arquivos já baixados de um aparelho que permanece offline.
 
+### Auditoria da empresa
+
+O menu **Auditoria** é exclusivo do **Admin da Empresa**, com a mesma restrição na API. Admin da unidade, gestor, Segurança do Trabalho, aprovador e executante não têm acesso. O perfil Superadmin, sozinho, não concede essa consulta. Cada administrador consulta somente os registros da própria empresa, abrangendo suas unidades; não pode escolher outra empresa na requisição.
+
+A consulta mostra data/hora de Brasília, autor, unidade, documento quando houver e ação, com detalhes em popup. Há filtros por unidade (incluindo removidas), usuário, ação e período, além de paginação de 50 eventos. São exibidos eventos já registrados de cadastros, permissões, exclusões, convites, decisões, revisões, configurações e novas evidências fotográficas. A tela é somente leitura, exige internet e não mantém cópia offline. Senhas, tokens, chaves, CPF e o JSON interno completo não são retornados.
+
+A migração idempotente `015-company-audit.sql`, aplicada pelo atualizador existente, adiciona o contexto da empresa/unidade e os nomes no momento de cada evento. Não reinstala o PostgreSQL. O contexto permanece após remoção da unidade; eventos antigos são associados somente quando há contexto explícito recuperável (documento, unidade, empresa ou convite), nunca pelo vínculo atual do autor. Eventos globais da plataforma e registros antigos sem contexto seguro ficam fora desta consulta. Não reconstrói ações que não foram registradas, valores anteriores ou evidências fotográficas antigas; não é um armazenamento inviolável contra administradores do banco.
+
 ### Conferência humana e segurança das decisões
 
 Execute a migração `013-approval-identity.sql` pelo atualizador da VPS (ou `npm run db:setup` no desenvolvimento). Nenhuma identidade existente é marcada automaticamente como conferida e nenhum autenticador é ativado automaticamente.

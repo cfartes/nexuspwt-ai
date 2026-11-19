@@ -30,6 +30,7 @@ await db.exec(await readFile(new URL('../db/013-approval-identity.sql', import.m
 await db.exec(
   await readFile(new URL('../db/014-company-administrators.sql', import.meta.url), 'utf8'),
 );
+await db.exec(await readFile(new URL('../db/015-company-audit.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -110,10 +111,12 @@ try {
     return json;
   };
   await call('/api/workspace', undefined, 401);
+  await call(`/api/audit?context=${unit.id}`, undefined, 401);
   await call('/api/auth', { email: 'test@nexus.local', password: 'incorreta' }, 401);
   await call('/api/auth', { email: 'test@nexus.local', password });
   let ws = await call('/api/workspace');
   assert.equal(ws.unit.id, unit.id);
+  await call(`/api/audit?context=${unit.id}`, undefined, 403);
   assert(ws.companies.some((c: { id: string }) => c.id === company.id));
   assert(ws.registeredUnits.some((u: { id: string }) => u.id === unit.id));
   await call(`/api/address?unit=${unit.id}&cep=invalido`, undefined, 400);
@@ -1590,6 +1593,17 @@ try {
   assert.equal(ownerView.unit.company_admin, true);
   assert(ownerView.units.some((un: { id: string }) => un.id === unit.id));
   assert.equal(ownerView.companies.length, 1);
+  const audit = await call(`/api/audit?context=${unit.id}`);
+  assert(audit.events.length > 0);
+  assert.equal(audit.events.length <= 50, true);
+  assert(
+    audit.events.every(
+      (event: { details: Record<string, unknown> }) => !('secret' in event.details),
+    ),
+  );
+  await call(`/api/audit?context=${isolatedUnit.id}`, undefined, 403);
+  await call(`/api/audit?context=${unit.id}&unit=${isolatedUnit.id}`, undefined, 403);
+  await call(`/api/audit?context=${unit.id}&from=2026-11-20&to=2026-11-19`, undefined, 400);
   await call(`/api/workspace?unit=${isolatedUnit.id}`, undefined, 403);
   await call('/api/admin', {
     action: 'region',
@@ -1627,6 +1641,7 @@ try {
   ).contractors.find((c: { cnpj: string }) => c.cnpj === '44555666000177');
   await call('/api/auth', { email: 'matrix-admin@example.com', password });
   const localView = await call(`/api/workspace?unit=${unit.id}`);
+  await call(`/api/audit?context=${unit.id}`, undefined, 403);
   assert.equal(localView.unit.company_admin, false);
   assert(localView.registeredUnits.every((un: { id: string }) => un.id === unit.id));
   await call(`/api/workspace?unit=${unassignedUnit.id}`, undefined, 403);
@@ -1706,6 +1721,7 @@ try {
   for (const role of ['gestor', 'seguranca_trabalho', 'executante']) {
     await call('/api/auth', { email: `matrix-${role}@example.com`, password });
     const scoped = await call(`/api/workspace?unit=${unit.id}`);
+    await call(`/api/audit?context=${unit.id}`, undefined, 403);
     for (const field of ['companies', 'regions', 'registeredUnits', 'companyPeople'])
       assert.equal(scoped[field].length, 0, `${role}: ${field}`);
     assert(
@@ -1746,6 +1762,7 @@ try {
   });
   await call('/api/auth', { email: 'matrix-aprovador@example.com', password });
   const approverScope = await call(`/api/workspace?unit=${unit.id}`);
+  await call(`/api/audit?context=${unit.id}`, undefined, 403);
   assert.equal(approverScope.documents.length, 1);
   assert.equal(approverScope.documents[0].id, matrixDocument!.id);
   for (const field of ['companies', 'regions', 'registeredUnits', 'companyPeople', 'approvers'])

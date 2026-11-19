@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  History,
 } from 'lucide-react';
 import type { DocumentInput } from '@/lib/validation';
 import { asInput, dateLabel, statuses, type WorkspaceData, type DocumentRow } from '@/lib/types';
@@ -33,7 +34,9 @@ import RemoveApr from './remove-apr';
 import { allowedMenus, companyManager, roleLabels } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
-type Tab = 'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | 'account' | RegistrationTab;
+import AuditPanel from './audit-panel';
+type Tab =
+  'overview' | 'APR' | 'PT' | 'approvals' | 'settings' | 'account' | 'audit' | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
   const response = await fetch(path, {
     method: method || (body ? 'POST' : 'GET'),
@@ -282,6 +285,7 @@ export default function Workspace() {
       : []),
     ['account', 'Minha conta e segurança', ShieldCheck],
     ['settings', 'Configurações da empresa', Settings2],
+    ['audit', 'Auditoria', History],
   ];
   const permitted = allowedMenus(ws.user, unit);
   const nav = menuList.filter(([id]) => permitted.includes(id));
@@ -640,6 +644,9 @@ export default function Workspace() {
             </section>
           )}
           {currentTab === 'approvals' && <NotificationPanel unitId={unit.id} online={online} />}
+          {currentTab === 'audit' && (
+            <AuditPanel key={unit.id} contextUnitId={unit.id} online={online} />
+          )}
           {(
             ['companies', 'regions', 'units', 'contractors', 'people', 'approvers'] as string[]
           ).includes(currentTab) && (
