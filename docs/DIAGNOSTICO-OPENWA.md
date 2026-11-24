@@ -1,5 +1,7 @@
 # Diagnóstico da conexão WhatsApp
 
+Para a instalação identificada em 0.24.0 e o erro em `Client.inject`, foi preparado um [procedimento de atualização para 0.32.0](ATUALIZACAO-OPENWA.md), preservando o override de mídia e os volumes existentes.
+
 ## Resposta HTML no aplicativo
 
 `Unexpected token '<', '<!DOCTYPE ... is not valid JSON` significa que o navegador recebeu HTML ao consultar uma API que deveria devolver JSON. Pode ser uma página de erro ou redirecionamento do app/proxy. A mensagem sozinha não identifica qual serviço falhou.
