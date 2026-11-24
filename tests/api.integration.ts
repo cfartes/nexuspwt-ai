@@ -50,7 +50,7 @@ const {
   "INSERT INTO units(company_id,name,kind) VALUES($1,'Unidade piloto','CDD') RETURNING id",
   [company.id],
 );
-const password = randomUUID() + randomUUID();
+const password = 'A!' + randomUUID() + randomUUID();
 const {
   rows: [user],
 } = await db.query<{ id: string }>(
@@ -647,7 +647,7 @@ try {
     404,
   );
   const adminCookie = cookie;
-  const executorPassword = randomUUID();
+  const executorPassword = 'A!' + randomUUID();
   await call(
     '/api/admin',
     {
@@ -1267,17 +1267,15 @@ try {
   let invitation = await getInvitation();
   const oldToken = decryptSecret(invitation.token_ciphertext, invitation.id, 'invitation');
   await call('/api/invitations', { unitId: unit.id, userId: invited.id });
-  await call(
-    '/api/invitations/accept',
-    { token: oldToken, password: 'nova-senha-aprovador-123' },
-    400,
-  );
+  await call('/api/invitations/accept', { token: oldToken, password: 'Nova!123' }, 400);
   invitation = await getInvitation();
   const token = decryptSecret(invitation.token_ciphertext, invitation.id, 'invitation');
   await call('/api/invitations/accept', { token, password: 'curta' }, 400);
-  await call('/api/invitations/accept', { token, password: 'nova-senha-aprovador-123' });
-  await call('/api/invitations/accept', { token, password: 'nova-senha-aprovador-123' }, 400);
-  await call('/api/auth', { email: 'convidado@nexus.local', password: 'nova-senha-aprovador-123' });
+  await call('/api/invitations/accept', { token, password: 'abcdefgh!' }, 400);
+  await call('/api/invitations/accept', { token, password: 'Abcdefgh' }, 400);
+  await call('/api/invitations/accept', { token, password: 'Nova!123' });
+  await call('/api/invitations/accept', { token, password: 'Nova!123' }, 400);
+  await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
   assert.equal((await call(`/api/workspace?unit=${unit.id}`)).user.id, invited.id);
   await call('/api/invitations', { unitId: unit.id, userId: user.id }, 403);
   await call(`/api/documents/${d.id}/remove`, { version: 4 }, 403);

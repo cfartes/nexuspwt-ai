@@ -31,7 +31,7 @@ Requer Node.js 24 e PostgreSQL 17. O Docker instalado nesta estação estava sem
 
 1. Execute `npm ci`.
 2. Copie `.env.example` para `.env.local`.
-3. Informe `DATABASE_URL`, `BOOTSTRAP_EMAIL`, uma `BOOTSTRAP_PASSWORD` de pelo menos 12 caracteres e o nome da unidade em `BOOTSTRAP_UNIT`.
+3. Informe `DATABASE_URL`, `BOOTSTRAP_EMAIL`, uma `BOOTSTRAP_PASSWORD` de pelo menos 8 caracteres, uma letra maiúscula e um caractere especial e o nome da unidade em `BOOTSTRAP_UNIT`.
 4. Execute `npm run db:setup`. Cria o schema, Ambev, unidade piloto e administrador se ainda não existir administrador da plataforma. Não redefine senhas existentes.
 5. Execute `npm run dev` e acesse <http://localhost:3000>.
 6. Após criar o primeiro acesso, remova a senha de bootstrap do arquivo de ambiente.
@@ -50,7 +50,7 @@ Execute `npm run db:setup` antes de iniciar a versão com a migração `008-user
 
 O processo `npm run notifications:work` (ou o serviço `notifications` do Compose) processa os dois canais e a fila de aprovação, usando a mesma trava e intervalo mínimo de cinco segundos. Em **Pessoas e acessos**, a coluna de convite mostra a situação por canal e eventuais bloqueios; atualize a tela para acompanhar. **Reenviar convite** gera um novo link, invalida os anteriores e agenda os dois canais novamente. Bloqueios de configuração são reavaliados a cada minuto; resultados incertos não são repetidos automaticamente. Confira o provedor antes de gerar outro convite, pois uma mensagem anterior pode ter sido aceita. “Aceito pelo provedor” não comprova entrega ou leitura.
 
-O link abre `/definir-senha`, tem validade de 24 horas e só funciona uma vez. O token é aleatório; a validação usa seu hash. A cópia necessária à entrega fica cifrada e é apagada ao consumir, substituir ou após expirar quando o processo de envio executa. O token não é devolvido nas APIs de cadastro/listagem nem registrado no histórico. Ele viaja no fragmento da URL, removido ao abrir a página, sem ser enviado no GET ou no referer. Abrir o link não consome o convite; é preciso definir uma senha de pelo menos 12 caracteres. Consumo, troca da senha e encerramento das sessões da conta são atômicos. A conta não pode entrar antes de definir a senha; convites expirados, substituídos ou sem acesso ativo à unidade são recusados. O superadmin continua sendo criado pelo bootstrap, sem senha padrão no código.
+O link abre `/definir-senha`, tem validade de 24 horas e só funciona uma vez. O token é aleatório; a validação usa seu hash. A cópia necessária à entrega fica cifrada e é apagada ao consumir, substituir ou após expirar quando o processo de envio executa. O token não é devolvido nas APIs de cadastro/listagem nem registrado no histórico. Ele viaja no fragmento da URL, removido ao abrir a página, sem ser enviado no GET ou no referer. Abrir o link não consome o convite; é preciso definir uma senha de pelo menos 8 caracteres, uma letra maiúscula e um caractere especial. Consumo, troca da senha e encerramento das sessões da conta são atômicos. A conta não pode entrar antes de definir a senha; convites expirados, substituídos ou sem acesso ativo à unidade são recusados. O superadmin continua sendo criado pelo bootstrap, sem senha padrão no código.
 
 ## Validação
 

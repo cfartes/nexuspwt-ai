@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from './password-input';
 import { useState } from 'react';
 import type { WorkspaceData } from '@/lib/types';
 import { api } from './workspace';
@@ -118,9 +119,8 @@ export default function SecuritySettings({
               </label>
               <label>
                 Sua senha
-                <input
+                <PasswordInput
                   name="password"
-                  type="password"
                   autoComplete="current-password"
                   required
                   maxLength={256}
@@ -205,8 +205,7 @@ export default function SecuritySettings({
             <fieldset className="form-grid" disabled={busy || !online}>
               <label className="span-2">
                 Sua senha
-                <input
-                  type="password"
+                <PasswordInput
                   name="password"
                   required
                   autoComplete="current-password"

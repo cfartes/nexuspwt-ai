@@ -46,6 +46,10 @@ O atualizador identifica as etapas posteriores ao build e apresenta erros de com
 
 A saída posterior da VPS identificou `No such image: sha256:…` durante preservação dos bundles. A etapa foi corrigida para obter os arquivos antigos por `docker cp` do container ativo, sem precisar executar sua imagem original. App/worker candidatos usam tags exclusivas da execução, em vez do campo interno `.Id`. A cópia usa diretório temporário e preserva o volume público acumulado; não para o app nem toca no PostgreSQL. Sete testes Python incluem regressão desse caso; lint e teste Docker com a nova cópia passaram, com 662 requisições durante trocas/retorno sem falhas HTTP. A confirmação final no servidor permanece pendente.
 
+### Senhas e visualização — 24/11/2026
+
+Senhas novas exigem no mínimo oito caracteres, uma letra maiúscula e um símbolo. A regra é aplicada no formulário, API, consumo do convite e bootstrap de novas instalações. Senhas existentes são preservadas. Todos os campos ocultos de senha e chaves possuem botão de mostrar/ocultar, acessível por teclado e sem submeter o formulário. Validação: typecheck, build, lint, testes de senha/convite e integração HTTP; teste isolado em Linux confirma a política na senha gerada pelo instalador.
+
 ### Cadastro da contratada por convite — 24/11/2026
 
 Implementado convite por e-mail, formulário público por link temporário, dados completos da contratada e colaboradores com CPF e três perfis externos, Cartão CNPJ opcional e revisão interna com aprovação ou devolução. Contas, vínculo e convites de senha somente são criados após aprovação, em uma transação. Arquivos e CPF são cifrados; versões do Cartão CNPJ são preservadas por cinco anos. A política opcional de documentos pessoais continua independente e se aplica após o primeiro acesso.

@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from './password-input';
 import { useEffect, useState } from 'react';
 import { FileCheck2, Save } from 'lucide-react';
 import type { WorkspaceData } from '@/lib/types';
@@ -229,8 +230,7 @@ function SignatureSettings({
           )}
           <label className="span-2">
             {provider === 'certisign' ? 'Token de integração' : 'Client Secret (OAuth)'}
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               value={secret}
               onChange={(e) => setSecret(e.target.value)}

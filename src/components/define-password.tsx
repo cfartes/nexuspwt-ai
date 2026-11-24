@@ -1,4 +1,6 @@
 'use client';
+import PasswordInput from './password-input';
+import { passwordHint, passwordPattern } from '@/lib/password-policy';
 import { useEffect, useState, useRef } from 'react';
 import { Login } from './workspace';
 export default function DefinePassword() {
@@ -118,14 +120,16 @@ export default function DefinePassword() {
               </div>
             )}
             <p className="muted">O convite vale por 24 horas e só pode ser utilizado uma vez.</p>
+            <p className="muted">{passwordHint}</p>
             <fieldset className="form-grid" disabled={busy || !token}>
               <label className="span-2">
                 Nova senha
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   required
-                  minLength={12}
+                  minLength={8}
+                  pattern={passwordPattern}
+                  title={passwordHint}
                   maxLength={256}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -133,11 +137,12 @@ export default function DefinePassword() {
               </label>
               <label className="span-2">
                 Confirmar senha
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   required
-                  minLength={12}
+                  minLength={8}
+                  pattern={passwordPattern}
+                  title={passwordHint}
                   maxLength={256}
                   value={confirmation}
                   onChange={(e) => setConfirmation(e.target.value)}

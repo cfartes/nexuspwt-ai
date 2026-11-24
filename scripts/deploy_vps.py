@@ -109,7 +109,7 @@ def main(update_only=False):
             'DATABASE_URL': f'postgresql://nexus:{password}@database:5432/nexus',
             'INTEGRATIONS_ENCRYPTION_KEY': secrets.token_hex(32),
             'BOOTSTRAP_EMAIL': choose('BOOTSTRAP_EMAIL', ['admin@nexus.local'], os.getenv('BOOTSTRAP_EMAIL')),
-            'BOOTSTRAP_PASSWORD': secrets.token_urlsafe(24),
+            'BOOTSTRAP_PASSWORD': 'A!' + secrets.token_urlsafe(24),
             'OPENWA_ALLOWED_ORIGINS': 'https://openwa.187-77-58-10.sslip.io',
             'OPENWA_DEFAULT_URL': 'https://openwa.187-77-58-10.sslip.io/api',
         }

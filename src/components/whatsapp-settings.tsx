@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from './password-input';
 import { useEffect, useState, useRef } from 'react';
 import { MessageCircle, RefreshCw, Save } from 'lucide-react';
 import { api } from './workspace';
@@ -207,8 +208,7 @@ export default function WhatsappSettings({
               </label>
               <label className="span-2">
                 Chave de API
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   maxLength={16000}
                   value={secret}

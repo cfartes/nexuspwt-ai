@@ -90,21 +90,21 @@ await test('convite: duas entregas, expiração, reemissão, revogação de aces
     assert.equal((await db.query('SELECT 1 FROM invitation_deliveries')).rows.length, 2);
     const second = await issue();
     await assert.rejects(
-      tx((c) => acceptInvitation(c, firstToken, 'senha-valida-123456')),
+      tx((c) => acceptInvitation(c, firstToken, 'Senha!12')),
       /inválido/,
     );
     await db.query("UPDATE user_invitations SET expires_at=now()-interval '1 second' WHERE id=$1", [
       second.id,
     ]);
     await assert.rejects(
-      tx((c) => acceptInvitation(c, raw(second), 'senha-valida-123456')),
+      tx((c) => acceptInvitation(c, raw(second), 'Senha!12')),
       /expirado/,
     );
     const third = await issue();
     const token = raw(third);
     await db.query('UPDATE memberships SET active=false WHERE user_id=$1', [user.id]);
     await assert.rejects(
-      tx((c) => acceptInvitation(c, token, 'senha-valida-123456')),
+      tx((c) => acceptInvitation(c, token, 'Senha!12')),
       /inválido/,
     );
     await db.query('UPDATE memberships SET active=true WHERE user_id=$1', [user.id]);
@@ -174,17 +174,22 @@ await test('convite: duas entregas, expiração, reemissão, revogação de aces
     assert.equal(requests.length, count, 'Envio interrompido não é repetido automaticamente');
     const audits = JSON.stringify((await db.query('SELECT details FROM audit_events')).rows);
     assert(!audits.includes(token));
-    await tx((c) => acceptInvitation(c, token, 'senha-valida-123456'));
+    for (const password of ['Senha!1', 'senhasemMaiuscula'.toLowerCase() + '!', 'SenhaSemSimbolo'])
+      await assert.rejects(
+        tx((c) => acceptInvitation(c, token, password)),
+        /8 caracteres/,
+      );
+    await tx((c) => acceptInvitation(c, token, 'Senha!12'));
     const saved = (
       await db.query<{ password_hash: string; password_pending: boolean }>(
         'SELECT password_hash,password_pending FROM users WHERE id=$1',
         [user.id],
       )
     ).rows[0];
-    assert(verifyPassword('senha-valida-123456', saved.password_hash));
+    assert(verifyPassword('Senha!12', saved.password_hash));
     assert.equal(saved.password_pending, false);
     await assert.rejects(
-      tx((c) => acceptInvitation(c, token, 'outra-senha-123456')),
+      tx((c) => acceptInvitation(c, token, 'Outra!12')),
       /utilizado/,
     );
     await assert.rejects(

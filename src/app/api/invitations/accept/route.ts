@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { newPassword } from '@/lib/password-policy';
 import { cookies } from 'next/headers';
 import { transaction } from '@/lib/db';
 import { assertOrigin } from '@/lib/security';
@@ -8,7 +9,7 @@ export async function POST(request: Request) {
   try {
     assertOrigin(request);
     const input = z
-      .object({ token: z.string().regex(/^[a-f\d]{64}$/), password: z.string().min(12).max(256) })
+      .object({ token: z.string().regex(/^[a-f\d]{64}$/), password: newPassword })
       .strict()
       .parse(await request.json());
     const account = await transaction((c) => acceptInvitation(c, input.token, input.password));

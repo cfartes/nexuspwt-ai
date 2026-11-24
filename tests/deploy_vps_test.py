@@ -12,6 +12,22 @@ spec.loader.exec_module(deploy)
 
 
 class InstallTests(unittest.TestCase):
+    def test_generated_admin_password_meets_policy(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            env = root / 'deploy' / '.env.production'
+            env.parent.mkdir()
+            previous_umask = os.umask(0o077)
+            try:
+                with patch.object(deploy, 'ROOT', root), patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing', return_value={}), patch.object(deploy, 'choose', return_value='admin@example.com'), patch.object(deploy, 'output', return_value='release'), patch.object(deploy.secrets, 'token_urlsafe', return_value='a' * 24), patch.object(deploy.subprocess, 'run'):
+                    deploy.main()
+                password = deploy.load_env(env)['BOOTSTRAP_PASSWORD']
+                self.assertGreaterEqual(len(password), 8)
+                self.assertRegex(password, r'[A-Z]')
+                self.assertIn('!', password)
+            finally:
+                os.umask(previous_umask)
+
     def test_update_preserves_environment_and_never_recreates_database(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

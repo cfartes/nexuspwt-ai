@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from './password-input';
 import { useEffect, useState } from 'react';
 import { Mail, Save } from 'lucide-react';
 import { api } from './workspace';
@@ -87,8 +88,7 @@ export default function ResendSettings() {
               </label>
               <label className="span-2">
                 API Key
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   maxLength={16000}
                   value={key}

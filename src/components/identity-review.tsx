@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from './password-input';
 import { useState } from 'react';
 import type { Person, WorkspaceData } from '@/lib/types';
 import Popup from './popup';
@@ -141,9 +142,9 @@ export default function IdentityReview({
               {action === 'reset' && (
                 <label>
                   Sua senha de administrador *
-                  <input
+                  <PasswordInput
                     name="identity-review-password"
-                    type="password"
+
                     required
                     autoComplete="new-password"
                     value={password}

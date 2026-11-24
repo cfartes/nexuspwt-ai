@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from './password-input';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ShieldCheck,
@@ -1006,10 +1007,9 @@ export function Login({
             </label>
             <label>
               Senha
-              <input
+              <PasswordInput
                 name="password"
                 defaultValue={initialPassword}
-                type="password"
                 autoComplete="current-password"
                 required
                 placeholder="Sua senha"

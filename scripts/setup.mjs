@@ -13,10 +13,17 @@ try {
   const email = process.env.BOOTSTRAP_EMAIL?.trim().toLowerCase();
   const password = process.env.BOOTSTRAP_PASSWORD;
   if (email && password) {
-    if (password.length < 12)
-      throw new Error('A senha inicial precisa de pelo menos 12 caracteres');
     const existing = await db.query('SELECT id FROM users WHERE platform_admin=true');
     if (!existing.rowCount) {
+      if (
+        password.length < 8 ||
+        password.length > 256 ||
+        !/\p{Lu}/u.test(password) ||
+        !/[^\p{L}\p{N}\s]/u.test(password)
+      )
+        throw new Error(
+          'A senha inicial precisa de 8 a 256 caracteres, uma letra maiúscula e um caractere especial',
+        );
       const salt = randomBytes(16).toString('hex');
       const hash = salt + ':' + scryptSync(password, salt, 64).toString('hex');
       const {

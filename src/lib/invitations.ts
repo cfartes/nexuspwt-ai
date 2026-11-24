@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { encryptSecret } from './integrations';
 import { digest, hashPassword, HttpError } from './security';
+import { newPassword, passwordHint } from './password-policy';
 
 export async function createInvitation(
   client: PoolClient,
@@ -47,6 +48,7 @@ export async function createInvitation(
   ]);
 }
 export async function acceptInvitation(client: PoolClient, token: string, password: string) {
+  if (!newPassword.safeParse(password).success) throw new HttpError(400, passwordHint);
   // Serialize per account before locking invitations, matching reissue and preventing token reuse.
   const {
     rows: [target],
