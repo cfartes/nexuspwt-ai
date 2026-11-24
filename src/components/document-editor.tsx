@@ -22,6 +22,8 @@ import ReassignApproval from './reassign-approval';
 import { ptToday, ptCreationError, ptEndError, ptAprError } from '@/lib/pt-calendar';
 import PtLifecycleControls from './pt-lifecycle-controls';
 import type { PtAction } from '@/lib/pt-lifecycle';
+import { canRemovePt } from '@/lib/permissions';
+import RemoveDocument from './remove-document';
 type Photo = {
   id: string;
   caption: string;
@@ -35,6 +37,7 @@ export default function DocumentEditor({
   ws,
   online,
   onClose,
+  onRemoved,
   onSave,
   onSubmit,
   onRevise,
@@ -46,6 +49,7 @@ export default function DocumentEditor({
   ws: WorkspaceData;
   online: boolean;
   onClose: () => void;
+  onRemoved: () => Promise<unknown>;
   onSave: (d: DocumentInput) => Promise<void>;
   onSubmit: () => Promise<void>;
   onRevise: (reason: string) => Promise<void>;
@@ -887,6 +891,9 @@ export default function DocumentEditor({
                 unsaved={busy || JSON.stringify(d) !== JSON.stringify(value)}
                 onDone={onPtChanged}
               />
+            )}
+            {saved && canRemovePt(ws.user, ws.unit, saved) && (
+              <RemoveDocument document={saved} online={online} onRemoved={onRemoved} />
             )}
             {saved?.kind === 'APR' &&
               saved.status === 'aprovado' &&

@@ -1,18 +1,27 @@
 import type { PoolClient } from 'pg';
 import { unitAccess, type User } from './auth';
 import { HttpError } from './security';
+import { canRemovePt } from './permissions';
 export async function removeDocument(c: PoolClient, user: User, id: string, version: number) {
   const {
     rows: [target],
   } = await c.query('SELECT unit_id,kind FROM documents WHERE id=$1', [id]);
   if (!target) throw new HttpError(404, 'Documento não encontrado.');
-  if (target.kind === 'PT' && !user.platform_admin)
-    throw new HttpError(403, 'Somente o Superadmin pode excluir PT.');
   await c.query('SELECT id FROM units WHERE id=$1 FOR KEY SHARE', [target.unit_id]);
-  await unitAccess(user, target.unit_id, target.kind === 'PT' ? undefined : ['admin'], c);
+  const unit = await unitAccess(
+    user,
+    target.unit_id,
+    target.kind === 'PT' ? undefined : ['admin'],
+    c,
+  );
   const {
     rows: [d],
   } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id]);
+  if (d.kind === 'PT' && !canRemovePt(user, unit, d))
+    throw new HttpError(
+      403,
+      'Somente o autor ou o administrador responsável pode excluir uma PT em rascunho. Fora do rascunho, somente o Superadmin.',
+    );
   if (d.removed_at) throw new HttpError(409, `Esta ${d.kind} já foi removida.`);
   if (d.version !== version)
     throw new HttpError(409, `${d.kind} alterada. Atualize a lista antes de remover.`);

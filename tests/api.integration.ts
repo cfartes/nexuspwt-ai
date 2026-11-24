@@ -1500,6 +1500,26 @@ try {
   await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
   await call(`/api/documents/${removablePt.id}/remove`, { version: 1 }, 403);
   cookie = adminCookie;
+  const adminDraft = { ...removablePt, id: randomUUID() };
+  await call('/api/documents', adminDraft);
+  await db.query("UPDATE memberships SET role='admin' WHERE user_id=$1 AND unit_id=$2", [
+    invited.id,
+    unit.id,
+  ]);
+  await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
+  await call(`/api/documents/${adminDraft.id}/remove`, { version: 1 });
+  await db.query("UPDATE memberships SET role='executante' WHERE user_id=$1 AND unit_id=$2", [
+    invited.id,
+    unit.id,
+  ]);
+  const authorDraft = { ...removablePt, id: randomUUID() };
+  await call('/api/documents', authorDraft);
+  await call(`/api/documents/${authorDraft.id}/remove`, { version: 1 });
+  await db.query("UPDATE memberships SET role='aprovador' WHERE user_id=$1 AND unit_id=$2", [
+    invited.id,
+    unit.id,
+  ]);
+  cookie = adminCookie;
   await call(`/api/documents/${removablePt.id}/remove`, { version: 99 }, 409);
   await call(`/api/documents/${removablePt.id}/remove`, { version: 1 });
   await call(`/api/documents/${removablePt.id}/remove`, { version: 1 }, 409);

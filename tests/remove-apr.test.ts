@@ -6,7 +6,7 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
 import { removeDocument } from '../src/lib/remove-document';
 import type { User } from '../src/lib/auth';
-await test('remoção: APR exige admin e nenhuma PT; PT exige Superadmin, preservando histórico e evidências', async () => {
+await test('remoção: APR exige admin e nenhuma PT; PT em rascunho permite autor/admin e demais estados exigem Superadmin', async () => {
   const db = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))
     .filter((f) => f.endsWith('.sql'))
@@ -102,7 +102,56 @@ await test('remoção: APR exige admin e nenhuma PT; PT exige Superadmin, preser
   try {
     await assert.rejects(remove(manager, apr), status(403));
     await assert.rejects(remove(root, linked), status(409));
-    await assert.rejects(remove(root, pt), status(403));
+    await assert.rejects(remove(root, pt, 99), status(409));
+    const adminDraft = crypto.randomUUID();
+    await db.query(
+      'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version) SELECT $1,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,$2,apr_id,apr_version FROM documents WHERE id=$3',
+      [adminDraft, manager.id, pt],
+    );
+    await remove(root, adminDraft);
+    const authorId = await insert(
+      "INSERT INTO users(name,email,password_hash) VALUES('Autor','autor@test.local','hash') RETURNING id",
+    );
+    await db.query("INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'executante')", [
+      authorId,
+      unit,
+    ]);
+    const author = { ...root, id: authorId };
+    await assert.rejects(remove(author, pt), status(403));
+    const authorDraft = crypto.randomUUID();
+    await db.query(
+      'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version) SELECT $1,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,$2,apr_id,apr_version FROM documents WHERE id=$3',
+      [authorDraft, authorId, pt],
+    );
+    await remove(author, authorDraft);
+    const contractorAdminId = await insert(
+      "INSERT INTO users(name,email,password_hash) VALUES('Gestor contratada','gestor-contratada@test.local','hash') RETURNING id",
+    );
+    await db.query(
+      'INSERT INTO contractor_units(company_id,contractor_id,unit_id) VALUES($1,$2,$3)',
+      [company, contractor, unit],
+    );
+    await db.query(
+      "INSERT INTO memberships(user_id,unit_id,role,contractor_id) VALUES($1,$2,'gestor',$3)",
+      [contractorAdminId, unit, contractor],
+    );
+    const contractorAdmin = { ...root, id: contractorAdminId };
+    const contractorDraft = crypto.randomUUID();
+    await db.query(
+      'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version) SELECT $1,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version FROM documents WHERE id=$2',
+      [contractorDraft, pt],
+    );
+    await remove(contractorAdmin, contractorDraft);
+    const otherContractor = await insert(
+      "INSERT INTO contractors(company_id,name,cnpj) VALUES($1,'Outra contratada','98765432000100') RETURNING id",
+      [company],
+    );
+    const otherContractorDraft = crypto.randomUUID();
+    await db.query(
+      'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version) SELECT $1,company_id,unit_id,$2,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version FROM documents WHERE id=$3',
+      [otherContractorDraft, otherContractor, pt],
+    );
+    await assert.rejects(remove(contractorAdmin, otherContractorDraft), status(403));
     await assert.rejects(remove(manager, pt, 99), status(409));
     await db.query('UPDATE memberships SET active=false WHERE user_id=$1', [manager.id]);
     await assert.rejects(remove(manager, pt), status(403));
@@ -155,6 +204,7 @@ await test('remoção: APR exige admin e nenhuma PT; PT exige Superadmin, preser
         'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version,status) SELECT $1,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version,$2 FROM documents WHERE id=$3',
         [otherPt, documentStatus, pt],
       );
+      await assert.rejects(remove(root, otherPt), status(403));
       await remove(manager, otherPt);
       assert(
         (

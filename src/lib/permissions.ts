@@ -17,6 +17,25 @@ export type AccessUnit = {
 export const companyManager = (user: { platform_admin: boolean }, unit: AccessUnit) =>
   user.platform_admin || !!unit.company_admin;
 export const canViewAudit = (unit: AccessUnit) => !!unit.company_admin;
+export function canRemovePt(
+  user: { id: string; platform_admin: boolean },
+  unit: AccessUnit,
+  document: { kind: string; status: string; created_by: string; contractor_id: string },
+) {
+  if (
+    document.kind !== 'PT' ||
+    (unit.contractor_id && unit.contractor_id !== document.contractor_id)
+  )
+    return false;
+  if (user.platform_admin) return true;
+  return (
+    document.status === 'rascunho' &&
+    (document.created_by === user.id ||
+      !!unit.company_admin ||
+      unit.role === 'admin' ||
+      isContractorManager(unit))
+  );
+}
 export function allowedMenus(user: { platform_admin: boolean }, unit: AccessUnit) {
   const menus = ['overview', 'APR', 'PT', 'account'];
   const personal = unit.identity_upload_enabled && unit.contractor_id ? ['identity'] : [];

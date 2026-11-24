@@ -37,7 +37,7 @@
   'workflow.reject': 'Documento rejeitado',
   'workflow.revise': 'RevisÃ£o criada',
   'apr.removida': 'APR removida',
-  'pt.removida': 'PT excluída pelo Superadmin',
+  'pt.removida': 'PT excluída da operação',
   'foto.adicionada': 'EvidÃªncia fotogrÃ¡fica adicionada',
   'usuario.convite_criado': 'Convite de acesso criado ou reenviado',
   'usuario.senha_definida': 'Senha definida pelo usuÃ¡rio',

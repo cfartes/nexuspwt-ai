@@ -504,15 +504,15 @@
     "semantic_hash": ""
   },
   "src/components/document-editor.tsx": {
-    "mtime": 1795544851.064555,
-    "seen": 1795544869.0575373,
-    "ast_hash": "133f2182b6763acde71188348fba568a",
+    "mtime": 1795547443.6484065,
+    "seen": 1795547585.6898906,
+    "ast_hash": "0c36c498faa179663e5b1acd18341c57",
     "semantic_hash": ""
   },
   "src/components/document-history.tsx": {
-    "mtime": 1795545790.8618593,
-    "seen": 1795545922.6635625,
-    "ast_hash": "9650ff78cec9ed5efedf3da56562c2c7",
+    "mtime": 1795547443.6596966,
+    "seen": 1795547585.6898952,
+    "ast_hash": "caf529d02fda205f1aab9941bdd23d2c",
     "semantic_hash": ""
   },
   "src/components/identity-review.tsx": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/components/workspace.tsx": {
-    "mtime": 1795545823.7739117,
-    "seen": 1795545922.6680555,
-    "ast_hash": "82370d700a7d744fb3daee605823d3e1",
+    "mtime": 1795547490.4790933,
+    "seen": 1795547585.6935863,
+    "ast_hash": "08953d28b0d97e7d1becd9431c8db946",
     "semantic_hash": ""
   },
   "src/index.ts": {
@@ -636,9 +636,9 @@
     "semantic_hash": ""
   },
   "src/lib/audit-labels.ts": {
-    "mtime": 1795545790.8598597,
-    "seen": 1795545922.6695087,
-    "ast_hash": "fff056306c5eea7b0de04b6aec08e7a3",
+    "mtime": 1795547443.6596966,
+    "seen": 1795547585.6948073,
+    "ast_hash": "5f1cb48520f03577da3b7f5b9fba19cf",
     "semantic_hash": ""
   },
   "src/lib/audit.ts": {
@@ -774,9 +774,9 @@
     "semantic_hash": ""
   },
   "src/lib/permissions.ts": {
-    "mtime": 1795514926.6871493,
-    "seen": 1795516278.63717,
-    "ast_hash": "fb2a33a738d2c34b99d8535f80bd422c",
+    "mtime": 1795547538.9427774,
+    "seen": 1795547585.700173,
+    "ast_hash": "2faabb99d35cdd68e229ba0a163eef34",
     "semantic_hash": ""
   },
   "src/lib/resend.ts": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "tests/api.integration.ts": {
-    "mtime": 1795545965.3875327,
-    "seen": 1795545989.712412,
-    "ast_hash": "9e56a91cf588e6450b0e34fcc531cde4",
+    "mtime": 1795547540.3284893,
+    "seen": 1795547585.7031307,
+    "ast_hash": "afc35d05433b5056d6ceac7df90e7cdf",
     "semantic_hash": ""
   },
   "tests/app-release.test.ts": {
@@ -942,15 +942,15 @@
     "semantic_hash": ""
   },
   "tests/permissions.test.ts": {
-    "mtime": 1795515380.3155015,
-    "seen": 1795516278.6656003,
-    "ast_hash": "5b5696b754801b9d027105b811751ff6",
+    "mtime": 1795547536.2949626,
+    "seen": 1795547585.7068124,
+    "ast_hash": "07893280032b6bee81167ceb0531b436",
     "semantic_hash": ""
   },
   "tests/remove-apr.test.ts": {
-    "mtime": 1795545885.358129,
-    "seen": 1795545922.685035,
-    "ast_hash": "59786bf495390bbf05f23b7af53ebebd",
+    "mtime": 1795547631.1432154,
+    "seen": 1795547659.789838,
+    "ast_hash": "fda8ce9ec8a573351f43b4f6e3013415",
     "semantic_hash": ""
   },
   "tests/test_rolling_deploy.py": {
@@ -1098,15 +1098,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795545922.1934373,
-    "seen": 1795545989.7205222,
-    "ast_hash": "8fe88580fb2a1528e79e75b73b2386dd",
+    "mtime": 1795545989.2667544,
+    "seen": 1795547585.7096155,
+    "ast_hash": "6116ba016ec0902c34a1235d6d1781af",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795545922.85205,
-    "seen": 1795545989.720527,
-    "ast_hash": "e3a26ab3f681e00d6e1478646f4915e9",
+    "mtime": 1795545989.848956,
+    "seen": 1795547585.709621,
+    "ast_hash": "1dbe2c1b4309b208319b57b44813b9cf",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1260,15 +1260,15 @@
     "semantic_hash": ""
   },
   "src/components/remove-document.tsx": {
-    "mtime": 1795545790.8254755,
-    "seen": 1795545922.66688,
-    "ast_hash": "6f46defe203f7fb45ef69969bcc104c4",
+    "mtime": 1795547443.6585348,
+    "seen": 1795547585.6925254,
+    "ast_hash": "f3a01dfd6283502230964c728f9a3a1b",
     "semantic_hash": ""
   },
   "src/lib/remove-document.ts": {
-    "mtime": 1795545790.823475,
-    "seen": 1795545922.6768773,
-    "ast_hash": "ea69cc094d415876436c814df16bcee9",
+    "mtime": 1795547490.3370152,
+    "seen": 1795547585.7008138,
+    "ast_hash": "d9ba2d4f199901e7a8e8925eba349206",
     "semantic_hash": ""
   },
   "package-lock.json": {

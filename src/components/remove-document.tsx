@@ -41,7 +41,7 @@ export default function RemoveDocument({
             </p>
             <p className="muted">
               {document.kind === 'PT'
-                ? 'A PT será retirada da operação. O histórico, as aprovações e as fotos serão preservados. Esta ação é exclusiva do Superadmin.'
+                ? 'A PT será retirada da operação. O histórico, as aprovações e as fotos serão preservados. Em rascunho, o autor ou o administrador responsável pode excluir. Nas demais situações, somente o Superadmin.'
                 : 'A APR será retirada da operação e não poderá ser usada em novas PTs. O histórico será preservado. Qualquer PT vinculada, inclusive rascunho, impede a remoção.'}
             </p>
             {error && (

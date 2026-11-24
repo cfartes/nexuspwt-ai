@@ -34,7 +34,7 @@ import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
 import RemoveDocument from './remove-document';
-import { allowedMenus, roleLabels, personRoleLabel } from '@/lib/permissions';
+import { allowedMenus, roleLabels, personRoleLabel, canRemovePt } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
 import AuditPanel from './audit-panel';
@@ -580,7 +580,7 @@ export default function Workspace() {
                     contractors={ws.contractors}
                     onOpen={(d) => setEditor(asInput(d))}
                     canRemoveApr={unit.role === 'admin'}
-                    canRemovePt={!!ws.user.platform_admin}
+                    canRemovePt={(document) => canRemovePt(ws.user, unit, document)}
                     online={online}
                     onRemoved={async () => {
                       await load(unit.id);
@@ -660,7 +660,7 @@ export default function Workspace() {
                 contractors={ws.contractors}
                 onOpen={(d) => setEditor(asInput(d))}
                 canRemoveApr={unit.role === 'admin'}
-                canRemovePt={!!ws.user.platform_admin}
+                canRemovePt={(document) => canRemovePt(ws.user, unit, document)}
                 online={online}
                 onRemoved={async () => {
                   await load(unit.id);
@@ -781,6 +781,11 @@ export default function Workspace() {
           ws={ws}
           online={online}
           onClose={() => setEditor(null)}
+          onRemoved={async () => {
+            setEditor(null);
+            await load(unit.id);
+            setNotice('PT excluída da operação. Histórico preservado.');
+          }}
           onSave={save}
           onPtChanged={async (action, reason, endTime) => {
             if (busy.current || pending.some((job) => job.id === editor.id))
@@ -855,7 +860,7 @@ function DocumentTable({
   contractors,
   onOpen,
   canRemoveApr = false,
-  canRemovePt = false,
+  canRemovePt,
   online = false,
   onRemoved,
 }: {
@@ -863,7 +868,7 @@ function DocumentTable({
   contractors: WorkspaceData['contractors'];
   onOpen: (d: DocumentRow) => void;
   canRemoveApr?: boolean;
-  canRemovePt?: boolean;
+  canRemovePt?: (document: DocumentRow) => boolean;
   online?: boolean;
   onRemoved?: () => Promise<unknown>;
 }) {
@@ -924,10 +929,9 @@ function DocumentTable({
                   >
                     <ChevronRight size={18} />
                   </button>
-                  {((canRemoveApr && d.kind === 'APR') || (canRemovePt && d.kind === 'PT')) &&
-                    onRemoved && (
-                      <RemoveDocument document={d} online={online} onRemoved={onRemoved} />
-                    )}
+                  {((canRemoveApr && d.kind === 'APR') || canRemovePt?.(d)) && onRemoved && (
+                    <RemoveDocument document={d} online={online} onRemoved={onRemoved} />
+                  )}
                 </div>
               </td>
             </tr>
