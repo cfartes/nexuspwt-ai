@@ -19,7 +19,7 @@ import { enqueue } from '@/lib/offline';
 import { api } from './workspace';
 import DocumentHistory from './document-history';
 import ReassignApproval from './reassign-approval';
-import { ptToday, ptCreationError, ptEndError } from '@/lib/pt-calendar';
+import { ptToday, ptCreationError, ptEndError, ptAprError } from '@/lib/pt-calendar';
 import PtLifecycleControls from './pt-lifecycle-controls';
 import type { PtAction } from '@/lib/pt-lifecycle';
 type Photo = {
@@ -61,6 +61,13 @@ export default function DocumentEditor({
     [camera, setCamera] = useState(false),
     [photos, setPhotos] = useState<Photo[]>([]);
   const saved = ws.documents.find((doc) => doc.id === d.id);
+  const aprError =
+    d.kind === 'PT' && (!saved || saved.apr_id !== d.aprId)
+      ? ptAprError(
+          ws.documents.find((apr) => apr.id === d.aprId),
+          d.startsAt,
+        )
+      : null;
   const readOnly =
     ws.unit.role === 'aprovador' ||
     (!!saved &&
@@ -281,6 +288,7 @@ export default function DocumentEditor({
                         value={d.aprId || ''}
                         onChange={(e) => {
                           const apr = ws.documents.find((a) => a.id === e.target.value);
+                          setError('');
                           update({
                             aprId: e.target.value || null,
                             ...(apr
@@ -309,9 +317,16 @@ export default function DocumentEditor({
                               APR-{a.number} · versão{' '}
                               {saved?.apr_id === a.id ? saved.apr_version : a.version} ·{' '}
                               {saved?.apr_id === a.id ? 'Vínculo preservado' : a.title}
+                              {saved?.apr_id !== a.id &&
+                                ` · ${a.starts_at.slice(0, 10).split('-').reverse().join('/')} a ${a.ends_at.slice(0, 10).split('-').reverse().join('/')}`}
                             </option>
                           ))}
                       </select>
+                      {aprError && (
+                        <span className="alert error" role="alert">
+                          {aprError}
+                        </span>
+                      )}
                     </label>
                   </>
                 ) : (
@@ -926,6 +941,10 @@ export default function DocumentEditor({
                 disabled={busy}
                 onClick={async () => {
                   setError('');
+                  if (aprError) {
+                    setError(aprError);
+                    return;
+                  }
                   if (d.kind === 'PT' && !saved) {
                     const dateError = ptCreationError(d.startsAt);
                     if (dateError) {

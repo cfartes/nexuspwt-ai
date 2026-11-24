@@ -1,7 +1,7 @@
 'use client';
 import PasswordInput from './password-input';
 import { readApiJson } from '@/lib/api-response';
-import { ptToday } from '@/lib/pt-calendar';
+import { ptToday, ptAprError, ptCreationError } from '@/lib/pt-calendar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ShieldCheck,
@@ -203,6 +203,18 @@ export default function Workspace() {
   }, [online, ws?.user.id, sync]);
   async function save(d: DocumentInput) {
     if (!ws) return;
+    const saved = ws.documents.find((document) => document.id === d.id);
+    if (d.kind === 'PT') {
+      const error =
+        (!saved ? ptCreationError(d.startsAt) : null) ||
+        (!saved || saved.apr_id !== d.aprId
+          ? ptAprError(
+              ws.documents.find((apr) => apr.id === d.aprId),
+              d.startsAt,
+            )
+          : null);
+      if (error) throw new Error(error);
+    }
     if (busy.current)
       throw new Error('Aguarde a sincronização terminar antes de salvar novas alterações.');
     await offline.saveLocal(ws.user.id, d);

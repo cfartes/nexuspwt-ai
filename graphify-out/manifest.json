@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "src/app/api/documents/route.ts": {
-    "mtime": 1795519393.3008144,
-    "seen": 1795519702.0780778,
-    "ast_hash": "9cc152465933504719004b2570b46054",
+    "mtime": 1795544773.3841357,
+    "seen": 1795544869.0481782,
+    "ast_hash": "e69995a31a59723dcf3789f8bd4d958a",
     "semantic_hash": ""
   },
   "src/app/api/email-gateway/route.ts": {
@@ -504,9 +504,9 @@
     "semantic_hash": ""
   },
   "src/components/document-editor.tsx": {
-    "mtime": 1795519444.4495795,
-    "seen": 1795519702.0869882,
-    "ast_hash": "18ccb91cfefac545cd0ad834bf471d46",
+    "mtime": 1795544851.064555,
+    "seen": 1795544869.0575373,
+    "ast_hash": "133f2182b6763acde71188348fba568a",
     "semantic_hash": ""
   },
   "src/components/document-history.tsx": {
@@ -606,9 +606,9 @@
     "semantic_hash": ""
   },
   "src/components/workspace.tsx": {
-    "mtime": 1795524514.449568,
-    "seen": 1795539214.6574907,
-    "ast_hash": "0c5891d6bbe9122a1ff3ae957a95b6af",
+    "mtime": 1795544773.6517031,
+    "seen": 1795544869.0619023,
+    "ast_hash": "9b1679c315c42ee106663ff5f8b09619",
     "semantic_hash": ""
   },
   "src/index.ts": {
@@ -852,9 +852,9 @@
     "semantic_hash": ""
   },
   "tests/api.integration.ts": {
-    "mtime": 1795519347.8790088,
-    "seen": 1795519702.0994418,
-    "ast_hash": "06ec246035e2678039bc09d25dda9283",
+    "mtime": 1795544773.8835893,
+    "seen": 1795544869.0732524,
+    "ast_hash": "7dafb96d3cd8fda63cae748b6ed574f2",
     "semantic_hash": ""
   },
   "tests/app-release.test.ts": {
@@ -1110,15 +1110,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795542822.2537909,
-    "seen": 1795543969.7215798,
-    "ast_hash": "7d292a93265b7d6f266d22d37fe6f4ad",
+    "mtime": 1795544011.7484756,
+    "seen": 1795544869.079971,
+    "ast_hash": "cb5879c600ebac55e1acb6655a17894a",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795542822.513749,
-    "seen": 1795543969.7215836,
-    "ast_hash": "590ec1aae615771ab872292f967a8887",
+    "mtime": 1795544013.1439917,
+    "seen": 1795544869.0799754,
+    "ast_hash": "844d423cd93e826b8957968d43149fa4",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1146,15 +1146,15 @@
     "semantic_hash": ""
   },
   "src/lib/pt-calendar.ts": {
-    "mtime": 1795519190.3886116,
-    "seen": 1795519702.0970736,
-    "ast_hash": "16bf27ff01d15256b6a9d452e204972d",
+    "mtime": 1795544773.3339891,
+    "seen": 1795544869.0702708,
+    "ast_hash": "58d52dc17e1da50d3784c96d9466c1d4",
     "semantic_hash": ""
   },
   "tests/pt-calendar.test.ts": {
-    "mtime": 1795518750.7845192,
-    "seen": 1795518836.7565825,
-    "ast_hash": "5ee04e1bb226c240e5d112a3737e5a4d",
+    "mtime": 1795544773.668741,
+    "seen": 1795544869.0779667,
+    "ast_hash": "763a176fd6659a9870fd7e24ba23d58f",
     "semantic_hash": ""
   },
   "src/components/pt-lifecycle-controls.tsx": {

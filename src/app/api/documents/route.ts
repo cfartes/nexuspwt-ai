@@ -6,7 +6,7 @@ import { documentSchema } from '@/lib/validation';
 import { isDeepStrictEqual } from 'node:util';
 import { aprResponsibles } from '@/lib/apr-responsibles';
 import { assertExecutorsValidated } from '@/lib/executor-identities';
-import { ptCreationError } from '@/lib/pt-calendar';
+import { ptCreationError, ptAprPeriodError } from '@/lib/pt-calendar';
 export async function POST(request: Request) {
   try {
     assertOrigin(request);
@@ -98,11 +98,12 @@ export async function POST(request: Request) {
           );
         if (archived.snapshot.contractor_id !== d.contractorId)
           throw new HttpError(400, 'APR precisa pertencer à mesma terceirizada.');
-        if (
-          d.startsAt < archived.snapshot.starts_at.slice(0, 10) ||
-          d.endsAt > archived.snapshot.ends_at.slice(0, 10)
-        )
-          throw new HttpError(400, 'Datas da PT fora do período previsto na APR.');
+        const periodError = ptAprPeriodError(
+          d.startsAt,
+          archived.snapshot.starts_at,
+          archived.snapshot.ends_at,
+        );
+        if (periodError) throw new HttpError(400, periodError);
       }
       for (const executor of d.data.executors) {
         const { rowCount } = await c.query(

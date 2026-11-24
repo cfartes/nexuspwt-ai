@@ -537,6 +537,32 @@ try {
       executors: [{ userId: user.id, role: 'Responsável' }],
     },
   };
+  for (const aprId of [null, '', randomUUID()]) {
+    const invalidId = randomUUID();
+    await call('/api/documents', { ...pt, id: invalidId, aprId }, 400);
+    assert.equal(
+      (await db.query('SELECT id FROM documents WHERE id=$1', [invalidId])).rows.length,
+      0,
+    );
+  }
+  for (const [offset, message] of [
+    [1, 'início previsto'],
+    [-1, 'término previsto'],
+  ] as const) {
+    const aprDate = ptToday(new Date(Date.now() + offset * 86400000));
+    const datedApr = { ...d, id: randomUUID(), startsAt: aprDate, endsAt: aprDate };
+    await call('/api/documents', datedApr);
+    await call(`/api/documents/${datedApr.id}/workflow`, { action: 'submit', version: 1 });
+    await call(`/api/documents/${datedApr.id}/workflow`, { action: 'approve', version: 1 });
+    await approveAsResponsible(datedApr.id, 1, responsibleEmail);
+    const invalidId = randomUUID();
+    const failure = await call('/api/documents', { ...pt, id: invalidId, aprId: datedApr.id }, 400);
+    assert(JSON.stringify(failure).includes(message));
+    assert.equal(
+      (await db.query('SELECT id FROM documents WHERE id=$1', [invalidId])).rows.length,
+      0,
+    );
+  }
   await call(
     '/api/documents',
     { ...pt, id: randomUUID(), startsAt: ptToday(new Date(Date.now() - 86400000)) },
