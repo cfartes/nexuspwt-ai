@@ -4,7 +4,11 @@ import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
-import { cleanProductionData, seedValidationData } from '../scripts/production-data';
+import {
+  cleanProductionData,
+  resetValidationPasswords,
+  seedValidationData,
+} from '../scripts/production-data';
 import { hashPassword, verifyPassword } from '../src/lib/security';
 import { decryptSecret } from '../src/lib/integrations';
 import { validCpf } from '../src/lib/approval-security';
@@ -163,6 +167,102 @@ await test('manutenção: carga sem documentos/envios; limpeza preserva Superadm
       "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES('root-session',$1,now()+interval '1 day')",
       [root.id],
     );
+    await client.query(
+      "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES('test-session',$1,now()+interval '1 day')",
+      [owner.id],
+    );
+    await client.query(
+      "INSERT INTO login_attempts(email,failures) VALUES('admin.empresa@validacao.example.test',5)",
+    );
+    await client.query(
+      "INSERT INTO users(name,email,password_hash) VALUES('Real','real@empresa.test',$1),('Outro','outro@validacao.example.test',$1)",
+      [hashPassword('Preserva!12')],
+    );
+    await client.query(
+      "UPDATE users SET platform_admin=true WHERE email='executor@validacao.example.test'",
+    );
+    const protectedBefore = (
+      await client.query(
+        "SELECT * FROM users WHERE platform_admin OR email IN ('real@empresa.test','outro@validacao.example.test') ORDER BY email",
+      )
+    ).rows;
+    const protectedTables = [
+      'documents',
+      'document_versions',
+      'photos',
+      'approvals',
+      'memberships',
+      'company_admins',
+      'companies',
+      'units',
+      'contractors',
+      'approvers',
+      'user_security',
+      'email_gateway',
+      'whatsapp_gateway',
+    ];
+    const recordsBefore = [];
+    for (const table of protectedTables)
+      recordsBefore.push((await client.query(`SELECT * FROM ${table} ORDER BY 1`)).rows);
+    await assert.rejects(resetValidationPasswords(client, 'fraca'), /8 caracteres/);
+    const reset = await resetValidationPasswords(client, 'NovaSenha!12');
+    assert.equal(reset.users.length, 11);
+    assert(!JSON.stringify(reset).includes('NovaSenha!12'));
+    const changed = (
+      await client.query('SELECT * FROM users WHERE email=ANY($1::text[])', [
+        reset.users.map((user) => user.email),
+      ])
+    ).rows;
+    for (const user of changed) {
+      assert(verifyPassword('NovaSenha!12', user.password_hash));
+      assert(!verifyPassword('Teste!12', user.password_hash));
+      assert.equal(user.password_pending, false);
+    }
+    assert.equal(new Set(changed.map((user) => user.password_hash)).size, 11);
+    assert.deepEqual(
+      (
+        await client.query(
+          "SELECT * FROM users WHERE platform_admin OR email IN ('real@empresa.test','outro@validacao.example.test') ORDER BY email",
+        )
+      ).rows,
+      protectedBefore,
+    );
+    for (const [index, table] of protectedTables.entries())
+      assert.deepEqual(
+        (await client.query(`SELECT * FROM ${table} ORDER BY 1`)).rows,
+        recordsBefore[index],
+        table,
+      );
+    assert.deepEqual((await client.query('SELECT token_hash FROM sessions')).rows, [
+      { token_hash: 'root-session' },
+    ]);
+    assert.equal(
+      (await client.query('SELECT count(*)::int total FROM login_attempts')).rows[0].total,
+      0,
+    );
+    assert(
+      (await client.query('SELECT consumed_at FROM user_invitations WHERE id=$1', [invitation.id]))
+        .rows[0].consumed_at,
+    );
+    assert.equal(
+      (
+        await client.query('SELECT status FROM invitation_deliveries WHERE invitation_id=$1', [
+          invitation.id,
+        ])
+      ).rows[0].status,
+      'cancelled',
+    );
+    assert.equal(
+      (
+        await client.query(
+          "SELECT count(*)::int total FROM audit_events WHERE action='manutencao.senhas_validacao_redefinidas'",
+        )
+      ).rows[0].total,
+      1,
+    );
+    await client.query(
+      "UPDATE users SET platform_admin=false WHERE email='executor@validacao.example.test'",
+    );
     await client.query('CREATE TABLE unknown_business_table(id integer)');
     await assert.rejects(cleanProductionData(client), /Schema diferente/);
     assert.equal(
@@ -210,6 +310,7 @@ await test('manutenção: carga sem documentos/envios; limpeza preserva Superadm
         table === 'users' ? 1 : 0,
         table,
       );
+    await assert.rejects(resetValidationPasswords(client, 'NovaSenha!12'), /Nenhuma conta/);
     const second = await seedValidationData(client, 'Outra!12');
     assert.equal(second.users.length, 12);
     assert.equal(

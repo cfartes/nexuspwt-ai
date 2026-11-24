@@ -75,8 +75,11 @@ class MaintenanceTests(unittest.TestCase):
                 if pending or wrong_database:
                     self.assertEqual(commands, [])
                     return
-                self.assertEqual(commands[0], ['docker', 'stop', '--time', '30', 'app-id', 'worker-id'])
-                self.assertEqual(commands[-1], ['docker', 'start', 'app-id', 'worker-id'])
+                if action == 'reset-passwords':
+                    self.assertFalse(any('stop' in command or 'start' in command for command in commands))
+                else:
+                    self.assertEqual(commands[0], ['docker', 'stop', '--time', '30', 'app-id', 'worker-id'])
+                    self.assertEqual(commands[-1], ['docker', 'start', 'app-id', 'worker-id'])
                 self.assertFalse(any('rotafy-id' in command or 'down' in command or 'prune' in command for command in commands))
                 backups = list((root / 'data' / 'backups').glob('*.dump'))
                 self.assertEqual(len(backups), 0 if failure == 'backup' else 1)
@@ -103,6 +106,12 @@ class MaintenanceTests(unittest.TestCase):
 
     def test_external_database_is_refused(self):
         self.scenario(wrong_database=True)
+
+    def test_reset_passwords_backs_up_without_stopping_app(self):
+        self.scenario(action='reset-passwords')
+
+    def test_reset_passwords_never_runs_when_backup_fails(self):
+        self.scenario(action='reset-passwords', failure='backup')
 
 
 if __name__ == '__main__':

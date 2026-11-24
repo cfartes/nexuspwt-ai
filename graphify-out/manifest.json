@@ -1110,15 +1110,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795541129.191793,
-    "seen": 1795542822.4510539,
-    "ast_hash": "e7b72a8d2decc3b4ec6ef8df4462ed6a",
+    "mtime": 1795542822.2537909,
+    "seen": 1795543969.7215798,
+    "ast_hash": "7d292a93265b7d6f266d22d37fe6f4ad",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795541129.4645076,
-    "seen": 1795542822.4510562,
-    "ast_hash": "a79f58455d6158677e796c1a45b06e22",
+    "mtime": 1795542822.513749,
+    "seen": 1795543969.7215836,
+    "ast_hash": "590ec1aae615771ab872292f967a8887",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1182,15 +1182,15 @@
     "semantic_hash": ""
   },
   "scripts/production-data.ts": {
-    "mtime": 1795521567.6401353,
-    "seen": 1795521946.3224142,
-    "ast_hash": "14c09f02385e93b8961b26104c738b4c",
+    "mtime": 1795543993.212715,
+    "seen": 1795544012.6365902,
+    "ast_hash": "90ea1553d6b30f0812ed5c92f5fad063",
     "semantic_hash": ""
   },
   "scripts/production_data.py": {
-    "mtime": 1795521841.4364934,
-    "seen": 1795521946.322416,
-    "ast_hash": "dc7bce63619f675dd5cc113e57d8afd4",
+    "mtime": 1795543868.2815018,
+    "seen": 1795543969.691749,
+    "ast_hash": "fccbd04e3e8e3e7dc579693595ac1e2e",
     "semantic_hash": ""
   },
   "scripts/seed_validation.sh": {
@@ -1200,21 +1200,21 @@
     "semantic_hash": ""
   },
   "tests/production-data.test.ts": {
-    "mtime": 1795521780.0803945,
-    "seen": 1795521946.340456,
-    "ast_hash": "9fd8a63eeecec5d5395bbe690062fb7a",
+    "mtime": 1795543912.7623155,
+    "seen": 1795543969.7199578,
+    "ast_hash": "aad1ebb07b6d241fdbc5e72d358198ca",
     "semantic_hash": ""
   },
   "tests/test_production_data.py": {
-    "mtime": 1795521567.6431243,
-    "seen": 1795521946.3409114,
-    "ast_hash": "2523c01f4c8ec5390394f62ef600a411",
+    "mtime": 1795543911.406815,
+    "seen": 1795543969.7205079,
+    "ast_hash": "4b85d98a64cb05aee95a91b0c7ad6443",
     "semantic_hash": ""
   },
   "docs/MANUTENCAO-BASE-PRODUCAO.md": {
-    "mtime": 1795521655.8227322,
-    "seen": 1795521946.3419213,
-    "ast_hash": "111709c75fd0b100702d308945fc501a",
+    "mtime": 1795543954.0138092,
+    "seen": 1795543969.7225282,
+    "ast_hash": "95229614d8d74237385903cec855d730",
     "semantic_hash": ""
   },
   "db/019-contractor-onboarding.sql": {
@@ -1263,6 +1263,12 @@
     "mtime": 1795542819.7808664,
     "seen": 1795542822.4513066,
     "ast_hash": "aec00ea1ca7ab5bba96d415366daf5ff",
+    "semantic_hash": ""
+  },
+  "scripts/reset_validation_passwords.sh": {
+    "mtime": 1795543868.2963028,
+    "seen": 1795543969.6917522,
+    "ast_hash": "78ac85b84d2838debfae91e4c68c212a",
     "semantic_hash": ""
   },
   "package-lock.json": {

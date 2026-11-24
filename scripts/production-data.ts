@@ -123,6 +123,58 @@ function cnpjFor(index: number) {
   return cnpj;
 }
 
+export async function resetValidationPasswords(client: PoolClient, password: string) {
+  newPassword.parse(password);
+  const emails = [
+    'admin.empresa',
+    'admin.unidade',
+    'gestor',
+    'seguranca',
+    'aprovador',
+    'executor',
+    ...['alpha', 'beta'].flatMap((code) =>
+      ['gestor', 'seguranca', 'executor'].map((role) => `${role}.${code}`),
+    ),
+  ].map((alias) => `${alias}@validacao.example.test`);
+  await client.query('BEGIN');
+  try {
+    await client.query("SET LOCAL lock_timeout='5s'");
+    const roots = await superadmins(client);
+    const { rows: users } = await client.query<{ id: string; name: string; email: string }>(
+      'SELECT id,name,email FROM users WHERE email=ANY($1::text[]) AND NOT platform_admin ORDER BY id FOR UPDATE',
+      [emails],
+    );
+    if (!users.length) throw new Error('Nenhuma conta fictícia da carga encontrada.');
+    for (const user of users) {
+      await client.query(
+        'UPDATE users SET password_hash=$2,password_pending=false WHERE id=$1 AND NOT platform_admin',
+        [user.id, hashPassword(password)],
+      );
+      await client.query('DELETE FROM sessions WHERE user_id=$1', [user.id]);
+      await client.query('DELETE FROM login_attempts WHERE email=$1', [user.email]);
+      await client.query(
+        'UPDATE user_invitations SET consumed_at=now(),token_ciphertext=NULL WHERE user_id=$1 AND consumed_at IS NULL',
+        [user.id],
+      );
+      await client.query(
+        `UPDATE invitation_deliveries d SET status='cancelled',last_error='Senha redefinida na manutenção de testes.'
+        FROM user_invitations i WHERE i.id=d.invitation_id AND i.user_id=$1 AND d.status IN ('pending','blocked')`,
+        [user.id],
+      );
+    }
+    await client.query('INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)', [
+      roots[0].id,
+      'manutencao.senhas_validacao_redefinidas',
+      JSON.stringify({ userIds: users.map((user) => user.id) }),
+    ]);
+    await client.query('COMMIT');
+    return { users: users.map(({ name, email }) => ({ name, email })) };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function seedValidationData(client: PoolClient, password: string) {
   newPassword.parse(password);
   return maintenance(client, async () => {
@@ -285,18 +337,23 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   let client: PoolClient | undefined;
   try {
     if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL ausente.');
-    if (!['clean', 'seed'].includes(process.argv[2])) throw new Error('Informe clean ou seed.');
+    if (!['clean', 'seed', 'reset-passwords'].includes(process.argv[2]))
+      throw new Error('Informe clean, seed ou reset-passwords.');
     if (process.argv[2] === 'clean' && process.argv[3] !== '--confirmar-limpeza')
       throw new Error('Confirmação da limpeza ausente.');
     client = await pool.connect();
     const result =
       process.argv[2] === 'clean'
         ? await cleanProductionData(client)
-        : await seedValidationData(client, process.env.PTW_VALIDATION_PASSWORD || '');
+        : process.argv[2] === 'reset-passwords'
+          ? await resetValidationPasswords(client, process.env.PTW_VALIDATION_PASSWORD || '')
+          : await seedValidationData(client, process.env.PTW_VALIDATION_PASSWORD || '');
     console.log(JSON.stringify(result, null, 2));
   } catch {
     console.error(
-      'Operação não concluída. Confira se o app está atualizado, se há Superadmin ativo e se a base está limpa para a carga. Senha de validação: mínimo 8 caracteres, maiúscula e símbolo.',
+      process.argv[2] === 'reset-passwords'
+        ? 'Redefinição não concluída. Confira se há Superadmin ativo e contas fictícias com os e-mails originais da carga. Senha: mínimo 8 caracteres, maiúscula e símbolo. Nenhuma redefinição parcial foi mantida.'
+        : 'Operação não concluída. Confira se o app está atualizado, se há Superadmin ativo e se a base está limpa para a carga. Senha de validação: mínimo 8 caracteres, maiúscula e símbolo.',
     );
     process.exitCode = 1;
   } finally {

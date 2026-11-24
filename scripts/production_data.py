@@ -70,7 +70,7 @@ def run(action, confirmed=False):
         image = workers[0]['Config']['Image']
         output('docker', 'image', 'inspect', image)
         child_environment = os.environ.copy()
-        if action == 'seed' and not child_environment.get('PTW_VALIDATION_PASSWORD'):
+        if action in ('seed', 'reset-passwords') and not child_environment.get('PTW_VALIDATION_PASSWORD'):
             if not sys.stdin.isatty():
                 raise ValueError('Defina PTW_VALIDATION_PASSWORD para a carga ou execute em terminal interativo.')
             password = getpass.getpass('Senha dos usuários FICTÍCIOS (8+ caracteres, maiúscula e símbolo): ')
@@ -85,10 +85,13 @@ def run(action, confirmed=False):
         temporary = None
         stopped = []
         try:
-            print('Pausando somente app e workers do Nexus PTW. PostgreSQL e Traefik permanecem ativos.', flush=True)
-            # Register before stopping so an interrupted stop is also recovered.
-            stopped = [container['Id'] for container in running]
-            subprocess.run(['docker', 'stop', '--time', '30', *stopped], check=True, stdout=subprocess.DEVNULL)
+            if action != 'reset-passwords':
+                print('Pausando somente app e workers do Nexus PTW. PostgreSQL e Traefik permanecem ativos.', flush=True)
+                # Register before stopping so an interrupted stop is also recovered.
+                stopped = [container['Id'] for container in running]
+                subprocess.run(['docker', 'stop', '--time', '30', *stopped], check=True, stdout=subprocess.DEVNULL)
+            else:
+                print('Redefinindo somente contas fictícias conhecidas, sem parar o app. Backup primeiro.', flush=True)
             partial_backup = backup.with_suffix('.dump.partial')
             with partial_backup.open('xb') as file:
                 subprocess.run([*compose, 'exec', '-T', 'database', 'pg_dump', '-U', database_environment['POSTGRES_USER'], '-d', database_environment['POSTGRES_DB'], '-Fc'], stdout=file, check=True)
@@ -118,13 +121,15 @@ def run(action, confirmed=False):
         print('Operação concluída. Superadmins e configurações globais preservados. Faça novo login.', flush=True)
         if action == 'clean':
             print('A base ficou sem empresa/unidade. Execute seed_validation.sh antes de validar o app.')
-        else:
+        elif action == 'seed':
             print('Carga fictícia sem APR/PT e sem mensagens. Contas usam a senha informada; troque contatos fictícios para testar entregas reais.')
+        else:
+            print('Contas listadas usam a nova senha informada. Superadmin, MFA, APR/PT e cadastros preservados. Nenhuma mensagem enviada.')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['clean', 'seed'])
+    parser.add_argument('action', choices=['clean', 'seed', 'reset-passwords'])
     parser.add_argument('--confirmar-limpeza', action='store_true')
     args = parser.parse_args()
     try:

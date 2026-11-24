@@ -4,6 +4,29 @@ Estes scripts operam sobre o PostgreSQL **existente** do Nexus PTW. Não reinsta
 
 Os scripts foram gerados e testados em ambiente isolado. A limpeza não foi executada na VPS.
 
+## Esqueci a senha dos usuários de validação
+
+Use somente este procedimento; não execute a limpeza nem a carga novamente:
+
+```bash
+cd /opt/nexus-ptw
+git pull --ff-only origin main
+bash scripts/reset_validation_passwords.sh
+```
+
+O terminal solicita a nova senha duas vezes, sem exibi-la: mínimo de oito caracteres, uma letra maiúscula e um símbolo. Todos os usuários fictícios listados ao final usarão a senha informada; cada hash recebe seu próprio salt. Se `PTW_VALIDATION_PASSWORD` já estiver exportada, seu valor será utilizado em vez da pergunta; use `unset PTW_VALIDATION_PASSWORD` antes do comando para forçar a digitação. Não envie a senha pelo chat ou grave no repositório.
+
+Esta operação **não para o app nem os workers**, não reinstala o banco e não exige reconstruir as imagens. Faz backup PostgreSQL em `data/backups/*-reset-passwords.dump` antes da alteração. Usa os mesmos pré-requisitos e travas de manutenção abaixo. A redefinição é transacional e afeta apenas contas não Superadmin com estes e-mails originais:
+
+- `admin.empresa@validacao.example.test`, `admin.unidade@validacao.example.test`;
+- `gestor@validacao.example.test`, `seguranca@validacao.example.test`, `aprovador@validacao.example.test`, `executor@validacao.example.test`;
+- `gestor.alpha@validacao.example.test`, `seguranca.alpha@validacao.example.test`, `executor.alpha@validacao.example.test`;
+- `gestor.beta@validacao.example.test`, `seguranca.beta@validacao.example.test`, `executor.beta@validacao.example.test`.
+
+Contas cujos e-mails foram alterados são ignoradas; confira a lista retornada. Se não houver nenhuma conta correspondente, a operação é cancelada. Superadmins são excluídos mesmo que usem um desses e-mails. Não altera perfis, situação ativa/inativa, MFA, dados de empresas/unidades, documentos, aprovações ou fotos. Invalida as sessões e convites anteriores apenas dessas contas, limpa seus bloqueios de tentativas de login e registra a operação na auditoria. Nenhum convite ou mensagem é enviado. A senha compartilhada destina-se somente às contas fictícias de validação.
+
+Validação: teste com PostgreSQL compatível embarcado confirma novos hashes com salts distintos, senha anterior inválida, preservação de Superadmin e contas fora da lista, dados de APR/PT/fotos/perfis/MFA intactos, cancelamento de convites e revogação das sessões afetadas. Nove testes Python verificam a orquestração, incluindo backup antes da alteração e ausência de parada do app nesta operação. Não foi executado na VPS.
+
 ## Pré-requisitos
 
 - App atualizado, com as migrações até 020 e imagem do worker disponível no Docker.
