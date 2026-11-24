@@ -36,7 +36,7 @@ await test('TOTP usa vetores RFC 6238 e rejeita códigos fora da janela ou reuti
   assert(!validCpf('52998224724'));
 });
 
-await test('decisões exigem conferência humana, senha e MFA conforme a empresa; erros persistem e códigos não repetem', async () => {
+await test('decisões internas dispensam conferência manual, preservando acesso ativo, senha e MFA da empresa', async () => {
   process.env.INTEGRATIONS_ENCRYPTION_KEY = 'c'.repeat(64);
   const embedded = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))
@@ -96,10 +96,15 @@ await test('decisões exigem conferência humana, senha e MFA conforme a empresa
     (error as { status: number }).status === code;
   try {
     let proof = await authenticateDecision(pool, person, password);
+    const unverified = await tx((c) => assertDecisionIdentity(c, person, unit.id, proof));
+    assert.equal(unverified.verifiedAt, null);
+    assert.equal(unverified.verifiedBy, null);
+    await pool.query('UPDATE memberships SET active=false WHERE user_id=$1', [person.id]);
     await assert.rejects(
       tx((c) => assertDecisionIdentity(c, person, unit.id, proof)),
       status(403),
     );
+    await pool.query('UPDATE memberships SET active=true WHERE user_id=$1', [person.id]);
     await assert.rejects(
       tx((c) =>
         recordIdentity(c, person, unit.id, person.id, '52998224725', 'Conferência presencial', 1),
@@ -155,10 +160,7 @@ await test('decisões exigem conferência humana, senha e MFA conforme a empresa
     const evidence = await tx((c) => assertDecisionIdentity(c, person, unit.id, proof));
     assert.equal(evidence.method, 'password_totp');
     await pool.query("UPDATE memberships SET phone='5511777777777' WHERE user_id=$1", [person.id]);
-    await assert.rejects(
-      tx((c) => assertDecisionIdentity(c, person, unit.id, proof)),
-      status(403),
-    );
+    await tx((c) => assertDecisionIdentity(c, person, unit.id, proof));
     for (let i = 0; i < 7; i++)
       await assert.rejects(authenticateDecision(pool, person, 'incorreta'), status(403));
     await authenticateDecision(pool, person, password);

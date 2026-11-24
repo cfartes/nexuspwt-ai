@@ -56,7 +56,7 @@ export default function ApprovalConfirmation({
         <p className="muted">
           {identityExempt
             ? 'A decisão será vinculada à sua sessão Nexus. O Superadmin é dispensado de conferência humana e autenticador.'
-            : 'A decisão será vinculada à sua sessão autenticada e à versão acima. Sua identidade deve estar conferida nesta unidade.'}
+            : 'A decisão será vinculada à sua sessão autenticada e à versão acima. Para colaboradores de contratadas, a validação documental segue a configuração da empresa.'}
         </p>
         {error && (
           <p role="alert" className="alert error">

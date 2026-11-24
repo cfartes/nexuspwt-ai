@@ -33,7 +33,7 @@ export default function SecuritySettings({
           <p>
             {ws.user.platform_admin
               ? 'Conta de administração Nexus: conferência de identidade e autenticador dispensados.'
-              : 'Conferência humana e senha são obrigatórias. O autenticador pode ser exigido pela empresa.'}
+              : 'As decisões usam sua sessão autenticada. O autenticador no login pode ser exigido pela empresa.'}
           </p>
         </div>
       </div>
@@ -45,19 +45,12 @@ export default function SecuritySettings({
         )}
         {mode === 'account' && ws.user.platform_admin && (
           <p>
-            Acesso exclusivo da Nexus. A política de identidade e autenticador da empresa se aplica
-            aos demais usuários.
+            Acesso exclusivo da Nexus. A política de autenticador da empresa se aplica aos demais
+            usuários.
           </p>
         )}
         {mode === 'account' && !ws.user.platform_admin && (
-          <p>
-            Seu autenticador: {enabled ? 'Configurado' : 'Não configurado'}. Sua identidade nesta
-            unidade:{' '}
-            {self?.identity_verified_at
-              ? 'Conferida'
-              : 'Pendente de conferência por outro administrador'}
-            .
-          </p>
+          <p>Seu autenticador: {enabled ? 'Configurado' : 'Não configurado'}.</p>
         )}
         {mode === 'account' && !ws.user.platform_admin && !enabled && (
           <button
@@ -77,7 +70,8 @@ export default function SecuritySettings({
           <p className="muted">
             Cadastre uma conta por pessoa no Google Authenticator, Microsoft Authenticator ou
             aplicativo TOTP compatível. Recuperação após perda do aparelho exige nova conferência
-            por outro administrador, encerra suas sessões e bloqueia decisões até nova conferência.
+            por outro administrador e encerra suas sessões. Se a empresa exigir MFA, será necessário
+            configurar novamente o autenticador para entrar.
           </p>
         )}
         {mode === 'company' && companyManager(ws.user, ws.unit) && (
@@ -141,7 +135,7 @@ export default function SecuritySettings({
               <p className="muted span-2">
                 {ws.user.platform_admin
                   ? 'Esta exigência vale para os usuários da empresa. O Superadmin Nexus confirma a alteração com sua senha, sem autenticador.'
-                  : 'Configure seu autenticador antes de ativar esta opção. Ativar ou desativar a exigência requer seu código. Com a opção desativada, as decisões continuam exigindo identidade conferida e senha.'}
+                  : 'Configure seu autenticador antes de ativar esta opção. Ativar ou desativar a exigência requer seu código. Com a opção desativada, as decisões continuam vinculadas à sessão autenticada.'}
               </p>
               <button className="primary">Salvar política de segurança</button>
             </fieldset>

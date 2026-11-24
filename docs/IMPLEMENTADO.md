@@ -57,3 +57,8 @@ Implementado convite por e-mail, formulário público por link temporário, dado
 A migração aditiva `019-contractor-onboarding.sql` está no manifesto de migrações online. Aplicar pelo atualizador existente, sem reinstalar o PostgreSQL, e atualizar também o worker. Testes cobrem os três perfis, limites de acesso, correção, conflitos com rollback, compartilhamento entre unidades, arquivos e ausência de contas antes da aprovação.
 
 Validação: 39 testes automatizados aprovados, compilação TypeScript, build de produção e integração HTTP com PostgreSQL isolado. A integração inclui envio público, bloqueio de perfil interno, download privado, aprovação e criação de conta pendente de senha. Sem envio a provedores reais nem homologação visual. A migração não foi aplicada na VPS; o PostgreSQL local de desenvolvimento estava indisponível, e não foi recriado.
+
+
+### Remoção da conferência manual em Pessoas e acessos — 24/11/2026
+
+Removidos botão de conferir identidade, aviso de pendência e bloqueio de decisões por ausência de conferência manual. Usuários internos usam sessão autenticada e MFA conforme a empresa. O servidor continua exigindo acesso ativo, atribuição e versão da decisão, além de documento pessoal aprovado para contratadas quando essa política estiver ativada. A recuperação assistida do autenticador permanece; não exige nova conferência cadastral após recuperar o fator. Registros históricos são preservados, sem migração do banco.

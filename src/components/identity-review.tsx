@@ -3,7 +3,6 @@ import PasswordInput from './password-input';
 import { useState } from 'react';
 import type { Person, WorkspaceData } from '@/lib/types';
 import Popup from './popup';
-import MaskedInput from './masked-input';
 import { api } from './workspace';
 import { companyManager } from '@/lib/permissions';
 
@@ -18,7 +17,7 @@ export default function IdentityReview({
   online: boolean;
   reload: () => Promise<unknown>;
 }) {
-  const [action, setAction] = useState<'verify' | 'reset' | null>(null),
+  const [action, setAction] = useState<'reset' | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [password, setPassword] = useState('');
@@ -32,21 +31,9 @@ export default function IdentityReview({
     setCodeFocused(false);
   };
   if (person.platform_admin) return null;
-  if (person.id === ws.user.id)
-    return <small>Outro administrador deve conferir sua identidade.</small>;
+  if (person.id === ws.user.id) return null;
   return (
     <>
-      <button
-        className="secondary"
-        disabled={!online || !person.active || person.password_pending}
-        onClick={() => {
-          setAction('verify');
-          clearCredentials();
-          setError('');
-        }}
-      >
-        Conferir identidade
-      </button>
       {person.authenticator_enabled && companyManager(ws.user, ws.unit) && (
         <button
           className="secondary"
@@ -62,11 +49,7 @@ export default function IdentityReview({
       )}
       {action && (
         <Popup
-          title={
-            action === 'verify'
-              ? 'Conferência humana de identidade'
-              : 'Recuperação assistida do autenticador'
-          }
+          title="Recuperação assistida do autenticador"
           busy={busy}
           onClose={() => {
             clearCredentials();
@@ -87,7 +70,6 @@ export default function IdentityReview({
                   unitId: ws.unit.id,
                   userId: person.id,
                   version: person.membership_version,
-                  ...(action === 'verify' ? { cpf: fields.get('cpf') } : {}),
                   reference: fields.get('reference'),
                   confirmed: fields.get('confirmed') === 'on',
                   password,
@@ -113,11 +95,6 @@ export default function IdentityReview({
               </p>
             )}
             <fieldset className="form-grid" disabled={busy || !online}>
-              {action === 'verify' && (
-                <label>
-                  CPF conferido *<MaskedInput name="cpf" kind="cpf" required />
-                </label>
-              )}
               <label className="span-2">
                 Como a conferência foi realizada? *
                 <textarea
@@ -136,7 +113,7 @@ export default function IdentityReview({
               {action === 'reset' && (
                 <p className="alert span-2">
                   A recuperação encerra todas as sessões e remove o autenticador desta conta em
-                  todas as empresas. Será necessária nova configuração e nova conferência humana.
+                  todas as empresas. Será necessário configurar novamente o autenticador.
                 </p>
               )}
               {action === 'reset' && (
@@ -172,9 +149,7 @@ export default function IdentityReview({
                   />
                 </label>
               )}
-              <button className="primary">
-                {action === 'verify' ? 'Registrar conferência' : 'Confirmar recuperação assistida'}
-              </button>
+              <button className="primary">Confirmar recuperação assistida</button>
             </fieldset>
           </form>
         </Popup>

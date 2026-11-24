@@ -185,6 +185,16 @@ void test('upload opcional por empresa: padrão desligado, todos os perfis, isol
       assert(submission.id);
       await assert.rejects(
         transaction((client) =>
+          assertDecisionIdentity(client, person, secondUnit, {
+            method: 'password',
+            enabledAt: null,
+            authenticatedAt: new Date().toISOString(),
+          }),
+        ),
+        status(403),
+      );
+      await assert.rejects(
+        transaction((client) =>
           reviewExecutor(client, person, {
             unitId: firstUnit,
             id: submission.id,

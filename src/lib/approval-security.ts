@@ -141,28 +141,22 @@ export async function assertDecisionIdentity(
   const {
     rows: [row],
   } = await c.query(
-    `SELECT u.name,u.email,u.platform_admin,COALESCE(m.phone,u.phone) phone,m.contractor_id,m.identity_verified_at,m.identity_verified_by,m.identity_snapshot,
-    co.id company_id,co.identity_upload_enabled,co.approval_mfa_required,s.enabled_at FROM users u JOIN memberships m ON m.user_id=u.id JOIN units un ON un.id=m.unit_id JOIN companies co ON co.id=un.company_id
-    LEFT JOIN user_security s ON s.user_id=u.id WHERE u.id=$1 AND m.unit_id=$2 AND u.active AND m.active FOR SHARE OF u,m,co`,
+    `SELECT u.platform_admin,m.contractor_id,co.id company_id,co.identity_upload_enabled,co.approval_mfa_required
+    FROM users u JOIN memberships m ON m.user_id=u.id JOIN units un ON un.id=m.unit_id JOIN companies co ON co.id=un.company_id
+    WHERE u.id=$1 AND m.unit_id=$2 AND u.active AND m.active FOR SHARE OF u,m,co`,
     [user.id, unitId],
   );
   if (row?.platform_admin)
     return { verifiedAt: null, verifiedBy: null, exemption: 'nexus_superadmin', ...evidence };
-  const expected = row ? identitySnapshot(row) : null;
+  if (!row) throw new HttpError(403, 'Usuário sem acesso ativo à unidade.');
   const personal =
     row?.identity_upload_enabled && row.contractor_id
       ? await personalIdentityState(c, user.id, row.company_id, row.contractor_id, true)
       : null;
-  if (
-    personal
-      ? personal.required
-      : !row?.identity_verified_at ||
-        !expected ||
-        Object.entries(expected).some(([key, value]) => row.identity_snapshot?.[key] !== value)
-  )
+  if (personal?.required)
     throw new HttpError(
       403,
-      'Sua identidade e vínculo precisam ser conferidos por outro administrador em Pessoas e acessos.',
+      'Seu documento pessoal precisa ser aprovado pela unidade no fluxo de colaboradores da contratada.',
     );
   if (row.approval_mfa_required) {
     const {
@@ -176,8 +170,8 @@ export async function assertDecisionIdentity(
       throw new HttpError(403, 'Esta empresa exige senha e autenticador para registrar decisões.');
   }
   return {
-    verifiedAt: personal?.reviewedAt ?? row.identity_verified_at,
-    verifiedBy: personal?.reviewedBy ?? row.identity_verified_by,
+    verifiedAt: personal?.reviewedAt ?? null,
+    verifiedBy: personal?.reviewedBy ?? null,
     ...evidence,
   };
 }
