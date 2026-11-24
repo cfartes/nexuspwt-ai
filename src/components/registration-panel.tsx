@@ -105,6 +105,15 @@ export default function RegistrationPanel({
       .toLocaleLowerCase('pt-BR')
       .includes(search.toLocaleLowerCase('pt-BR')),
   );
+  const createButton = canCreate && (
+    <button
+      className="primary"
+      disabled={!online || limitReached}
+      onClick={() => setCreating(true)}
+    >
+      <Plus size={17} /> Novo cadastro
+    </button>
+  );
   return (
     <>
       {type === 'contractors' &&
@@ -117,29 +126,29 @@ export default function RegistrationPanel({
           {notice}
         </p>
       )}
-      <section className="card">
-        <div className="card-heading">
-          <div>
-            <h2>{section.title}</h2>
-            <p>{section.description}</p>
+      {type === 'people' || type === 'approvers' ? (
+        <section className="card">
+          <div className="card-heading">
+            <div>
+              <h2>{section.title}</h2>
+              <p>{section.description}</p>
+            </div>
+            {createButton}
+          </div>
+        </section>
+      ) : (
+        (canCreate || (type === 'units' && ws.unitQuota)) && (
+          <div className="registration-actions">
             {type === 'units' && ws.unitQuota && (
-              <p>
+              <p className="muted" role="status">
                 {ws.unitQuota.used} de {ws.unitQuota.limit} unidades contratadas cadastradas.
                 {limitReached ? ' Limite atingido; solicite ampliação ao superadmin.' : ''}
               </p>
             )}
+            {createButton}
           </div>
-          {canCreate && (
-            <button
-              className="primary"
-              disabled={!online || limitReached}
-              onClick={() => setCreating(true)}
-            >
-              <Plus size={17} /> Novo cadastro
-            </button>
-          )}
-        </div>
-      </section>
+        )
+      )}
       {creating && canCreate && (
         <Popup title={`Novo cadastro · ${section.title}`} onClose={() => setCreating(false)}>
           <AdminPanel
