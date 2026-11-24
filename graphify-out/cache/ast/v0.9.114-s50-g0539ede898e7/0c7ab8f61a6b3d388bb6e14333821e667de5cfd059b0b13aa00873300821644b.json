@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_db_012_safety_role_sql", "label": "012-safety-role.sql", "file_type": "code", "source_file": "db/012-safety-role.sql", "source_location": null}, {"id": "memberships", "label": "memberships", "file_type": "code", "source_file": "", "source_location": "", "origin_file": "$graphify-root$/db/012-safety-role.sql"}], "edges": []}
