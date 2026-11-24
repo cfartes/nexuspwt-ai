@@ -14,7 +14,7 @@ import upgrade_openwa as upgrade
 
 
 class OpenwaUpgradeTests(unittest.TestCase):
-    def scenario(self, fail=None, wrong_mount=False, wrong_environment=False):
+    def scenario(self, fail=None, wrong_mount=False, wrong_environment=False, service='openwa-api', relative_files=False, wrong_container=False, extra_file=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             base, media = root / 'docker-compose.yml', root / 'nexus-media.override.yml'
@@ -24,8 +24,9 @@ class OpenwaUpgradeTests(unittest.TestCase):
             original = {
                 'Image': 'old-image-id', 'State': {'Running': True},
                 'Config': {'Hostname': 'old-node-id', 'Env': ['API_MASTER_KEY=kept-secret'], 'Labels': {
-                    'com.docker.compose.project': 'openwa', 'com.docker.compose.service': 'openwa-api',
-                    'com.docker.compose.project.config_files': f'{base},{media}',
+                    'com.docker.compose.project': 'openwa', 'com.docker.compose.service': service,
+                    'com.docker.compose.project.working_dir': str(root),
+                    'com.docker.compose.project.config_files': ('docker-compose.yml, nexus-media.override.yml ' if relative_files else f'{base},{media}') + (',/other/unknown.yml' if extra_file else ''),
                 }},
                 'Mounts': [{'Type': 'volume', 'Name': 'openwa_data', 'Destination': '/app/data'}],
             }
@@ -36,7 +37,7 @@ class OpenwaUpgradeTests(unittest.TestCase):
                 if command[:3] == ('docker', 'inspect', 'openwa-api'):
                     return json.dumps([original])
                 if command[-3:] == ('config', '--format', 'json'):
-                    return json.dumps({'services': {'openwa-api': {'environment': {'DATABASE_NAME': 'other'} if wrong_environment else {}, 'volumes': [{'type': 'volume', 'source': 'data', 'target': '/app/data'}]}}, 'volumes': {'data': {'name': 'wrong' if wrong_mount else 'openwa_data'}}})
+                    return json.dumps({'services': {service: {'container_name': 'another-app' if wrong_container else 'openwa-api', 'environment': {'DATABASE_NAME': 'other'} if wrong_environment else {}, 'volumes': [{'type': 'volume', 'source': 'data', 'target': '/app/data'}]}}, 'volumes': {'data': {'name': 'wrong' if wrong_mount else 'openwa_data'}}})
                 if command[0:2] == ('docker', 'exec') and command[-2] == '-e':
                     return 'old-node-id'
                 if command[0:2] == ('docker', 'run') or command[0:2] == ('docker', 'exec'):
@@ -61,7 +62,7 @@ class OpenwaUpgradeTests(unittest.TestCase):
             previous_umask = os.umask(0o077)
             try:
                 with patch.object(upgrade, 'ROOT', root), patch.object(upgrade, 'output', side_effect=output), patch.object(upgrade.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                    if fail or wrong_mount or wrong_environment:
+                    if fail or wrong_mount or wrong_environment or wrong_container or extra_file:
                         with self.assertRaises((ValueError, subprocess.CalledProcessError)):
                             upgrade.main()
                     else:
@@ -70,7 +71,7 @@ class OpenwaUpgradeTests(unittest.TestCase):
                 self.assertEqual(media.read_text(), 'original media override')
                 self.assertEqual((root / '.env').read_text(), 'PRIVATE_KEY=kept-secret\n')
                 self.assertFalse(any('down' in command or '--volumes' in command or 'prune' in command for command in commands))
-                if wrong_mount or wrong_environment:
+                if wrong_mount or wrong_environment or wrong_container or extra_file:
                     self.assertFalse(any('stop' in command for command in commands))
                     return
                 backup = next((root / 'backups').glob('nexus-upgrade-*'))
@@ -82,15 +83,15 @@ class OpenwaUpgradeTests(unittest.TestCase):
                     self.assertFalse((root / 'nexus-version.override.json').exists())
                 else:
                     override = json.loads((root / 'nexus-version.override.json').read_text())
-                    self.assertEqual(override['services']['openwa-api']['image'], upgrade.IMAGE)
-                    self.assertEqual(override['services']['openwa-api']['environment'], {'WWEBJS_WEB_VERSION': 'off', 'NODE_ID': 'old-node-id'})
+                    self.assertEqual(override['services'][service]['image'], upgrade.IMAGE)
+                    self.assertEqual(override['services'][service]['environment'], {'WWEBJS_WEB_VERSION': 'off', 'NODE_ID': 'old-node-id'})
                     self.assertTrue(any('migration:run:prod' in command for command in commands))
                     self.assertNotIn(['docker', 'start', 'openwa-api'], commands)
                     if fail:
-                        self.assertTrue(any(command[-2:] == ['stop', 'openwa-api'] for command in commands))
+                        self.assertTrue(any(command[-2:] == ['stop', service] for command in commands))
                     else:
                         launch = next(command for command in commands if 'up' in command)
-                        self.assertEqual(launch[-1], 'openwa-api')
+                        self.assertEqual(launch[-1], service)
                         self.assertIn('--no-deps', launch)
                         self.assertIn('--no-build', launch)
                         self.assertIn('--wait', launch)
@@ -105,6 +106,18 @@ class OpenwaUpgradeTests(unittest.TestCase):
 
     def test_different_database_configuration_aborts_before_stopping(self):
         self.scenario(wrong_environment=True)
+
+    def test_service_alias_is_detected_from_container_labels(self):
+        self.scenario(service='openwa')
+
+    def test_relative_paths_and_whitespace_are_normalized(self):
+        self.scenario(relative_files=True)
+
+    def test_extra_compose_file_is_not_silently_ignored(self):
+        self.scenario(extra_file=True)
+
+    def test_service_must_still_target_the_openwa_container(self):
+        self.scenario(wrong_container=True)
 
     def test_backup_failure_restarts_old_container_without_new_browser(self):
         self.scenario(fail='backup')

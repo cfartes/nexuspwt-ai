@@ -50,9 +50,13 @@ def main():
         original = json.loads(output('docker', 'inspect', CONTAINER))[0]
         labels = original['Config']['Labels']
         project, service = labels['com.docker.compose.project'], labels['com.docker.compose.service']
-        files = labels['com.docker.compose.project.config_files'].split(',')
-        if files not in ([str(base), str(media)], [str(base), str(media), str(managed)]) or service != 'openwa-api':
-            raise ValueError('A configuração ativa mudou. Revise todos os arquivos Compose antes de atualizar.')
+        working_directory = Path(labels.get('com.docker.compose.project.working_dir') or str(ROOT))
+        files = [str((working_directory / item.strip()).resolve()) for item in labels['com.docker.compose.project.config_files'].split(',') if item.strip()]
+        print(f'Projeto Compose: {project} | Serviço: {service} | Container: {CONTAINER}', flush=True)
+        print('Arquivos ativos: ' + ', '.join(files), flush=True)
+        expected = [str(base.resolve()), str(media.resolve())]
+        if files not in (expected, [*expected, str(managed.resolve())]) or not service:
+            raise ValueError('Arquivos Compose diferentes dos esperados. Confira a lista exibida; nenhum serviço foi parado.')
         if not original['State']['Running']:
             raise ValueError('O container OpenWA precisa estar ativo para identificar a configuração atual.')
         if not any(mount['Destination'] == '/app/data' for mount in original['Mounts']):
@@ -82,6 +86,8 @@ def main():
         }}}})
         upgrade = [*compose, '-f', str(candidate)]
         config = json.loads(output(*upgrade, 'config', '--format', 'json'))
+        if config.get('services', {}).get(service, {}).get('container_name') != CONTAINER:
+            raise ValueError('O serviço identificado não corresponde ao container openwa-api no Compose. Nenhum serviço foi parado.')
         actual_mounts = {mount['Destination']: (mount['Type'], mount.get('Name') if mount['Type'] == 'volume' else mount['Source']) for mount in original['Mounts'] if mount['Type'] in ('volume', 'bind')}
         if volume_sources(config, service) != actual_mounts:
             raise ValueError('Os volumes do Compose diferem dos volumes ativos. Nenhum serviço foi parado.')

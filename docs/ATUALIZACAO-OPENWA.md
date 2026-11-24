@@ -19,7 +19,7 @@ Não é uma reinstalação. Há uma pausa das conexões WhatsApp atendidas pelo 
 
 ## O que o script faz
 
-1. Confere o container, projeto e serviço Compose e exige volume persistente em `/app/data`.
+1. Confere o container, projeto e serviço Compose e exige volume persistente em `/app/data`. O serviço é obtido das labels do Docker, podendo se chamar `openwa` ou outro nome, desde que o Compose aponte para o container `openwa-api`. A tela mostra os nomes e os arquivos identificados, sem credenciais. Caminhos relativos e espaços na lista de arquivos são normalizados; arquivos adicionais desconhecidos continuam bloqueados.
 2. Preserva cópias dos dois arquivos Compose, `.env`, metadados privados do container e uma tag local da imagem antiga.
 3. Valida que os volumes do Compose correspondem exatamente aos volumes ativos. Divergência cancela antes de parar o serviço.
 4. Baixa a imagem oficial `ghcr.io/rmyndharis/openwa:0.32.0` e confere sua versão antes da pausa.
@@ -51,4 +51,4 @@ Não use `down -v` nem exclua volumes ou diretórios de sessão.
 
 Nesse segundo caso, obtenha o trecho do `migration.log` ou da saída da subida, sem credenciais, antes de repetir a operação. Para recuperar a versão antiga, é necessário restaurar o arquivo de backup **anterior** à atualização usando `restore.sh`, incluindo bancos e autenticações, e então usar a imagem antiga registrada em `rollback-image.txt`. Siga o bloco de rollback do procedimento oficial com os três arquivos Compose desta instalação. Trocar apenas a tag para 0.24.0 pode invalidar os logins por causa da mudança de versão do Chrome.
 
-Validação local: seis testes Linux com Docker simulado cobrem caminho normal, divergência de volumes/configuração de banco, falha de backup, migração e saúde. Esses testes não confirmam download da imagem, restauração de backup real ou reconexão das sessões da VPS. Nenhuma atualização real foi executada pelo assistente.
+Validação local: dez testes Linux com Docker simulado cobrem caminho normal, nome alternativo do serviço, caminhos relativos/espaços, recusa de arquivo adicional/container errado, divergência de volumes/configuração de banco, falha de backup, migração e saúde. Esses testes não confirmam download da imagem, restauração de backup real ou reconexão das sessões da VPS. Nenhuma atualização real foi executada pelo assistente.

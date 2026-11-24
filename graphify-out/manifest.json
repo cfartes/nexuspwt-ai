@@ -1110,15 +1110,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795539213.229118,
-    "seen": 1795540300.7496219,
-    "ast_hash": "24f8fb13c45ac1a1589e48f4a784c87b",
+    "mtime": 1795540450.6973915,
+    "seen": 1795540644.8921878,
+    "ast_hash": "5fe506f5ff4676e75df500fbf1522eed",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795539215.4646862,
-    "seen": 1795540300.7496276,
-    "ast_hash": "20372f2ef15a21c554b5c0a8aaf036d1",
+    "mtime": 1795540450.977785,
+    "seen": 1795540644.8921902,
+    "ast_hash": "aa68e44d65335796b40f5d4d7361cacb",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1248,21 +1248,21 @@
     "semantic_hash": ""
   },
   "scripts/upgrade_openwa.py": {
-    "mtime": 1795540438.8395784,
-    "seen": 1795540450.8956826,
-    "ast_hash": "4c7fc61594b8be1dd3730136db283481",
+    "mtime": 1795540621.4874833,
+    "seen": 1795540644.8741646,
+    "ast_hash": "5b0dd0d11e7b6c44ea76ec301f040ac4",
     "semantic_hash": ""
   },
   "tests/test_upgrade_openwa.py": {
-    "mtime": 1795540438.840566,
-    "seen": 1795540450.9138348,
-    "ast_hash": "2de8bcab114a09c3f709a6a82460d886",
+    "mtime": 1795540621.4884806,
+    "seen": 1795540644.891755,
+    "ast_hash": "a6216636024b9d50ed4ff0d5c6573641",
     "semantic_hash": ""
   },
   "docs/ATUALIZACAO-OPENWA.md": {
-    "mtime": 1795540438.8415644,
-    "seen": 1795540450.9147942,
-    "ast_hash": "d8db241b5e1330b81adcee6e9c68e051",
+    "mtime": 1795540641.9442544,
+    "seen": 1795540644.8924015,
+    "ast_hash": "22d0541b266734965aba1ca7a0e942f3",
     "semantic_hash": ""
   },
   "package-lock.json": {
