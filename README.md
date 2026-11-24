@@ -183,11 +183,12 @@ Os dumps ficam em `data/backups` com acesso restrito. São backups locais de ins
 ### Atualizar a instalação existente sem reinstalar PostgreSQL
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cfartes/nexuspwt-ai/main/scripts/update_vps.sh -o /tmp/update-nexus-ptw.sh
-bash /tmp/update-nexus-ptw.sh
+curl -fsSL https://raw.githubusercontent.com/cfartes/nexuspwt-ai/main/scripts/update_vps.sh -o /tmp/update-nexus-ptw.sh && bash /tmp/update-nexus-ptw.sh
 ```
 
 Esse script exige `/opt/nexus-ptw/deploy/.env.production`, app/worker e PostgreSQL existentes em execução, com volume persistente e schema do app. Atualiza o Git (`main`, somente fast-forward e checkout limpo), constrói as imagens em paralelo ao app atual e faz `pg_dump`. Não recria nem reinicia PostgreSQL, não remove seus volumes, não altera credenciais e não executa bootstrap de usuários. Use `PTW_INSTALL_DIR` para outro diretório. Uma trava impede atualizações simultâneas.
+
+A atualização inclui automaticamente a migração `020-pt-lifecycle.sql`, além de quaisquer migrações anteriores ainda pendentes e aprovadas no manifesto. Não execute o instalador nem `db:setup` para atualizar uma VPS existente. O script informa o commit alvo e só apresenta a mensagem de conclusão se o deploy retornar sucesso. Após terminar, valide reabertura/prorrogação da PT e atualize as abas pelo aviso do aplicativo. O backup permanece em `data/backups`; a atualização não altera as senhas já definidas.
 
 O fluxo blue/green reaproveita o padrão do RotaFY: uma instância candidata sem rota pública é testada antes da troca; um gateway Nginx estável atrás do Traefik existente recarrega sua rota sem reiniciar o proxy. Os bundles JavaScript/CSS anteriores permanecem num volume público compartilhado para abas antigas. O worker anterior encerra graciosamente e o novo assume a fila antes da troca; notificações podem aguardar alguns segundos, sem interromper o app. Requisições antigas têm 190 segundos para terminar antes da parada da instância anterior. A VPS precisa de memória/disco para duas instâncias durante o deploy.
 

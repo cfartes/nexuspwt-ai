@@ -17,5 +17,10 @@ docker info >/dev/null
 mkdir -p "$install_dir/data"
 exec 9>"$install_dir/data/update.lock"
 flock -n 9 || { printf 'Outra atualização já está em execução.\n' >&2; exit 1; }
+printf 'Atualizando Nexus PTW em %s. PostgreSQL e credenciais existentes serão preservados.\n' "$install_dir"
 git -C "$install_dir" pull --ff-only origin main
-exec python3 "$install_dir/scripts/deploy_vps.py" --update-only
+printf 'Versão alvo: %s\n' "$(git -C "$install_dir" rev-parse --short HEAD)"
+printf 'O atualizador fará backup, aplicará as migrações aprovadas e atualizará app e worker.\n'
+python3 "$install_dir/scripts/deploy_vps.py" --update-only
+printf '\nAtualização concluída. No navegador, use Atualizar aplicativo quando o aviso aparecer.\n'
+printf 'As regras de PT exigem nova aprovação após reabertura ou prorrogação.\n'
