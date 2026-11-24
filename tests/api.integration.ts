@@ -1,3 +1,4 @@
+import { ptToday } from '../src/lib/pt-calendar';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { randomUUID, randomBytes } from 'node:crypto';
@@ -425,8 +426,8 @@ try {
     kind: 'APR',
     title: 'Manutenção do telhado',
     location: 'Galpão 1',
-    startsAt: '2026-11-17',
-    endsAt: '2026-11-20',
+    startsAt: ptToday(),
+    endsAt: ptToday(),
     aprId: null,
     version: 0,
     data: {
@@ -535,8 +536,37 @@ try {
       executors: [{ userId: user.id, role: 'Responsável' }],
     },
   };
+  await call(
+    '/api/documents',
+    { ...pt, id: randomUUID(), startsAt: ptToday(new Date(Date.now() - 86400000)) },
+    400,
+  );
+  await call(
+    '/api/documents',
+    {
+      ...pt,
+      id: randomUUID(),
+      startsAt: ptToday(new Date(Date.now() + 86400000)),
+      endsAt: ptToday(new Date(Date.now() + 86400000)),
+    },
+    400,
+  );
+  await call(
+    '/api/documents',
+    {
+      ...pt,
+      id: randomUUID(),
+      data: { ...pt.data, answers: { ...pt.data.answers, 'general.date': '2000-01-01' } },
+    },
+    400,
+  );
   await call('/api/documents', pt);
-  const invalidDate = { ...pt, id: randomUUID(), endsAt: '2026-11-21' };
+  await call(
+    '/api/documents',
+    { ...pt, version: 1, startsAt: ptToday(new Date(Date.now() - 86400000)) },
+    409,
+  );
+  const invalidDate = { ...pt, id: randomUUID(), endsAt: ptToday(new Date(Date.now() + 86400000)) };
   await call('/api/documents', invalidDate, 400);
   const blocked = await call(
     `/api/documents/${pt.id}/workflow`,
@@ -593,7 +623,7 @@ try {
       ...d.data,
       answers: { companyUserId: nextResponsibleId, safetyUserId: nextResponsibleId },
     },
-    startsAt: '2026-11-19',
+    startsAt: ptToday(),
   });
   assert.equal(revision.version, 4);
   const oldPt = await call('/api/documents', {
@@ -614,7 +644,7 @@ try {
     ...pt,
     id: randomUUID(),
     contractorId: nextContractor.id,
-    startsAt: '2026-11-19',
+    startsAt: ptToday(),
   });
   assert.equal(newPt.apr_version, 4, 'Nova PT usa a versão aprovada atual');
   const history = await call(`/api/documents/${d.id}/history`);

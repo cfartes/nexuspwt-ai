@@ -6,6 +6,7 @@ import { documentSchema } from '@/lib/validation';
 import { isDeepStrictEqual } from 'node:util';
 import { aprResponsibles } from '@/lib/apr-responsibles';
 import { assertExecutorsValidated } from '@/lib/executor-identities';
+import { ptCreationError } from '@/lib/pt-calendar';
 export async function POST(request: Request) {
   try {
     assertOrigin(request);
@@ -31,6 +32,14 @@ export async function POST(request: Request) {
       if (existing?.removed_at)
         throw new HttpError(409, 'APR removida. Não é possível alterar este documento.');
       if (existing) assertContractorAccess(unit, existing.contractor_id);
+      if (d.kind === 'PT') {
+        const dateError = !existing ? ptCreationError(d.startsAt) : null;
+        if (dateError) throw new HttpError(400, dateError);
+        if (existing && existing.starts_at.toISOString().slice(0, 10) !== d.startsAt)
+          throw new HttpError(409, 'A data de emissão da PT não pode ser alterada.');
+        if (d.data.answers['general.date'] && d.data.answers['general.date'] !== d.startsAt)
+          throw new HttpError(400, 'A data do formulário deve ser a mesma data de emissão da PT.');
+      }
       if (
         existing?.kind === 'PT' &&
         (existing.contractor_id !== d.contractorId || existing.apr_id !== d.aprId)

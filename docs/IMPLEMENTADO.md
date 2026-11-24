@@ -62,3 +62,7 @@ Validação: 39 testes automatizados aprovados, compilação TypeScript, build d
 ### Remoção da conferência manual em Pessoas e acessos — 24/11/2026
 
 Removidos botão de conferir identidade, aviso de pendência e bloqueio de decisões por ausência de conferência manual. Usuários internos usam sessão autenticada e MFA conforme a empresa. O servidor continua exigindo acesso ativo, atribuição e versão da decisão, além de documento pessoal aprovado para contratadas quando essa política estiver ativada. A recuperação assistida do autenticador permanece; não exige nova conferência cadastral após recuperar o fator. Registros históricos são preservados, sem migração do banco.
+
+### Data de emissão da PT — 24/11/2026
+
+Novas PTs só podem ser criadas para o dia atual no horário de Brasília, com validação no servidor. A data fica fixa no formulário; edições não podem trocar a data original. A data duplicada no formulário precisa corresponder à emissão. Uma criação offline enviada apenas no dia seguinte é recusada sem descartar o registro da fila local; não há alteração automática ou retroativa da data. APRs e consultas a documentos históricos permanecem disponíveis. Não exige migração do banco.

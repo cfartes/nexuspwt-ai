@@ -28,6 +28,8 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 
 ### Homologação do cadastro de contratadas por convite
 
+Reabertura e prorrogação da PT: confirmar se exigem nova aprovação, quais perfis podem executar e se o novo término pode ultrapassar a meia-noite. O MVP ainda bloqueia liberação operacional da PT; o ciclo de encerramento/reabertura precisa ser definido junto dessas regras. A restrição de criação no dia atual já foi implementada separadamente.
+
 Os testes legados `test_update_preserves_environment_and_never_recreates_database` e `test_existing_credentials_preserved_and_migration_precedes_workers` em `deploy_vps_test.py` ainda assumem o fluxo anterior ao deploy online. Em Linux falham pelos mocks/imports antigos; precisam ser adequados ao `RollingDeployment`. O teste específico da nova senha gerada pelo instalador passou. Homologar também os botões de visualizar senha no navegador/celular; nenhuma atualização foi executada na VPS nesta alteração.
 
 - Aplicar a migração 019 e atualizar app/worker na VPS pelo atualizador existente.

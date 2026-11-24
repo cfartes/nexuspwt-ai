@@ -1,5 +1,6 @@
 'use client';
 import PasswordInput from './password-input';
+import { ptToday } from '@/lib/pt-calendar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ShieldCheck,
@@ -213,7 +214,7 @@ export default function Workspace() {
   }
   function create(kind: 'APR' | 'PT') {
     if (!ws) return;
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = ptToday();
     setEditor({
       id: crypto.randomUUID(),
       unitId: ws.unit.id,
@@ -225,7 +226,13 @@ export default function Workspace() {
       endsAt: today,
       aprId: null,
       version: 0,
-      data: { answers: {}, types: [], ppe: [], risks: [], executors: [] },
+      data: {
+        answers: kind === 'PT' ? { 'general.date': today } : {},
+        types: [],
+        ppe: [],
+        risks: [],
+        executors: [],
+      },
     });
   }
   async function workflow(d: DocumentRow, action: 'submit' | 'approve' | 'reject') {

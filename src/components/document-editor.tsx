@@ -19,6 +19,7 @@ import { enqueue } from '@/lib/offline';
 import { api } from './workspace';
 import DocumentHistory from './document-history';
 import ReassignApproval from './reassign-approval';
+import { ptToday, ptCreationError } from '@/lib/pt-calendar';
 type Photo = {
   id: string;
   caption: string;
@@ -231,10 +232,13 @@ export default function DocumentEditor({
                   />
                 </label>
                 <label>
-                  Previsão de início *
+                  {d.kind === 'PT' ? 'Data de emissão da PT *' : 'Previsão de início *'}
                   <input
                     type="date"
                     value={d.startsAt}
+                    readOnly={d.kind === 'PT'}
+                    min={d.kind === 'PT' && !saved ? ptToday() : undefined}
+                    max={d.kind === 'PT' && !saved ? ptToday() : undefined}
                     onChange={(e) => update({ startsAt: e.target.value })}
                   />
                 </label>
@@ -590,7 +594,11 @@ export default function DocumentEditor({
                         ) : (
                           <input
                             type={f.type === 'date' || f.type === 'time' ? f.type : 'text'}
-                            value={d.data.answers[`${section.id}.${f.key}`] || ''}
+                            value={
+                              d.data.answers[`${section.id}.${f.key}`] ||
+                              (section.id === 'general' && f.key === 'date' ? d.startsAt : '')
+                            }
+                            readOnly={section.id === 'general' && f.key === 'date'}
                             onChange={(e) => answer(`${section.id}.${f.key}`, e.target.value)}
                           />
                         )}
@@ -884,6 +892,13 @@ export default function DocumentEditor({
                 disabled={busy}
                 onClick={async () => {
                   setError('');
+                  if (d.kind === 'PT' && !saved) {
+                    const dateError = ptCreationError(d.startsAt);
+                    if (dateError) {
+                      setError(dateError);
+                      return;
+                    }
+                  }
                   const result = documentSchema.safeParse(d);
                   if (!result.success) {
                     setError(
