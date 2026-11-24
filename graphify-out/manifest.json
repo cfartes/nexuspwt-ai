@@ -288,9 +288,9 @@
     "semantic_hash": ""
   },
   "src/app/api/documents/[id]/remove/route.ts": {
-    "mtime": 1795545790.8264768,
-    "seen": 1795545922.6542745,
-    "ast_hash": "3d3519244a465dd18a8cdf2d4f371628",
+    "mtime": 1795548594.030337,
+    "seen": 1795548749.107984,
+    "ast_hash": "bba1ba19b947d81e8c8c77401b0dc7cf",
     "semantic_hash": ""
   },
   "src/app/api/documents/[id]/workflow/route.ts": {
@@ -504,9 +504,9 @@
     "semantic_hash": ""
   },
   "src/components/document-editor.tsx": {
-    "mtime": 1795547443.6484065,
-    "seen": 1795547585.6898906,
-    "ast_hash": "0c36c498faa179663e5b1acd18341c57",
+    "mtime": 1795548594.0271437,
+    "seen": 1795548749.1412768,
+    "ast_hash": "ee1783f14b490f969433679931481cb8",
     "semantic_hash": ""
   },
   "src/components/document-history.tsx": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/components/workspace.tsx": {
-    "mtime": 1795547490.4790933,
-    "seen": 1795547585.6935863,
-    "ast_hash": "08953d28b0d97e7d1becd9431c8db946",
+    "mtime": 1795548646.031495,
+    "seen": 1795548749.1576834,
+    "ast_hash": "70900ccbd73c2a89827d412ec25a6ec5",
     "semantic_hash": ""
   },
   "src/index.ts": {
@@ -762,9 +762,9 @@
     "semantic_hash": ""
   },
   "src/lib/offline.ts": {
-    "mtime": 1795112528.8852098,
-    "seen": 1795262845.833764,
-    "ast_hash": "6cf555df6956f07cc785dfbb4dcc4a4f",
+    "mtime": 1795548645.856542,
+    "seen": 1795548749.174779,
+    "ast_hash": "5172c5d3c10157131f9122adaffa40e7",
     "semantic_hash": ""
   },
   "src/lib/openwa.ts": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "tests/api.integration.ts": {
-    "mtime": 1795547540.3284893,
-    "seen": 1795547585.7031307,
-    "ast_hash": "afc35d05433b5056d6ceac7df90e7cdf",
+    "mtime": 1795548646.4017625,
+    "seen": 1795548749.1848547,
+    "ast_hash": "7e6b62b4a9555e58b2b94f75e89ec2ab",
     "semantic_hash": ""
   },
   "tests/app-release.test.ts": {
@@ -930,9 +930,9 @@
     "semantic_hash": ""
   },
   "tests/offline.test.ts": {
-    "mtime": 1795112559.1630833,
-    "seen": 1795262845.8338158,
-    "ast_hash": "3034a1109a62e4284f3b1d2d8149627c",
+    "mtime": 1795548646.4409382,
+    "seen": 1795548749.1895497,
+    "ast_hash": "ad79768aecb4e9941df55416c3be652a",
     "semantic_hash": ""
   },
   "tests/online-migrations.test.ts": {
@@ -948,9 +948,9 @@
     "semantic_hash": ""
   },
   "tests/remove-apr.test.ts": {
-    "mtime": 1795547631.1432154,
-    "seen": 1795547659.789838,
-    "ast_hash": "fda8ce9ec8a573351f43b4f6e3013415",
+    "mtime": 1795548644.6440175,
+    "seen": 1795548749.193972,
+    "ast_hash": "fc568545c57484fe896eaca6b7200d0a",
     "semantic_hash": ""
   },
   "tests/test_rolling_deploy.py": {
@@ -1098,15 +1098,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795545989.2667544,
-    "seen": 1795547585.7096155,
-    "ast_hash": "6116ba016ec0902c34a1235d6d1781af",
+    "mtime": 1795547585.363378,
+    "seen": 1795548749.1994185,
+    "ast_hash": "568f181aeee013e8ce5e0665d36eb618",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795545989.848956,
-    "seen": 1795547585.709621,
-    "ast_hash": "1dbe2c1b4309b208319b57b44813b9cf",
+    "mtime": 1795547585.826703,
+    "seen": 1795548749.1994245,
+    "ast_hash": "19229f3d86edef1749d621154bea0169",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1260,15 +1260,15 @@
     "semantic_hash": ""
   },
   "src/components/remove-document.tsx": {
-    "mtime": 1795547443.6585348,
-    "seen": 1795547585.6925254,
-    "ast_hash": "f3a01dfd6283502230964c728f9a3a1b",
+    "mtime": 1795548645.8770137,
+    "seen": 1795548749.1514542,
+    "ast_hash": "b43a041d1e2a95ee17c92afdc531d1d0",
     "semantic_hash": ""
   },
   "src/lib/remove-document.ts": {
-    "mtime": 1795547490.3370152,
-    "seen": 1795547585.7008138,
-    "ast_hash": "d9ba2d4f199901e7a8e8925eba349206",
+    "mtime": 1795548646.1900892,
+    "seen": 1795548749.1789992,
+    "ast_hash": "e04cbf8b14b05cb5809ee42b74cdc26e",
     "semantic_hash": ""
   },
   "package-lock.json": {

@@ -1415,7 +1415,7 @@ try {
   await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
   assert.equal((await call(`/api/workspace?unit=${unit.id}`)).user.id, invited.id);
   await call('/api/invitations', { unitId: unit.id, userId: user.id }, 403);
-  await call(`/api/documents/${d.id}/remove`, { version: 4 }, 403);
+  await call(`/api/documents/${d.id}/remove`, { version: 4, kind: 'APR' }, 403);
   await call(
     '/api/admin',
     { action: 'deleteRegistration', unitId: unit.id, kind: 'unit', id: unit.id },
@@ -1448,7 +1448,7 @@ try {
     { action: 'deleteRegistration', unitId: unit.id, kind: 'unit', id: unit.id },
     409,
   );
-  await call(`/api/documents/${d.id}/remove`, { version: 4 }, 409);
+  await call(`/api/documents/${d.id}/remove`, { version: 4, kind: 'APR' }, 409);
   const removableApr = {
     ...d,
     id: randomUUID(),
@@ -1457,8 +1457,14 @@ try {
     title: 'APR para remover',
   };
   await call('/api/documents', removableApr);
-  await call(`/api/documents/${removableApr.id}/remove`, { version: 99 }, 409);
-  await call(`/api/documents/${removableApr.id}/remove`, { version: 1 });
+  await call(`/api/documents/${removableApr.id}/remove`, { version: 99, kind: 'APR' }, 409);
+  await call(`/api/documents/${removableApr.id}/remove`, { version: 1, kind: 'PT' }, 409);
+  assert(
+    (await call(`/api/workspace?unit=${unit.id}`)).documents.some(
+      (row: { id: string }) => row.id === removableApr.id,
+    ),
+  );
+  await call(`/api/documents/${removableApr.id}/remove`, { version: 1, kind: 'APR' });
   assert(
     !(await call(`/api/workspace?unit=${unit.id}`)).documents.some(
       (row: { id: string }) => row.id === removableApr.id,
@@ -1498,7 +1504,7 @@ try {
   };
   await call('/api/documents', removablePt);
   await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
-  await call(`/api/documents/${removablePt.id}/remove`, { version: 1 }, 403);
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1, kind: 'PT' }, 403);
   cookie = adminCookie;
   const adminDraft = { ...removablePt, id: randomUUID() };
   await call('/api/documents', adminDraft);
@@ -1507,22 +1513,23 @@ try {
     unit.id,
   ]);
   await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
-  await call(`/api/documents/${adminDraft.id}/remove`, { version: 1 });
+  await call(`/api/documents/${adminDraft.id}/remove`, { version: 1, kind: 'PT' });
   await db.query("UPDATE memberships SET role='executante' WHERE user_id=$1 AND unit_id=$2", [
     invited.id,
     unit.id,
   ]);
   const authorDraft = { ...removablePt, id: randomUUID() };
   await call('/api/documents', authorDraft);
-  await call(`/api/documents/${authorDraft.id}/remove`, { version: 1 });
+  await call(`/api/documents/${authorDraft.id}/remove`, { version: 1, kind: 'PT' });
   await db.query("UPDATE memberships SET role='aprovador' WHERE user_id=$1 AND unit_id=$2", [
     invited.id,
     unit.id,
   ]);
   cookie = adminCookie;
-  await call(`/api/documents/${removablePt.id}/remove`, { version: 99 }, 409);
-  await call(`/api/documents/${removablePt.id}/remove`, { version: 1 });
-  await call(`/api/documents/${removablePt.id}/remove`, { version: 1 }, 409);
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 99, kind: 'PT' }, 409);
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1, kind: 'APR' }, 409);
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1, kind: 'PT' });
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1, kind: 'PT' }, 409);
   assert(
     !(await call(`/api/workspace?unit=${unit.id}`)).documents.some(
       (row: { id: string }) => row.id === removablePt.id,

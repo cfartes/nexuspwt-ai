@@ -1,17 +1,17 @@
 # Graph Report - Nexus PTW  (2026-11-24)
 
 ## Corpus Check
-- 209 files · ~301,492 words
+- 209 files · ~302,932 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 4, .example 2, .css 2)
 
 ## Summary
-- 1044 nodes · 3294 edges · 55 communities (34 shown, 21 thin omitted)
+- 1046 nodes · 3316 edges · 65 communities (41 shown, 24 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 28 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bcb82020`
+- Built from commit: `0350615d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,7 +23,7 @@
 - 001-initial.sql
 - document-editor.tsx
 - environment
-- contractorRegistration.ts
+- decryptSecret
 - Nexus PTW AI
 - package.json
 - compilerOptions
@@ -52,26 +52,36 @@
 - .scenario
 - ContractorPublicRegistration.tsx
 - admin-panel.tsx
+- auth.ts
 - Atualização do OpenWA 0.24.0 para 0.32.0
 - .scenario
 - workspace.tsx
+- admin/route.ts
 - Popup
 - production-data.ts
+- api.integration.ts
 - clean_production.sh
 - seed_validation.sh
+- contractorRegistration.ts
+- identity-policy.test.ts
+- pg
+- online-migrations.test.ts
 - reset_validation_passwords.sh
+- totpQrCode
+- app-release.test.ts
+- overrides
 
 ## God Nodes (most connected - your core abstractions)
 1. `HttpError` - 132 edges
 2. `apiError()` - 69 edges
-3. `api()` - 60 edges
-4. `currentUser()` - 60 edges
+3. `currentUser()` - 60 edges
+4. `api()` - 59 edges
 5. `unitAccess()` - 58 edges
 6. `pg` - 45 edges
 7. `assertOrigin()` - 44 edges
 8. `transaction()` - 42 edges
-9. `Communities (57 total, 21 thin omitted)` - 37 edges
-10. `react` - 37 edges
+9. `react` - 37 edges
+10. `Workspace()` - 35 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Homologação do cadastro de contratadas por convite` --references--> `RollingDeployment`  [INFERRED]
@@ -87,7 +97,6 @@
 
 ## Import Cycles
 - 2-file cycle: `src/components/document-editor.tsx -> src/components/workspace.tsx -> src/components/document-editor.tsx`
-- 2-file cycle: `src/components/remove-document.tsx -> src/components/workspace.tsx -> src/components/remove-document.tsx`
 - 2-file cycle: `src/components/approval-confirmation.tsx -> src/components/workspace.tsx -> src/components/approval-confirmation.tsx`
 - 2-file cycle: `src/components/audit-panel.tsx -> src/components/workspace.tsx -> src/components/audit-panel.tsx`
 - 2-file cycle: `src/components/contractor-team.tsx -> src/components/workspace.tsx -> src/components/contractor-team.tsx`
@@ -99,27 +108,28 @@
 - 3-file cycle: `src/components/admin-panel.tsx -> src/components/workspace.tsx -> src/components/registration-panel.tsx -> src/components/admin-panel.tsx`
 - 3-file cycle: `src/components/approver-settings.tsx -> src/components/workspace.tsx -> src/components/registration-panel.tsx -> src/components/approver-settings.tsx`
 - 3-file cycle: `src/components/delete-registration.tsx -> src/components/workspace.tsx -> src/components/registration-panel.tsx -> src/components/delete-registration.tsx`
-- 3-file cycle: `src/components/integration-settings.tsx -> src/components/workspace.tsx -> src/components/settings-panel.tsx -> src/components/integration-settings.tsx`
+- 3-file cycle: `src/components/company-editor.tsx -> src/components/workspace.tsx -> src/components/registration-panel.tsx -> src/components/company-editor.tsx`
 - 3-file cycle: `src/components/IdentityUploadSettings.tsx -> src/components/workspace.tsx -> src/components/settings-panel.tsx -> src/components/IdentityUploadSettings.tsx`
+- 3-file cycle: `src/components/integration-settings.tsx -> src/components/workspace.tsx -> src/components/settings-panel.tsx -> src/components/integration-settings.tsx`
 - 3-file cycle: `src/components/resend-settings.tsx -> src/components/workspace.tsx -> src/components/settings-panel.tsx -> src/components/resend-settings.tsx`
 - 3-file cycle: `src/components/security-settings.tsx -> src/components/workspace.tsx -> src/components/settings-panel.tsx -> src/components/security-settings.tsx`
 - 3-file cycle: `src/components/settings-panel.tsx -> src/components/unit-limit-settings.tsx -> src/components/workspace.tsx -> src/components/settings-panel.tsx`
-- 3-file cycle: `src/components/company-editor.tsx -> src/components/workspace.tsx -> src/components/registration-panel.tsx -> src/components/company-editor.tsx`
 - 3-file cycle: `src/components/PersonalDocuments.tsx -> src/components/contractor-team.tsx -> src/components/workspace.tsx -> src/components/PersonalDocuments.tsx`
+- 3-file cycle: `src/components/ContractorRegistrations.tsx -> src/components/workspace.tsx -> src/components/registration-panel.tsx -> src/components/ContractorRegistrations.tsx`
 
-## Communities (55 total, 21 thin omitted)
+## Communities (65 total, 24 thin omitted)
 
 ### Community 0 - "HttpError"
-Cohesion: 0.08
-Nodes (92): God Nodes (most connected - your core abstractions), Suggested Questions, zod, GET(), name, POST(), role, schema (+84 more)
+Cohesion: 0.07
+Nodes (95): God Nodes (most connected - your core abstractions), zod, GET(), GET(), DELETE(), dummyHash, POST(), POST() (+87 more)
 
 ### Community 1 - "upgrade_openwa.py"
 Cohesion: 0.06
 Nodes (21): choose(), load_env(), main(), output(), routing(), output(), run(), candidate_config() (+13 more)
 
 ### Community 2 - "offline.ts"
-Cohesion: 0.30
-Nodes (13): acknowledge(), cacheWorkspace(), clearLocal(), connections, enqueue(), getLocal(), getWorkspace(), jobs() (+5 more)
+Cohesion: 0.27
+Nodes (16): removeDocument(), save(), acknowledge(), assertNoLocalPtForApr(), cacheWorkspace(), clearLocal(), connections, discardDocument() (+8 more)
 
 ### Community 3 - "permissions.ts"
 Cohesion: 0.20
@@ -130,24 +140,24 @@ Cohesion: 0.07
 Nodes (42): approvals, approver_assignment, approvers, audit_events, companies, contractor_units, contractors, document_versions (+34 more)
 
 ### Community 5 - "document-editor.tsx"
-Cohesion: 0.14
-Nodes (23): CameraCapture(), DocumentEditor(), Photo, actions, DocumentHistory(), History, labels, PtLifecycleControls() (+15 more)
+Cohesion: 0.18
+Nodes (19): CameraCapture(), DocumentEditor(), Photo, actions, DocumentHistory(), History, labels, PtLifecycleControls() (+11 more)
 
 ### Community 6 - "environment"
 Cohesion: 0.06
 Nodes (41): build, depends_on, environment, ports, restart, context, dockerfile, target (+33 more)
 
-### Community 7 - "contractorRegistration.ts"
-Cohesion: 0.05
-Nodes (93): @electric-sql/pglite, @electric-sql/pglite-socket, pg, client, onlineMigrations(), db, path, phone (+85 more)
+### Community 7 - "decryptSecret"
+Cohesion: 0.14
+Nodes (32): phone, registrationLink(), RegistrationRow, processContractorRegistrationInvite(), decryptSecret(), IntegrationRow, processInvitation(), invitationLink() (+24 more)
 
 ### Community 8 - "Nexus PTW AI"
 Cohesion: 0.05
 Nodes (40): Cadastro da contratada por convite — 24/11/2026, Ciclo da PT no mesmo dia — 24/11/2026, Data de emissão da PT — 24/11/2026, Decisão de arquitetura, Diretrizes adotadas, Funcionalidades disponíveis no código, Nexus PTW — implementado, Remoção da conferência manual em Pessoas e acessos — 24/11/2026 (+32 more)
 
 ### Community 9 - "package.json"
-Cohesion: 0.10
-Nodes (25): devDependencies, @electric-sql/pglite@^0.5.16, @electric-sql/pglite-socket@^0.2.19, fake-indexeddb@^6.2.8, prettier@^3.10.1, @types/node@^24.10.0, @types/pg@^8.15.6, @types/qrcode@^1.5.6 (+17 more)
+Cohesion: 0.11
+Nodes (23): devDependencies, @electric-sql/pglite@^0.5.16, @electric-sql/pglite-socket@^0.2.19, fake-indexeddb@^6.2.8, prettier@^3.10.1, @types/node@^24.10.0, @types/pg@^8.15.6, @types/qrcode@^1.5.6 (+15 more)
 
 ### Community 10 - "compilerOptions"
 Cohesion: 0.11
@@ -162,8 +172,8 @@ Cohesion: 0.15
 Nodes (12): 1. Cabeçalho e Identificação, 1. Identificação Geral, 2. Classificação da Atividade (Gatilhos de Condicionalidade), 2. Matriz de Análise de Riscos (Tabela Dinâmica / Lista Repetível), 3. Bloco de Assinaturas e Aprovações (4 Perfis), 3. EPIs e Avaliação Obrigatória, 4. Checklists Específicos (Exibição Condicional), 5. Liberação, Revalidação, Executantes e Encerramento (+4 more)
 
 ### Community 13 - "dependencies"
-Cohesion: 0.15
-Nodes (13): dependencies, idb@^8.0.3, lucide-react@^0.468.0, pg@^8.16.3, qrcode@^1.5.4, react@19.3.1, react-dom@19.3.1, tsx@^4.23.15 (+5 more)
+Cohesion: 0.18
+Nodes (11): dependencies, idb@^8.0.3, lucide-react@^0.468.0, pg@^8.16.3, react@19.3.1, react-dom@19.3.1, tsx@^4.23.15, zod@^4.1.12 (+3 more)
 
 ### Community 14 - "environment"
 Cohesion: 0.29
@@ -206,7 +216,7 @@ Cohesion: 0.60
 Nodes (6): build, build, context, dockerfile, target, build
 
 ### Community 24 - "api"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (24): react, metadata, Page(), DefinePassword(), IdentityUploadSettings(), ConfigResponse, IntegrationPanel(), load() (+16 more)
 
 ### Community 25 - "notifications"
@@ -215,7 +225,7 @@ Nodes (5): image, networks, restart, stop_grace_period, notifications
 
 ### Community 26 - "Communities (43 total, 16 thin omitted)"
 Cohesion: 0.04
-Nodes (45): Communities (57 total, 21 thin omitted), Community 0 - "HttpError", Community 10 - "compilerOptions", Community 11 - "scripts", Community 12 - "Formulário 2: PT (Permissão de Trabalho Integrada)", Community 13 - "dependencies", Community 14 - "environment", Community 15 - "x-runtime" (+37 more)
+Nodes (44): Communities (55 total, 21 thin omitted), Community 0 - "HttpError", Community 10 - "compilerOptions", Community 11 - "scripts", Community 12 - "Formulário 2: PT (Permissão de Trabalho Integrada)", Community 13 - "dependencies", Community 14 - "environment", Community 15 - "x-runtime" (+36 more)
 
 ### Community 29 - ".prettierrc.json"
 Cohesion: 0.50
@@ -223,45 +233,73 @@ Nodes (3): printWidth, singleQuote, trailingComma
 
 ### Community 44 - "ContractorPublicRegistration.tsx"
 Cohesion: 0.12
-Nodes (24): metadata, Page(), ContractorTeam(), fileData(), Person, statuses, Team, ContractorPublicRegistration() (+16 more)
+Nodes (23): metadata, Page(), ContractorTeam(), fileData(), Person, statuses, Team, ContractorPublicRegistration() (+15 more)
 
 ### Community 45 - "admin-panel.tsx"
-Cohesion: 0.22
-Nodes (13): CompanyEditor(), CompanyFields(), ContractorFields(), find(), Company, companyDetails, CompanyDetails, contractorDetails (+5 more)
+Cohesion: 0.20
+Nodes (15): CompanyEditor(), CompanyFields(), ContractorEditor(), ContractorFields(), find(), ReassignApproval(), Company, companyDetails (+7 more)
+
+### Community 46 - "auth.ts"
+Cohesion: 0.29
+Nodes (5): @electric-sql/pglite, @electric-sql/pglite-socket, path, User, requiresLoginMfa()
 
 ### Community 47 - "Atualização do OpenWA 0.24.0 para 0.32.0"
 Cohesion: 0.15
 Nodes (11): Atualização do OpenWA 0.24.0 para 0.32.0, Atualização inicial de 0.24.0 para 0.32.0, Correção do QR Code na versão 0.32.0, Depois da atualização, Executar na VPS, O que o script faz, Se falhar, Diagnóstico da conexão WhatsApp (+3 more)
 
 ### Community 49 - "workspace.tsx"
-Cohesion: 0.16
-Nodes (16): Page(), ApprovalConfirmation(), Notification, NotificationPanel(), statuses, RegistrationTab, RemoveDocument(), DocumentTable() (+8 more)
+Cohesion: 0.14
+Nodes (19): Page(), ApprovalConfirmation(), Notification, NotificationPanel(), statuses, RegistrationTab, RemovableDocument, RemoveDocument() (+11 more)
+
+### Community 51 - "admin/route.ts"
+Cohesion: 0.23
+Nodes (16): name, POST(), role, schema, eligibleApprover(), grantRegionalAccess(), reassignApproval(), updateApprover() (+8 more)
 
 ### Community 52 - "Popup"
-Cohesion: 0.29
-Nodes (15): lucide-react, AdminPanel(), ApproverSettings(), Assignment, ContractorEditor(), ContractorRegistrations(), DeleteRegistration(), IdentityReview() (+7 more)
+Cohesion: 0.33
+Nodes (13): lucide-react, AdminPanel(), ApproverSettings(), Assignment, ContractorRegistrations(), DeleteRegistration(), IdentityReview(), PeoplePanel() (+5 more)
 
 ### Community 53 - "production-data.ts"
-Cohesion: 0.12
-Nodes (19): businessTables, cleanProductionData(), cnpjFor(), cpfFor(), maintenance(), preservedTables, resetValidationPasswords(), seedValidationData() (+11 more)
+Cohesion: 0.23
+Nodes (13): businessTables, cleanProductionData(), cnpjFor(), cpfFor(), maintenance(), preservedTables, resetValidationPasswords(), seedValidationData() (+5 more)
+
+### Community 54 - "api.integration.ts"
+Cohesion: 0.13
+Nodes (14): aprProfiles, Field, permissionTypes, ppeOptions, ptProfiles, ptSections, Section, totp() (+6 more)
+
+### Community 57 - "contractorRegistration.ts"
+Cohesion: 0.28
+Nodes (11): cpfDigest(), identitySnapshot(), recordIdentity(), validCpf(), contractorRegistrationData, email, registrationCard, contractorRoleValues (+3 more)
+
+### Community 58 - "identity-policy.test.ts"
+Cohesion: 0.27
+Nodes (9): assertDecisionIdentity(), executorSubmission, saveIdentityPolicy(), IdentitySubmissionState, personalIdentityState(), readIdentityPolicy(), updateIdentityPolicy(), IdentityPolicy (+1 more)
+
+### Community 59 - "pg"
+Cohesion: 0.27
+Nodes (5): pg, db, companyInput, saveCompany(), data
+
+### Community 62 - "totpQrCode"
+Cohesion: 0.53
+Nodes (4): qrcode@^1.5.4, qrcode, totpQrCode(), totpUri()
 
 ## Knowledge Gaps
-- **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RollingDeployment` connect `upgrade_openwa.py` to `Nexus PTW AI`, `HttpError`, `Communities (43 total, 16 thin omitted)`?**
-  _High betweenness centrality (0.189) - this node is a cross-community bridge._
+- **Why does `RollingDeployment` connect `upgrade_openwa.py` to `Nexus PTW AI`, `Communities (43 total, 16 thin omitted)`?**
+  _High betweenness centrality (0.186) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `HttpError` (e.g. with `God Nodes (most connected - your core abstractions)` and `Suggested Questions`) actually correct?**
   _`HttpError` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Should `HttpError` be split into smaller, more focused modules?**
-  _Cohesion score 0.07503220266208674 - nodes in this community are weakly interconnected._
-- **Why does `HttpError` connect `HttpError` to `document-editor.tsx`, `contractorRegistration.ts`?**
-  _High betweenness centrality (0.129) - this node is a cross-community bridge._
+  _Cohesion score 0.07479107161747593 - nodes in this community are weakly interconnected._
+- **Why does `HttpError` connect `HttpError` to `identity-policy.test.ts`, `document-editor.tsx`, `decryptSecret`, `auth.ts`, `admin/route.ts`, `production-data.ts`, `contractorRegistration.ts`, `Communities (43 total, 16 thin omitted)`, `pg`?**
+  _High betweenness centrality (0.127) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `apiError()` (e.g. with `God Nodes (most connected - your core abstractions)` and `Suggested Questions`) actually correct?**
   _`apiError()` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **Should `upgrade_openwa.py` be split into smaller, more focused modules?**
   _Cohesion score 0.06392405063291139 - nodes in this community are weakly interconnected._
-- **Why does `Suggested Questions` connect `HttpError` to `upgrade_openwa.py`, `Communities (43 total, 16 thin omitted)`?**
-  _High betweenness centrality (0.116) - this node is a cross-community bridge._
+- **Why does `Suggested Questions` connect `Communities (43 total, 16 thin omitted)` to `HttpError`, `upgrade_openwa.py`?**
+  _High betweenness centrality (0.110) - this node is a cross-community bridge._

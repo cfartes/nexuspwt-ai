@@ -69,3 +69,49 @@ export async function clearLocal(userId: string) {
   connections.delete(userId);
   await deleteDB(`nexus-${userId}`);
 }
+
+export async function assertNoLocalPtForApr(userId: string, aprId: string) {
+  const db = await store(userId);
+  const tx = db.transaction(['drafts', 'queue']);
+  const drafts = await tx.objectStore('drafts').getAll();
+  const queue = await tx.objectStore('queue').getAll();
+  await tx.done;
+  if (
+    drafts.some((d) => d.kind === 'PT' && d.aprId === aprId) ||
+    queue.some(
+      (job) => job.path === '/api/documents' && job.body?.kind === 'PT' && job.body.aprId === aprId,
+    )
+  )
+    throw new Error(
+      'Esta APR possui uma PT salva neste dispositivo, aguardando sincronização. Exclua ou sincronize a PT antes de remover a APR.',
+    );
+}
+
+export async function discardDocument(userId: string, id: string, kind: 'APR' | 'PT') {
+  const db = await store(userId);
+  const tx = db.transaction(['drafts', 'queue'], 'readwrite');
+  const draft = await tx.objectStore('drafts').get(id);
+  const queue = await tx.objectStore('queue').getAll();
+  if (
+    (draft && draft.kind !== kind) ||
+    queue.some(
+      (job) =>
+        job.id === id &&
+        job.path === '/api/documents' &&
+        (job.body?.kind !== kind || job.body?.id !== id),
+    )
+  ) {
+    await tx.done;
+    throw new Error(
+      'O tipo do documento não corresponde ao rascunho local. Nenhum rascunho foi excluído.',
+    );
+  }
+  await tx.objectStore('drafts').delete(id);
+  for (const job of queue)
+    if (
+      (job.id === id && job.path === '/api/documents') ||
+      (kind === 'PT' && job.path === `/api/documents/${id}/photos`)
+    )
+      await tx.objectStore('queue').delete(job.id);
+  await tx.done;
+}

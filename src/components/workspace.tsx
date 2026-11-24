@@ -33,7 +33,7 @@ import DocumentEditor from './document-editor';
 import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
-import RemoveDocument from './remove-document';
+import RemoveDocument, { type RemovableDocument } from './remove-document';
 import { allowedMenus, roleLabels, personRoleLabel, canRemovePt } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
@@ -224,6 +224,33 @@ export default function Workspace() {
     setEditor(null);
     setNotice('Rascunho salvo no dispositivo.');
     if (navigator.onLine) await sync();
+  }
+  async function removeDocument(document: RemovableDocument) {
+    if (!ws || !navigator.onLine) throw new Error('Conecte-se antes de excluir a PT.');
+    if (busy.current) throw new Error('Aguarde a sincronização terminar antes de excluir.');
+    const isLocal = 'unitId' in document;
+    if (isLocal && document.kind !== 'PT')
+      throw new Error('Esta opção permite excluir somente PT local.');
+    busy.current = true;
+    try {
+      if (document.kind === 'APR') await offline.assertNoLocalPtForApr(ws.user.id, document.id);
+      try {
+        await api(`/api/documents/${document.id}/remove`, {
+          kind: document.kind,
+          version: isLocal && document.version === 0 ? 1 : document.version,
+        });
+      } catch (error) {
+        if (!isLocal || (error as { status?: number }).status !== 404) throw error;
+      }
+      await offline.discardDocument(ws.user.id, document.id, document.kind);
+      if (editor?.id === document.id) setEditor(null);
+      await load(ws.unit.id);
+      setNotice(
+        `${document.kind} excluída. Os envios pendentes deste documento foram retirados da fila.`,
+      );
+    } finally {
+      busy.current = false;
+    }
   }
   function create(kind: 'APR' | 'PT') {
     if (!ws) return;
@@ -582,10 +609,7 @@ export default function Workspace() {
                     canRemoveApr={unit.role === 'admin'}
                     canRemovePt={(document) => canRemovePt(ws.user, unit, document)}
                     online={online}
-                    onRemoved={async () => {
-                      await load(unit.id);
-                      setNotice('Documento removido da operação. Histórico preservado.');
-                    }}
+                    onRemoved={removeDocument}
                   />
                 </section>
                 <section className="card operation">
@@ -646,14 +670,19 @@ export default function Workspace() {
               {local
                 .filter((d) => d.kind === tab)
                 .map((d) => (
-                  <button className="local-draft" key={d.id} onClick={() => setEditor(d)}>
-                    <Clock3 size={18} />
-                    <span>
-                      {d.title || 'Novo rascunho'}
-                      <small>Salvo neste dispositivo · aguardando envio</small>
-                    </span>
-                    <ChevronRight size={16} />
-                  </button>
+                  <div className="local-draft" key={d.id}>
+                    <button className="document-link" onClick={() => setEditor(d)}>
+                      <Clock3 size={18} />
+                      <span>
+                        {d.title || 'Novo rascunho'}
+                        <small>Salvo neste dispositivo · aguardando envio</small>
+                      </span>
+                      <ChevronRight size={16} />
+                    </button>
+                    {d.kind === 'PT' && (
+                      <RemoveDocument document={d} online={online} onRemoved={removeDocument} />
+                    )}
+                  </div>
                 ))}
               <DocumentTable
                 docs={docs.filter((d) => d.kind === tab)}
@@ -662,10 +691,7 @@ export default function Workspace() {
                 canRemoveApr={unit.role === 'admin'}
                 canRemovePt={(document) => canRemovePt(ws.user, unit, document)}
                 online={online}
-                onRemoved={async () => {
-                  await load(unit.id);
-                  setNotice('Documento removido da operação. Histórico preservado.');
-                }}
+                onRemoved={removeDocument}
               />
             </section>
           )}
@@ -781,11 +807,7 @@ export default function Workspace() {
           ws={ws}
           online={online}
           onClose={() => setEditor(null)}
-          onRemoved={async () => {
-            setEditor(null);
-            await load(unit.id);
-            setNotice('PT excluída da operação. Histórico preservado.');
-          }}
+          onRemoved={removeDocument}
           onSave={save}
           onPtChanged={async (action, reason, endTime) => {
             if (busy.current || pending.some((job) => job.id === editor.id))
@@ -870,7 +892,7 @@ function DocumentTable({
   canRemoveApr?: boolean;
   canRemovePt?: (document: DocumentRow) => boolean;
   online?: boolean;
-  onRemoved?: () => Promise<unknown>;
+  onRemoved?: (document: RemovableDocument) => Promise<unknown>;
 }) {
   if (!docs.length)
     return (

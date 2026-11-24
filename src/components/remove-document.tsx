@@ -2,16 +2,17 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import type { DocumentRow } from '@/lib/types';
+import type { DocumentInput } from '@/lib/validation';
 import Popup from './popup';
-import { api } from './workspace';
+export type RemovableDocument = DocumentRow | DocumentInput;
 export default function RemoveDocument({
   document,
   online,
   onRemoved,
 }: {
-  document: DocumentRow;
+  document: RemovableDocument;
   online: boolean;
-  onRemoved: () => Promise<unknown>;
+  onRemoved: (document: RemovableDocument) => Promise<unknown>;
 }) {
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
@@ -35,14 +36,18 @@ export default function RemoveDocument({
             <p>
               Remover{' '}
               <strong>
-                {document.kind}-{document.number} · {document.title}
+                {document.kind}
+                {'number' in document ? `-${document.number}` : ' · rascunho local'} ·{' '}
+                {document.title}
               </strong>
               ?
             </p>
             <p className="muted">
-              {document.kind === 'PT'
-                ? 'A PT será retirada da operação. O histórico, as aprovações e as fotos serão preservados. Em rascunho, o autor ou o administrador responsável pode excluir. Nas demais situações, somente o Superadmin.'
-                : 'A APR será retirada da operação e não poderá ser usada em novas PTs. O histórico será preservado. Qualquer PT vinculada, inclusive rascunho, impede a remoção.'}
+              {'unitId' in document
+                ? 'Este rascunho de PT e seus envios pendentes serão excluídos deste dispositivo. A APR vinculada não será removida.'
+                : document.kind === 'PT'
+                  ? 'A PT será retirada da operação. O histórico, as aprovações e as fotos serão preservados. Em rascunho, o autor ou o administrador responsável pode excluir. Nas demais situações, somente o Superadmin.'
+                  : 'A APR será retirada da operação e não poderá ser usada em novas PTs. O histórico será preservado. Qualquer PT vinculada, inclusive rascunho, impede a remoção.'}
             </p>
             {error && (
               <div className="alert error" role="alert">
@@ -57,10 +62,7 @@ export default function RemoveDocument({
                   setBusy(true);
                   setError('');
                   try {
-                    await api(`/api/documents/${document.id}/remove`, {
-                      version: document.version,
-                    });
-                    await onRemoved();
+                    await onRemoved(document);
                     setOpen(false);
                   } catch (e) {
                     setError((e as Error).message);

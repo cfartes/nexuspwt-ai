@@ -89,7 +89,8 @@ await test('remoção: APR exige admin e nenhuma PT; PT em rascunho permite auto
     const c = await pool.connect();
     try {
       await c.query('BEGIN');
-      await removeDocument(c, who, id, version);
+      const kind = (await c.query('SELECT kind FROM documents WHERE id=$1', [id])).rows[0].kind;
+      await removeDocument(c, who, id, version, kind);
       await c.query('COMMIT');
     } catch (e) {
       await c.query('ROLLBACK');

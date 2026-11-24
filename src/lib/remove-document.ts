@@ -2,11 +2,22 @@ import type { PoolClient } from 'pg';
 import { unitAccess, type User } from './auth';
 import { HttpError } from './security';
 import { canRemovePt } from './permissions';
-export async function removeDocument(c: PoolClient, user: User, id: string, version: number) {
+export async function removeDocument(
+  c: PoolClient,
+  user: User,
+  id: string,
+  version: number,
+  kind: 'APR' | 'PT',
+) {
   const {
     rows: [target],
   } = await c.query('SELECT unit_id,kind FROM documents WHERE id=$1', [id]);
   if (!target) throw new HttpError(404, 'Documento não encontrado.');
+  if (target.kind !== kind)
+    throw new HttpError(
+      409,
+      'O tipo do documento não corresponde à exclusão solicitada. Nenhum documento foi removido.',
+    );
   await c.query('SELECT id FROM units WHERE id=$1 FOR KEY SHARE', [target.unit_id]);
   const unit = await unitAccess(
     user,
