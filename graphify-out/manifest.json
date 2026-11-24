@@ -1002,9 +1002,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795519842.2472122,
-    "seen": 1795519870.2011135,
-    "ast_hash": "b25e4b2f5b299d5ea925c845fee23d73",
+    "mtime": 1795521655.8340194,
+    "seen": 1795521946.3417373,
+    "ast_hash": "f4a6158645f6619632ff7c91807c3ba1",
     "semantic_hash": ""
   },
   "docs/IMPLEMENTADO.md": {
@@ -1110,15 +1110,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795519701.8050773,
-    "seen": 1795519870.2008698,
-    "ast_hash": "e934e97cd72635d5ad3ee44c1d44a5c2",
+    "mtime": 1795519869.3339462,
+    "seen": 1795521946.3415964,
+    "ast_hash": "a7e3b4e5391ed30110c6a77a7a2d6c30",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795519702.2688122,
-    "seen": 1795519870.200874,
-    "ast_hash": "0fd2a20c263ee889f15cff7bc1b65b2c",
+    "mtime": 1795519870.3867254,
+    "seen": 1795521946.3415995,
+    "ast_hash": "24c724b2879da267d3985efaa164b5e8",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1173,6 +1173,48 @@
     "mtime": 1795519665.670529,
     "seen": 1795519702.10453,
     "ast_hash": "d940b3f97c204b10b3cf0ec8016daa60",
+    "semantic_hash": ""
+  },
+  "scripts/clean_production.sh": {
+    "mtime": 1795521242.168899,
+    "seen": 1795521946.3217065,
+    "ast_hash": "e8c1820d2721e6d7f63b6eec497d75c7",
+    "semantic_hash": ""
+  },
+  "scripts/production-data.ts": {
+    "mtime": 1795521567.6401353,
+    "seen": 1795521946.3224142,
+    "ast_hash": "14c09f02385e93b8961b26104c738b4c",
+    "semantic_hash": ""
+  },
+  "scripts/production_data.py": {
+    "mtime": 1795521841.4364934,
+    "seen": 1795521946.322416,
+    "ast_hash": "dc7bce63619f675dd5cc113e57d8afd4",
+    "semantic_hash": ""
+  },
+  "scripts/seed_validation.sh": {
+    "mtime": 1795521242.1707478,
+    "seen": 1795521946.3225331,
+    "ast_hash": "57264f0e524cfcd0b10a988bf8bb23a1",
+    "semantic_hash": ""
+  },
+  "tests/production-data.test.ts": {
+    "mtime": 1795521780.0803945,
+    "seen": 1795521946.340456,
+    "ast_hash": "9fd8a63eeecec5d5395bbe690062fb7a",
+    "semantic_hash": ""
+  },
+  "tests/test_production_data.py": {
+    "mtime": 1795521567.6431243,
+    "seen": 1795521946.3409114,
+    "ast_hash": "2523c01f4c8ec5390394f62ef600a411",
+    "semantic_hash": ""
+  },
+  "docs/MANUTENCAO-BASE-PRODUCAO.md": {
+    "mtime": 1795521655.8227322,
+    "seen": 1795521946.3419213,
+    "ast_hash": "111709c75fd0b100702d308945fc501a",
     "semantic_hash": ""
   },
   "package-lock.json": {

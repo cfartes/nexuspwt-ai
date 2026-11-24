@@ -1,5 +1,7 @@
 # Nexus PTW AI
 
+Para limpar a base de produção preservando Superadmin/integrações e carregar apenas cadastros fictícios (sem APR/PT), veja [Manutenção da base de produção](docs/MANUTENCAO-BASE-PRODUCAO.md). Os scripts são separados e a limpeza exige confirmação explícita no comando.
+
 Primeira base executável do MVP de gestão de APR e PT para Ambev e suas unidades.
 Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e nenhum documento autoriza execução nesta fase.
 
