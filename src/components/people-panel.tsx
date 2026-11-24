@@ -23,6 +23,7 @@ export default function PeoplePanel({
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(''),
+    [contractorFilter, setContractorFilter] = useState('all'),
     [editingContractor, setEditingContractor] = useState<string | null>(null);
   const canManage = ws.unit.role === 'admin';
   const deliveryLabels: Record<string, string> = {
@@ -36,6 +37,13 @@ export default function PeoplePanel({
   const [linkEmail, setLinkEmail] = useState('');
   const available = (ws.companyPeople || []).filter(
     (p) => !ws.people.some((member) => member.id === p.id),
+  );
+  const filteredPeople = ws.people.filter((person) =>
+    contractorFilter === 'all'
+      ? true
+      : contractorFilter === 'internal'
+        ? !person.contractor_id
+        : person.contractor_id === contractorFilter,
   );
   return (
     <section className="card">
@@ -60,8 +68,26 @@ export default function PeoplePanel({
           <h2>Pessoas e acessos da unidade</h2>
           <p>Contato, perfil e vínculo com a terceirizada são específicos desta unidade.</p>
         </div>
+        <label>
+          Filtrar por terceirizada
+          <select
+            value={contractorFilter}
+            onChange={(event) => setContractorFilter(event.target.value)}
+          >
+            <option value="all">Todas as pessoas</option>
+            <option value="internal">Equipe própria da contratante</option>
+            {ws.contractors.map((contractor) => (
+              <option key={contractor.id} value={contractor.id}>
+                {contractor.name}
+              </option>
+            ))}
+          </select>
+          <small role="status">
+            {filteredPeople.length} de {ws.people.length} pessoas na unidade
+          </small>
+        </label>
       </div>
-      {canManage && available.length > 0 && (
+      {canManage && available.length > 0 && contractorFilter === 'all' && (
         <div className="admin-form">
           <h3>Usuários da empresa sem acesso nesta unidade</h3>
           <p className="muted">
@@ -291,7 +317,14 @@ export default function PeoplePanel({
             </tr>
           </thead>
           <tbody>
-            {ws.people.map((person) => (
+            {filteredPeople.length === 0 && (
+              <tr>
+                <td colSpan={canManage ? 7 : 5}>
+                  Nenhuma pessoa encontrada para o vínculo selecionado nesta unidade.
+                </td>
+              </tr>
+            )}
+            {filteredPeople.map((person) => (
               <tr key={person.id}>
                 <td>
                   <strong>{person.name}</strong>
