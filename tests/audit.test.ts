@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
-import { auditFilters, companyAudit } from '../src/lib/audit';
+import { auditFilters, companyAudit, companyAuditExport } from '../src/lib/audit';
 import type { User } from '../src/lib/auth';
 
 await test('auditoria exclusiva da empresa: isolamento, filtros, paginação e preservação após exclusão', async () => {
@@ -156,8 +156,48 @@ await test('auditoria exclusiva da empresa: isolamento, filtros, paginação e p
     assert.equal(second.events.length, 3);
     assert.equal(second.nextCursor, null);
     assert(!second.events.some((e) => first.events.some((p) => e.id === p.id)));
+    const exportRows = async (who: User, filters: Parameters<typeof companyAuditExport>[3]) => {
+      const client = await pool.connect();
+      try {
+        const report = await companyAuditExport(client, who, units[0].id, filters);
+        const events = [];
+        for await (const event of report.events) events.push(event);
+        return events;
+      } finally {
+        client.release();
+      }
+    };
+    const allPages = await exportRows(owner, { action: 'teste.pagina', before: first.nextCursor! });
+    assert.equal(allPages.length, 53, 'exportação não herda o cursor da tela');
+    assert.equal(new Set(allPages.map((event) => event.id)).size, 53);
+    await pool.query(
+      "INSERT INTO audit_events(actor_id,action,details) SELECT $1,'teste.exportar',$2 FROM generate_series(1,503)",
+      [
+        owner.id,
+        JSON.stringify({
+          companyId: companies[0].id,
+          reason: 'São Paulo — ação',
+          password: 'never-export',
+          cpf: 'never-export',
+        }),
+      ],
+    );
+    const full = await exportRows(owner, { action: 'teste.exportar' });
+    assert.equal(full.length, 503, 'exportação percorre múltiplos lotes');
+    assert.equal(new Set(full.map((event) => event.id)).size, 503);
+    assert(full.every((event) => event.company_id === companies[0].id));
+    assert(!JSON.stringify(full).includes('never-export'));
+    assert.deepEqual(full[0].details, { reason: 'São Paulo — ação' });
+    assert.equal(
+      (await exportRows(owner, { action: 'teste.periodo', from: '2026-11-19', to: '2026-11-19' }))
+        .length,
+      2,
+    );
+    await assert.rejects(exportRows(local, {}), denied);
+    await assert.rejects(exportRows(owner, { unit: units[2].id }), denied);
     await pool.query('UPDATE company_admins SET active=false WHERE user_id=$1', [owner.id]);
     await assert.rejects(companyAudit(pool, owner, units[0].id, {}), denied);
+    await assert.rejects(exportRows(owner, {}), denied);
   } finally {
     await pool.end();
     await socket.stop();

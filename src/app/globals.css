@@ -822,6 +822,11 @@ td small {
   gap: 16px;
   margin-bottom: 16px;
 }
+.audit-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .registration-actions p {
   margin: 0 auto 0 0;
 }

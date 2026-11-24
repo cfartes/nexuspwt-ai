@@ -1,5 +1,6 @@
 import { ptToday, ptClock } from '../src/lib/pt-calendar';
 import assert from 'node:assert/strict';
+import ExcelJS from 'exceljs';
 import { readFile } from 'node:fs/promises';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -145,11 +146,13 @@ try {
   };
   await call('/api/workspace', undefined, 401);
   await call(`/api/audit?context=${unit.id}`, undefined, 401);
+  await call(`/api/audit/export?context=${unit.id}&format=xlsx`, undefined, 401);
   await call('/api/auth', { email: 'test@nexus.local', password: 'incorreta' }, 401);
   await call('/api/auth', { email: 'test@nexus.local', password });
   let ws = await call('/api/workspace');
   assert.equal(ws.unit.id, unit.id);
   await call(`/api/audit?context=${unit.id}`, undefined, 403);
+  await call(`/api/audit/export?context=${unit.id}&format=pdf`, undefined, 403);
   assert(ws.companies.some((c: { id: string }) => c.id === company.id));
   assert(ws.registeredUnits.some((u: { id: string }) => u.id === unit.id));
   await call(`/api/address?unit=${unit.id}&cep=invalido`, undefined, 400);
@@ -1869,6 +1872,33 @@ try {
   const audit = await call(`/api/audit?context=${unit.id}`);
   assert(audit.events.length > 0);
   assert.equal(audit.events.length <= 50, true);
+  await db.query(
+    "INSERT INTO audit_events(actor_id,action,details) SELECT $1,'teste.export.http',jsonb_build_object('unitId',$2::text,'reason','Conferência São Paulo','password','NEVER_EXPORT_KEY') FROM generate_series(1,53)",
+    [matrixUsers.owner, unit.id],
+  );
+  for (const format of ['xlsx', 'pdf']) {
+    const response = await fetch(
+      base + `/api/audit/export?context=${unit.id}&format=${format}&action=teste.export.http`,
+      { headers: { Cookie: cookie } },
+    );
+    assert.equal(response.status, 200);
+    assert(response.headers.get('Content-Disposition')?.includes(`.${format}`));
+    assert(response.headers.get('Cache-Control')?.includes('no-store'));
+    const bytes = await response.arrayBuffer();
+    if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(bytes);
+      const sheet = workbook.getWorksheet('Auditoria')!;
+      assert.equal(sheet.rowCount, 54, 'exportação inclui mais de uma página da tela');
+      assert(!JSON.stringify(sheet.getSheetValues()).includes('NEVER_EXPORT_KEY'));
+    } else assert.equal(Buffer.from(bytes).subarray(0, 5).toString(), '%PDF-');
+  }
+  await call(`/api/audit/export?context=${unit.id}&format=csv`, undefined, 400);
+  await call(
+    `/api/audit/export?context=${unit.id}&format=xlsx&unit=${isolatedUnit.id}`,
+    undefined,
+    403,
+  );
   assert(
     audit.events.every(
       (event: { details: Record<string, unknown> }) => !('secret' in event.details),

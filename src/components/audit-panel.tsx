@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { History, RefreshCw } from 'lucide-react';
+import { History, RefreshCw, Download } from 'lucide-react';
+import { readApiJson } from '@/lib/api-response';
 import { api } from './workspace';
 import Popup from './popup';
-import { auditActionLabels } from '@/lib/audit-labels';
+import { auditActionLabels, auditDetailLabels as detailLabels } from '@/lib/audit-labels';
 import { roleLabels } from '@/lib/permissions';
 
 type AuditEvent = {
@@ -25,35 +26,6 @@ type AuditData = {
   nextCursor: string | null;
 };
 const emptyFilters = { unit: '', actor: '', action: '', from: '', to: '' };
-const detailLabels: Record<string, string> = {
-  name: 'Nome do cadastro',
-  kind: 'Tipo de cadastro',
-  targetId: 'Identificador do cadastro',
-  id: 'Identificador',
-  userId: 'Pessoa vinculada',
-  contractorId: 'Terceirizada',
-  role: 'Perfil',
-  active: 'Ativo',
-  companyAdmin: 'Admin da empresa',
-  version: 'Versão',
-  previousVersion: 'Versão anterior',
-  profile: 'Etapa da aprovação',
-  previousUserId: 'Responsável anterior',
-  comment: 'Observação',
-  reason: 'Motivo',
-  method: 'Confirmação de identidade',
-  required: 'Autenticador obrigatório',
-  credentialChanged: 'Credencial alterada',
-  service: 'Integração',
-  provider: 'Fornecedor',
-  status: 'Situação',
-  enabled: 'Habilitado',
-  previousLimit: 'Limite anterior',
-  limit: 'Limite',
-  used: 'Unidades cadastradas',
-  phoneChanged: 'Telefone alterado',
-  duplicateRiskConfirmed: 'Risco de envio duplicado confirmado',
-};
 const dateTime = (date: string) =>
   new Date(date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
@@ -72,6 +44,44 @@ export default function AuditPanel({
   const [loading, setLoading] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [selected, setSelected] = useState<AuditEvent | null>(null);
+  const [exporting, setExporting] = useState('');
+  const filtersChanged = JSON.stringify(filters) !== JSON.stringify(applied);
+  async function exportReport(format: 'xlsx' | 'pdf') {
+    setExporting(format);
+    setError('');
+    try {
+      const params = new URLSearchParams({ context: contextUnitId, format });
+      for (const [key, value] of Object.entries(applied)) if (value) params.set(key, value);
+      const response = await fetch('/api/audit/export?' + params, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(180000),
+      });
+      if (!response.ok) {
+        const result = await readApiJson(response);
+        throw new Error(result.error || 'Não foi possível exportar o relatório.');
+      }
+      const mime =
+        format === 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      if (!(response.headers.get('Content-Type') || '').startsWith(mime))
+        throw new Error(
+          'O servidor não retornou o arquivo esperado. Atualize o aplicativo e tente novamente.',
+        );
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nexus-auditoria-${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      setError((error as Error).message);
+    } finally {
+      setExporting('');
+    }
+  }
   const before = cursors.at(-1);
   useEffect(() => {
     let active = true;
@@ -115,13 +125,26 @@ export default function AuditPanel({
             leitura.
           </p>
         </div>
-        <button
-          className="secondary"
-          disabled={!online || loading}
-          onClick={() => setRefresh((n) => n + 1)}
-        >
-          <RefreshCw size={16} /> Atualizar
-        </button>
+        <div className="audit-export-actions">
+          {(['xlsx', 'pdf'] as const).map((format) => (
+            <button
+              key={format}
+              className="secondary"
+              disabled={!online || loading || !!exporting || !data || filtersChanged}
+              onClick={() => void exportReport(format)}
+            >
+              <Download size={16} />{' '}
+              {exporting === format ? 'Gerando…' : `Exportar ${format.toUpperCase()}`}
+            </button>
+          ))}
+          <button
+            className="secondary"
+            disabled={!online || loading}
+            onClick={() => setRefresh((n) => n + 1)}
+          >
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        </div>
       </div>
       {!online ? (
         <p className="settings-empty">Conecte-se para consultar a auditoria.</p>
@@ -135,6 +158,16 @@ export default function AuditPanel({
               setApplied({ ...filters });
             }}
           >
+            <p className="muted">
+              A exportação inclui todos os eventos dos filtros aplicados, com todos os campos de
+              auditoria, sem limitar à página atual. Limpe os filtros para exportar todo o histórico
+              da empresa.
+            </p>
+            {filtersChanged && (
+              <p className="muted" role="status">
+                Clique em Filtrar histórico para aplicar as alterações e liberar a exportação.
+              </p>
+            )}
             <div className="form-grid">
               <label>
                 Unidade

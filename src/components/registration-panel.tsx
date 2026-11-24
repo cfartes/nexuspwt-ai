@@ -126,28 +126,16 @@ export default function RegistrationPanel({
           {notice}
         </p>
       )}
-      {type === 'people' || type === 'approvers' ? (
-        <section className="card">
-          <div className="card-heading">
-            <div>
-              <h2>{section.title}</h2>
-              <p>{section.description}</p>
-            </div>
-            {createButton}
-          </div>
-        </section>
-      ) : (
-        (canCreate || (type === 'units' && ws.unitQuota)) && (
-          <div className="registration-actions">
-            {type === 'units' && ws.unitQuota && (
-              <p className="muted" role="status">
-                {ws.unitQuota.used} de {ws.unitQuota.limit} unidades contratadas cadastradas.
-                {limitReached ? ' Limite atingido; solicite ampliação ao superadmin.' : ''}
-              </p>
-            )}
-            {createButton}
-          </div>
-        )
+      {(canCreate || (type === 'units' && ws.unitQuota)) && (
+        <div className="registration-actions">
+          {type === 'units' && ws.unitQuota && (
+            <p className="muted" role="status">
+              {ws.unitQuota.used} de {ws.unitQuota.limit} unidades contratadas cadastradas.
+              {limitReached ? ' Limite atingido; solicite ampliação ao superadmin.' : ''}
+            </p>
+          )}
+          {createButton}
+        </div>
       )}
       {creating && canCreate && (
         <Popup title={`Novo cadastro · ${section.title}`} onClose={() => setCreating(false)}>

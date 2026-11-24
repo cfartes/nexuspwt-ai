@@ -23,7 +23,7 @@ export const auditFilters = z
   .refine((v) => !v.from || !v.to || v.from <= v.to, 'PerÃ­odo invÃ¡lido.');
 
 // Return an allowlist, never raw audit JSON that could later contain credentials or CPF.
-const detailFields = [
+export const auditDetailFields = [
   'name',
   'kind',
   'targetId',
@@ -56,7 +56,7 @@ const detailFields = [
   'duplicateRiskConfirmed',
 ] as const;
 
-export async function companyAudit(
+async function auditScope(
   client: Pool | PoolClient,
   user: User,
   contextUnitId: string,
@@ -72,15 +72,41 @@ export async function companyAudit(
     );
     if (!rowCount) throw new HttpError(403, 'Unidade indisponÃ­vel nesta empresa.');
   }
-  const { rows } = await client.query(
-    `SELECT e.id::text,e.occurred_at,e.action,e.actor_id,e.actor_name,e.unit_id,e.unit_name,
+  return unit;
+}
+
+export type AuditEvent = {
+  id: string;
+  occurred_at: Date | string;
+  action: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  company_id: string;
+  company_name: string;
+  unit_id: string | null;
+  unit_name: string | null;
+  document_id: string | null;
+  document_kind: string | null;
+  document_number: string | null;
+  details: Record<string, string | number | boolean>;
+};
+
+async function readAuditEvents(
+  client: Pool | PoolClient,
+  company: string,
+  filters: z.infer<typeof auditFilters>,
+  limit: number,
+): Promise<AuditEvent[]> {
+  const { rows } = await client.query<AuditEvent>(
+    `SELECT e.id::text,e.occurred_at,e.action,e.actor_id,e.actor_name,e.company_id,co.name company_name,e.unit_id,e.unit_name,
       e.document_id,d.kind document_kind,d.number document_number,e.details
-     FROM audit_events e LEFT JOIN documents d ON d.id=e.document_id AND d.company_id=e.company_id
+     FROM audit_events e JOIN companies co ON co.id=e.company_id
+     LEFT JOIN documents d ON d.id=e.document_id AND d.company_id=e.company_id
      WHERE e.company_id=$1 AND ($2::uuid IS NULL OR e.unit_id=$2)
        AND ($3::uuid IS NULL OR e.actor_id=$3) AND ($4::text IS NULL OR e.action=$4)
        AND ($5::date IS NULL OR e.occurred_at>=($5::date::timestamp AT TIME ZONE 'America/Sao_Paulo'))
        AND ($6::date IS NULL OR e.occurred_at<(($6::date+1)::timestamp AT TIME ZONE 'America/Sao_Paulo'))
-       AND ($7::bigint IS NULL OR e.id<$7) ORDER BY e.id DESC LIMIT 51`,
+       AND ($7::bigint IS NULL OR e.id<$7) ORDER BY e.id DESC LIMIT $8`,
     [
       company,
       filters.unit ?? null,
@@ -89,8 +115,52 @@ export async function companyAudit(
       filters.from ?? null,
       filters.to ?? null,
       filters.before ?? null,
+      limit,
     ],
   );
+  return rows.map((e) => ({
+    ...e,
+    details: Object.fromEntries(
+      auditDetailFields.flatMap((key) => {
+        const value = e.details[key];
+        return ['string', 'number', 'boolean'].includes(typeof value) ? [[key, value]] : [];
+      }),
+    ),
+  }));
+}
+
+export async function companyAuditExport(
+  client: PoolClient,
+  user: User,
+  contextUnitId: string,
+  filters: z.infer<typeof auditFilters>,
+) {
+  const unit = await auditScope(client, user, contextUnitId, filters);
+  async function* events() {
+    let before: string | undefined;
+    while (true) {
+      const batch = await readAuditEvents(client, unit.company_id, { ...filters, before }, 500);
+      for (const event of batch) yield event;
+      if (batch.length < 500) return;
+      before = batch.at(-1)!.id;
+    }
+  }
+  return {
+    companyName: unit.company_name as string,
+    companyId: unit.company_id as string,
+    events: events(),
+  };
+}
+
+export async function companyAudit(
+  client: Pool | PoolClient,
+  user: User,
+  contextUnitId: string,
+  filters: z.infer<typeof auditFilters>,
+) {
+  const unit = await auditScope(client, user, contextUnitId, filters);
+  const company = unit.company_id;
+  const rows = await readAuditEvents(client, company, filters, 51);
   const [units, actors, actions] = await Promise.all([
     client.query(
       `SELECT id,name FROM units WHERE company_id=$1 UNION
@@ -108,15 +178,7 @@ export async function companyAudit(
       company,
     ]),
   ]);
-  const events = rows.slice(0, 50).map((e) => ({
-    ...e,
-    details: Object.fromEntries(
-      detailFields.flatMap((key) => {
-        const value = e.details[key];
-        return ['string', 'number', 'boolean'].includes(typeof value) ? [[key, value]] : [];
-      }),
-    ),
-  }));
+  const events = rows.slice(0, 50);
   return {
     events,
     units: units.rows,

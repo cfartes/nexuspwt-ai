@@ -168,15 +168,15 @@
     "semantic_hash": ""
   },
   "next.config.ts": {
-    "mtime": 1795113166.250567,
-    "seen": 1795262845.833583,
-    "ast_hash": "334b819c86cf6a0c8271e102a4e46373",
+    "mtime": 1795561559.6013372,
+    "seen": 1795562408.3276587,
+    "ast_hash": "3ad2f626bab2ff917224280c4ee145bd",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1795109998.7770717,
-    "seen": 1795262845.8335848,
-    "ast_hash": "759b965a63e97745af72f24f7e9835fa",
+    "mtime": 1795561718.5455303,
+    "seen": 1795562408.327662,
+    "ast_hash": "4c35dbe88489e904a4cea769ea99c4bc",
     "semantic_hash": ""
   },
   "public/sw.js": {
@@ -456,9 +456,9 @@
     "semantic_hash": ""
   },
   "src/components/audit-panel.tsx": {
-    "mtime": 1795518312.7261517,
-    "seen": 1795518354.6739173,
-    "ast_hash": "507de02fa1408236a99cfd9420769c34",
+    "mtime": 1795562182.7459493,
+    "seen": 1795562408.3384297,
+    "ast_hash": "382008911d79ff01a44fe9a3b7b28b8d",
     "semantic_hash": ""
   },
   "src/components/company-editor.tsx": {
@@ -564,9 +564,9 @@
     "semantic_hash": ""
   },
   "src/components/registration-panel.tsx": {
-    "mtime": 1795552245.6069376,
-    "seen": 1795552262.5735762,
-    "ast_hash": "8997d0f7a14745e1d9fb0577aed39104",
+    "mtime": 1795561718.251321,
+    "seen": 1795562408.341706,
+    "ast_hash": "b895423a3e26de2347567d71e5395100",
     "semantic_hash": ""
   },
   "src/components/resend-settings.tsx": {
@@ -636,15 +636,15 @@
     "semantic_hash": ""
   },
   "src/lib/audit-labels.ts": {
-    "mtime": 1795547443.6596966,
-    "seen": 1795547585.6948073,
-    "ast_hash": "5f1cb48520f03577da3b7f5b9fba19cf",
+    "mtime": 1795561825.3564105,
+    "seen": 1795562408.343925,
+    "ast_hash": "b2ab459743b10f71f78262090f70964c",
     "semantic_hash": ""
   },
   "src/lib/audit.ts": {
-    "mtime": 1795519188.8439293,
-    "seen": 1795519702.0915928,
-    "ast_hash": "c1a7cfd7c6615b7bcc84a95db0dba7d2",
+    "mtime": 1795561718.2894413,
+    "seen": 1795562408.3439279,
+    "ast_hash": "f186950d2b82f378b838580ddacf51a0",
     "semantic_hash": ""
   },
   "src/lib/auth.ts": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "tests/api.integration.ts": {
-    "mtime": 1795548646.4017625,
-    "seen": 1795548749.1848547,
-    "ast_hash": "7e6b62b4a9555e58b2b94f75e89ec2ab",
+    "mtime": 1795562028.9942255,
+    "seen": 1795562408.3509753,
+    "ast_hash": "dbccf4ff00b98fbb84dfd43cdde951bf",
     "semantic_hash": ""
   },
   "tests/app-release.test.ts": {
@@ -858,9 +858,9 @@
     "semantic_hash": ""
   },
   "tests/audit.test.ts": {
-    "mtime": 1795112559.158249,
-    "seen": 1795262845.8337948,
-    "ast_hash": "7b912682ae633c219276c0bd72873341",
+    "mtime": 1795561825.400787,
+    "seen": 1795562408.3513224,
+    "ast_hash": "85e413d47c9d91f7f5cee6c77b1d4421",
     "semantic_hash": ""
   },
   "tests/companies.test.ts": {
@@ -1098,15 +1098,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795551526.4545586,
-    "seen": 1795552262.5995183,
-    "ast_hash": "453ffdb1ba493035fbb4f445478b2d0d",
+    "mtime": 1795552262.095626,
+    "seen": 1795562408.3562193,
+    "ast_hash": "636acb3bf0ad5c6c924558194fafdc7e",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795551527.1151228,
-    "seen": 1795552262.5995233,
-    "ast_hash": "2cddabfa6c615735bcac45958a62e656",
+    "mtime": 1795552262.778053,
+    "seen": 1795562408.3562224,
+    "ast_hash": "d1e1141c1a3889f0a4d9a229bbbc3fcf",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1277,10 +1277,34 @@
     "ast_hash": "4aa6cc9030bf1daa69297cee4196e7a0",
     "semantic_hash": ""
   },
+  "src/app/api/audit/export/route.ts": {
+    "mtime": 1795561718.3544679,
+    "seen": 1795562408.3308675,
+    "ast_hash": "80fb1128d3ea086d976d97d1286c052e",
+    "semantic_hash": ""
+  },
+  "src/lib/audit-export.ts": {
+    "mtime": 1795562028.6813781,
+    "seen": 1795562408.3439214,
+    "ast_hash": "3a9baabc39e8ee69a0668f1b2802aa6e",
+    "semantic_hash": ""
+  },
+  "tests/audit-export.test.ts": {
+    "mtime": 1795561993.1949828,
+    "seen": 1795562408.3513188,
+    "ast_hash": "958c8f9e965c53bbbe66f2f340af46fc",
+    "semantic_hash": ""
+  },
+  "public/fonts/OFL.txt": {
+    "mtime": 1795561540.6793034,
+    "seen": 1795562408.3576598,
+    "ast_hash": "fce5baa9b16328f04e2afc29f6e4e882",
+    "semantic_hash": ""
+  },
   "package-lock.json": {
-    "mtime": 1795110000.2170165,
-    "seen": 1795262845.8338475,
-    "ast_hash": "7fbdac6b77bcdc39f2d6c5e516f403f3",
+    "mtime": 1795561561.4404793,
+    "seen": 1795562408.3581321,
+    "ast_hash": "4a4cb7defa597800f971b9ea8e23fdfa",
     "semantic_hash": ""
   }
 }

@@ -3,6 +3,7 @@ const config: NextConfig = {
   env: { NEXT_PUBLIC_APP_RELEASE: process.env.APP_RELEASE || 'development' },
   generateBuildId: process.env.APP_RELEASE ? async () => process.env.APP_RELEASE! : undefined,
   output: 'standalone',
+  serverExternalPackages: ['exceljs', 'pdfkit'],
   poweredByHeader: false,
   async headers() {
     return [
