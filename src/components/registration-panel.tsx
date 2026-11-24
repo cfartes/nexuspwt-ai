@@ -11,7 +11,7 @@ import DeleteRegistration from './delete-registration';
 import CompanyEditor from './company-editor';
 import { mask } from '@/lib/input-masks';
 import { companyManager } from '@/lib/permissions';
-import { api } from './workspace';
+import ContractorRegistrations from './ContractorRegistrations';
 
 export type RegistrationTab =
   'companies' | 'regions' | 'units' | 'contractors' | 'people' | 'approvers';
@@ -65,11 +65,9 @@ export default function RegistrationPanel({
   const canManage =
     ws.unit.role === 'admin' &&
     (!['companies', 'regions', 'units'].includes(type) || companyAccess);
-  const canCreate = canManage && (type !== 'companies' || ws.user.platform_admin);
+  const canCreate =
+    canManage && type !== 'contractors' && (type !== 'companies' || ws.user.platform_admin);
   const canView = canManage || type === 'companies' || type === 'contractors';
-  const [linking, setLinking] = useState(false),
-    [linkBusy, setLinkBusy] = useState(false),
-    [linkError, setLinkError] = useState('');
   const limitReached =
     type === 'units' && !!ws.unitQuota && ws.unitQuota.used >= ws.unitQuota.limit;
   const rows =
@@ -109,6 +107,11 @@ export default function RegistrationPanel({
   );
   return (
     <>
+      {type === 'contractors' &&
+        ['admin', 'gestor'].includes(ws.unit.role) &&
+        !ws.unit.contractor_id && (
+          <ContractorRegistrations ws={ws} online={online} reload={reload} />
+        )}
       {notice && (
         <p className="alert" role="status">
           {notice}
@@ -137,74 +140,6 @@ export default function RegistrationPanel({
           )}
         </div>
       </section>
-      {type === 'contractors' && ws.unit.role === 'admin' && (
-        <section className="card">
-          <div className="admin-form">
-            <button
-              className="secondary"
-              disabled={!online}
-              onClick={() => {
-                setLinking(true);
-                setLinkError('');
-              }}
-            >
-              Autorizar contratada existente nesta unidade
-            </button>
-          </div>
-        </section>
-      )}
-      {linking && (
-        <Popup
-          title="Autorizar contratada nesta unidade"
-          busy={linkBusy}
-          onClose={() => setLinking(false)}
-        >
-          <form
-            className="admin-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const fields = new FormData(e.currentTarget);
-              setLinkBusy(true);
-              setLinkError('');
-              try {
-                await api('/api/admin', {
-                  action: 'linkContractor',
-                  unitId: ws.unit.id,
-                  contractorId: fields.get('contractorId'),
-                });
-                await reload();
-                setLinking(false);
-              } catch (error) {
-                setLinkError((error as Error).message);
-              } finally {
-                setLinkBusy(false);
-              }
-            }}
-          >
-            {linkError && (
-              <p role="alert" className="alert error">
-                {linkError}
-              </p>
-            )}
-            <label>
-              Contratada
-              <select name="contractorId" required disabled={linkBusy}>
-                <option value="">Selecione</option>
-                {ws.availableContractors
-                  ?.filter((c) => !ws.contractors.some((linked) => linked.id === c.id))
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} · {mask(c.cnpj, 'cnpj')}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <button className="primary" disabled={linkBusy}>
-              Autorizar vínculo
-            </button>
-          </form>
-        </Popup>
-      )}
       {creating && canCreate && (
         <Popup title={`Novo cadastro · ${section.title}`} onClose={() => setCreating(false)}>
           <AdminPanel

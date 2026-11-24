@@ -15,7 +15,7 @@ export async function contractorContact(
   details: ContractorDetails,
 ) {
   const { rowCount: managed } = await c.query(
-    "SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id AND u.active WHERE m.unit_id=$1 AND m.contractor_id=$2 AND m.role='admin_contratada' AND m.active",
+    "SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id AND u.active WHERE m.unit_id=$1 AND m.contractor_id=$2 AND m.role IN ('gestor','admin_contratada') AND m.active",
     [unitId, contractorId],
   );
   if (managed) return;
@@ -49,7 +49,7 @@ export async function contractorContact(
     );
     if (local && local.contractor_id !== contractorId)
       throw new HttpError(409, 'O responsável já possui outro vínculo nesta unidade.');
-    if (local?.active && local.role === 'admin_contratada') return;
+    if (local?.active && ['gestor', 'admin_contratada'].includes(local.role)) return;
   } else {
     const {
       rows: [created],
@@ -60,7 +60,7 @@ export async function contractorContact(
     person = created;
   }
   await saveMembership(c, actor, unitId, person.id, {
-    role: 'admin_contratada',
+    role: 'gestor',
     contractorId,
     phone,
   });

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       FROM memberships m JOIN users u ON u.id=m.user_id AND u.active AND NOT u.platform_admin
       JOIN contractors c ON c.id=m.contractor_id
       LEFT JOIN LATERAL(SELECT * FROM executor_identity_submissions es WHERE es.user_id=u.id AND es.company_id=c.company_id AND es.contractor_id=m.contractor_id ORDER BY es.submitted_at DESC,es.id DESC LIMIT 1) s ON true
-      WHERE m.unit_id=$1 AND m.active AND (m.role='executante' OR $4) AND ($2::uuid IS NULL OR m.contractor_id=$2)
+      WHERE m.unit_id=$1 AND m.active AND (m.role IN ('executante','gestor','seguranca_trabalho','admin_contratada') OR $4) AND ($2::uuid IS NULL OR m.contractor_id=$2)
       AND ($3::uuid IS NULL OR u.id<$3) ORDER BY u.id DESC LIMIT 101`,
       [
         unit.id,

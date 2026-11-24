@@ -25,3 +25,10 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 - Definir descarte ao fim da retenção e tratamento de backups/cópias. O prazo mínimo de cinco anos está registrado para os documentos pessoais, mas não há exclusão automática ao vencê-lo.
 - Confirmar com o cliente se deseja ativar a exigência de documentos: o padrão é desativado. Ao ativar, colaboradores externos já cadastrados também precisam de documento validado; nenhuma identidade é validada automaticamente pela migração.
 - Planejar armazenamento na cloud do cliente e dimensionamento para as unidades previstas, conforme o produto evoluir.
+
+### Homologação do cadastro de contratadas por convite
+
+- Aplicar a migração 019 e atualizar app/worker na VPS pelo atualizador existente.
+- Validar e-mails reais de cadastro, devolução e senha, além dos avisos por WhatsApp após aprovação. Nenhum provedor real foi acionado nos testes automatizados.
+- Homologar o formulário público e os popups em navegador/celular.
+- Revisar perfis legados da contratada quando necessário; não há conversão automática dos acessos existentes.

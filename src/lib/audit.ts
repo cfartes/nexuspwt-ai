@@ -30,6 +30,7 @@ const detailFields = [
   'id',
   'userId',
   'contractorId',
+  'registrationId',
   'role',
   'active',
   'companyAdmin',
@@ -98,7 +99,7 @@ export async function companyAudit(
     ),
     client.query(
       `SELECT DISTINCT ON(actor_id) actor_id id,actor_name name FROM audit_events
-      WHERE company_id=$1 ORDER BY actor_id,id DESC`,
+      WHERE company_id=$1 AND actor_id IS NOT NULL ORDER BY actor_id,id DESC`,
       [company],
     ),
     client.query('SELECT DISTINCT action FROM audit_events WHERE company_id=$1 ORDER BY action', [

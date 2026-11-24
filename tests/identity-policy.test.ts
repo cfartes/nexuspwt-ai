@@ -132,6 +132,7 @@ void test('upload opcional por empresa: padrão desligado, todos os perfis, isol
         externalPeople[0],
         executorSubmission.parse({
           action: 'register',
+          cpf: '39053344705',
           unitId: firstUnit,
           name: 'Opcional',
           email: 'optional@policy.test',

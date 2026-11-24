@@ -8,6 +8,7 @@ import ContractorFields from './contractor-fields';
 import { contractorDetails } from '@/lib/contractors';
 import CompanyFields from './company-fields';
 import { companyDetails } from '@/lib/companies';
+import { contractorRoleLabels } from '@/lib/contractorRoles';
 import MaskedInput from './masked-input';
 import { companyManager } from '@/lib/permissions';
 export default function AdminPanel({
@@ -30,7 +31,8 @@ export default function AdminPanel({
   const [action, setAction] = useState<string>(initialMode || initialAction),
     [busy, setBusy] = useState(false),
     [kind, setKind] = useState('APR'),
-    [error, setError] = useState('');
+    [error, setError] = useState(''),
+    [contractor, setContractor] = useState('');
   const admin = ws.unit.role === 'admin';
   return (
     <section className="card">
@@ -141,15 +143,24 @@ export default function AdminPanel({
                 </label>
                 <label>
                   Perfil de acesso
-                  <select name="role">
-                    <option value="executante">Executante</option>
-                    <option value="admin_contratada">Responsável da contratada</option>
-                    <option value="aprovador">Aprovador</option>
-                    <option value="seguranca_trabalho">Segurança do Trabalho</option>
-                    <option value="gestor">Gestor</option>
-                    <option value="admin">Admin da unidade</option>
-                    {companyManager(ws.user, ws.unit) && (
-                      <option value="admin_empresa">Admin da empresa</option>
+                  <select name="role" key={contractor ? 'external' : 'internal'}>
+                    {contractor ? (
+                      Object.entries(contractorRoleLabels).map(([role, label]) => (
+                        <option key={role} value={role}>
+                          {label}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="executante">Executante</option>
+                        <option value="aprovador">Aprovador</option>
+                        <option value="seguranca_trabalho">Segurança do Trabalho</option>
+                        <option value="gestor">Gestor</option>
+                        <option value="admin">Admin da unidade</option>
+                        {companyManager(ws.user, ws.unit) && (
+                          <option value="admin_empresa">Admin da empresa</option>
+                        )}
+                      </>
                     )}
                   </select>
                   {companyManager(ws.user, ws.unit) && (
@@ -161,7 +172,11 @@ export default function AdminPanel({
                 </label>
                 <label>
                   Vínculo nesta unidade
-                  <select name="contractorId">
+                  <select
+                    name="contractorId"
+                    value={contractor}
+                    onChange={(event) => setContractor(event.target.value)}
+                  >
                     <option value="">Equipe própria da contratante</option>
                     {ws.contractors.map((c) => (
                       <option value={c.id} key={c.id}>

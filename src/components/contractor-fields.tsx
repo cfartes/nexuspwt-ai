@@ -9,12 +9,22 @@ export default function ContractorFields({
   requiredFields = false,
   municipality = false,
   requireContact = false,
+  emailReadOnly = false,
+  addressLookup,
 }: {
   unitId: string;
   initial?: Partial<ContractorDetails> & { municipalityCode?: string };
   requiredFields?: boolean;
   municipality?: boolean;
   requireContact?: boolean;
+  emailReadOnly?: boolean;
+  addressLookup?: (cep: string) => Promise<{
+    street: string;
+    district: string;
+    city: string;
+    state: string;
+    municipalityCode?: string;
+  }>;
 }) {
   const [details, setDetails] = useState<
       Partial<ContractorDetails> & { municipalityCode?: string }
@@ -31,7 +41,9 @@ export default function ContractorFields({
     setMessage('Buscando endereço…');
     const previous = current.current;
     try {
-      const result = await api(`/api/address?unit=${unitId}&cep=${cep}`);
+      const result = addressLookup
+        ? await addressLookup(cep)
+        : await api(`/api/address?unit=${unitId}&cep=${cep}`);
       if (current.current.cep !== cep) return;
       setDetails((d) => {
         const next = { ...d };
@@ -65,6 +77,7 @@ export default function ContractorFields({
           }
           <input
             name={key}
+            readOnly={key === 'email' && emailReadOnly}
             required={(requiredFields || requireContact) && key !== 'tradeName'}
             type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'}
             defaultValue={initial[key] || ''}

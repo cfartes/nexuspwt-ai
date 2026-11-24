@@ -6,7 +6,7 @@ import { createHmac } from 'node:crypto';
 import { totpStep } from './totp';
 import { personalIdentityState } from './identityPolicyRepository';
 
-function cpfDigest(cpf: string) {
+export function cpfDigest(cpf: string) {
   const key = process.env.INTEGRATIONS_ENCRYPTION_KEY;
   if (!key || !/^[a-f\d]{64}$/i.test(key))
     throw new HttpError(503, 'Configure a chave de criptografia do servidor.');

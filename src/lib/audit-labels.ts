@@ -1,5 +1,11 @@
 ﻿export const auditActionLabels: Record<string, string> = {
   'cadastro.company': 'Empresa cadastrada',
+  'contratada.convite_cadastro': 'Link de cadastro da contratada solicitado',
+  'contratada.convite_reenviado': 'Link de cadastro da contratada reenviado',
+  'contratada.cadastro_enviado': 'Contratada enviou cadastro para conferência',
+  'contratada.cadastro_devolvido': 'Cadastro da contratada devolvido para correção',
+  'contratada.cadastro_aprovado': 'Contratada aprovada e vinculada à unidade',
+  'contratada.cartao_consultado': 'Cartão CNPJ consultado',
   'empresa.documentos_configurados': 'Exigência de documentos da contratada alterada',
   'executor.cadastrado': 'Colaborador cadastrado e convidado',
   'executor.documento_enviado': 'Documento de executor enviado',

@@ -1,3 +1,4 @@
+import { isContractorManager, contractorRoleLabels } from './contractorRoles';
 export const roleLabels: Record<string, string> = {
   admin_empresa: 'Admin da empresa',
   admin: 'Admin da unidade',
@@ -20,6 +21,7 @@ export function allowedMenus(user: { platform_admin: boolean }, unit: AccessUnit
   const menus = ['overview', 'APR', 'PT', 'account'];
   const personal = unit.identity_upload_enabled && unit.contractor_id ? ['identity'] : [];
   if (unit.role === 'admin_contratada') return ['team', 'account', ...personal];
+  if (isContractorManager(unit)) menus.push('team');
   menus.push(...personal);
   if (['admin', 'gestor'].includes(unit.role) && !unit.contractor_id) menus.push('team');
   if (unit.role !== 'executante') menus.push('approvals');
@@ -29,4 +31,10 @@ export function allowedMenus(user: { platform_admin: boolean }, unit: AccessUnit
   if (canViewAudit(unit)) menus.push('audit');
   return menus;
 }
-export const ACCESS_POLICY_VERSION = 5;
+export const ACCESS_POLICY_VERSION = 6;
+export function personRoleLabel(role: string, contractorId?: string | null): string {
+  if (contractorId && role in contractorRoleLabels)
+    return contractorRoleLabels[role as keyof typeof contractorRoleLabels];
+  if (contractorId && role === 'admin_contratada') return 'Gestor Contratada (legado)';
+  return roleLabels[role] || role;
+}

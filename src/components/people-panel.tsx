@@ -7,7 +7,8 @@ import Popup from './popup';
 import AdminPanel from './admin-panel';
 import DeleteRegistration from './delete-registration';
 import IdentityReview from './identity-review';
-import { companyManager, roleLabels } from '@/lib/permissions';
+import { companyManager, roleLabels, personRoleLabel } from '@/lib/permissions';
+import { contractorRoleLabels } from '@/lib/contractorRoles';
 
 export default function PeoplePanel({
   ws,
@@ -21,7 +22,8 @@ export default function PeoplePanel({
   const [selected, setSelected] = useState<Person | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState(''),
+    [editingContractor, setEditingContractor] = useState<string | null>(null);
   const canManage = ws.unit.role === 'admin';
   const deliveryLabels: Record<string, string> = {
     pending: 'Na fila',
@@ -193,16 +195,34 @@ export default function PeoplePanel({
                 Perfil
                 <select
                   name="role"
+                  required
+                  key={editingContractor ?? selected.contractor_id ?? 'internal'}
                   defaultValue={selected.company_admin ? 'admin_empresa' : selected.role}
                 >
-                  <option value="executante">Executante</option>
-                  <option value="admin_contratada">Responsável da contratada</option>
-                  <option value="aprovador">Aprovador</option>
-                  <option value="seguranca_trabalho">Segurança do Trabalho</option>
-                  <option value="gestor">Gestor</option>
-                  <option value="admin">Admin da unidade</option>
-                  {companyManager(ws.user, ws.unit) && (
-                    <option value="admin_empresa">Admin da empresa</option>
+                  {(editingContractor ?? selected.contractor_id) ? (
+                    <>
+                      {!(selected.role in contractorRoleLabels) && (
+                        <option value="" disabled>
+                          Selecione um dos três perfis da contratada
+                        </option>
+                      )}
+                      {Object.entries(contractorRoleLabels).map(([role, label]) => (
+                        <option key={role} value={role}>
+                          {label}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <option value="executante">Executante</option>
+                      <option value="aprovador">Aprovador</option>
+                      <option value="seguranca_trabalho">Segurança do Trabalho</option>
+                      <option value="gestor">Gestor</option>
+                      <option value="admin">Admin da unidade</option>
+                      {companyManager(ws.user, ws.unit) && (
+                        <option value="admin_empresa">Admin da empresa</option>
+                      )}
+                    </>
                   )}
                 </select>
                 {companyManager(ws.user, ws.unit) && (
@@ -214,7 +234,11 @@ export default function PeoplePanel({
               </label>
               <label>
                 Vínculo nesta unidade
-                <select name="contractorId" defaultValue={selected.contractor_id || ''}>
+                <select
+                  name="contractorId"
+                  defaultValue={selected.contractor_id || ''}
+                  onChange={(event) => setEditingContractor(event.target.value)}
+                >
                   <option value="">Equipe própria da contratante</option>
                   {ws.contractors.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -286,7 +310,7 @@ export default function PeoplePanel({
                       ? 'Superadmin Nexus'
                       : person.company_admin
                         ? roleLabels.admin_empresa
-                        : roleLabels[person.role] || person.role}
+                        : personRoleLabel(person.role, person.contractor_id)}
                   </span>
                 </td>
                 <td>
@@ -372,6 +396,7 @@ export default function PeoplePanel({
                         }
                         onClick={() => {
                           setSelected(person);
+                          setEditingContractor(null);
                           setError('');
                           setNotice('');
                         }}

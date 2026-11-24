@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import type { WorkspaceData } from '@/lib/types';
 import Popup from './popup';
 import { api } from './workspace';
+import MaskedInput from './masked-input';
+import { contractorRoleLabels } from '@/lib/contractorRoles';
 
 type Person = {
   id: string;
@@ -65,7 +67,7 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
     <section className="card">
       <div className="card-heading">
         <div>
-          <h2>{reviewer ? 'Colaboradores das contratadas' : 'Executores da contratada'}</h2>
+          <h2>{reviewer ? 'Colaboradores das contratadas' : 'Colaboradores da contratada'}</h2>
           <p>
             {!uploadEnabled
               ? 'Envio de documentos desativado pela empresa. Cadastros e convites continuam disponíveis.'
@@ -223,7 +225,13 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                     action: selected === 'new' ? 'register' : 'resubmit',
                     unitId: ws.unit.id,
                     ...(selected === 'new'
-                      ? { name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone') }
+                      ? {
+                          name: fd.get('name'),
+                          email: fd.get('email'),
+                          phone: fd.get('phone'),
+                          cpf: fd.get('cpf'),
+                          role: fd.get('role'),
+                        }
                       : { userId: selected.id }),
                     documentType: fd.get('documentType') || 'RG',
                     files: await Promise.all(files.map(fileData)),
@@ -288,6 +296,19 @@ export default function ContractorTeam({ ws, online }: { ws: WorkspaceData; onli
                     <>
                       <label>
                         Nome completo *<input name="name" required minLength={2} maxLength={200} />
+                      </label>
+                      <label>
+                        CPF *<MaskedInput name="cpf" kind="cpf" required />
+                      </label>
+                      <label>
+                        Perfil *
+                        <select name="role" defaultValue="executante">
+                          {Object.entries(contractorRoleLabels).map(([role, label]) => (
+                            <option key={role} value={role}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
                       </label>
                       <label>
                         E-mail *<input name="email" type="email" required maxLength={254} />

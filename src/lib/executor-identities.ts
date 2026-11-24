@@ -7,6 +7,9 @@ import { encryptSecret } from './integrations';
 import { createInvitation } from './invitations';
 import { businessPhone } from './openwa';
 import { identitySnapshot } from './approval-security';
+import { isContractorManager } from './contractorRoles';
+import { contractorRoleValues } from './contractorRoles';
+import { savePersonCpf } from './personCpf';
 
 export const executorSubmission = z
   .object({
@@ -20,6 +23,11 @@ export const executorSubmission = z
       .transform((s) => s.toLowerCase())
       .optional(),
     phone: z.string().max(25).optional(),
+    cpf: z
+      .string()
+      .regex(/^\d{11}$/)
+      .optional(),
+    role: z.enum(contractorRoleValues).optional(),
     documentType: z.enum(['RG', 'CNH', 'Passaporte']).default('RG'),
     files: z
       .array(
@@ -54,7 +62,7 @@ export function identityFile(file: { mime: string; base64: string }) {
 export async function identityAccess(c: Pool | PoolClient, user: User, unitId: string) {
   const unit = await unitAccess(user, unitId, ['admin', 'gestor', 'admin_contratada'], c);
   const reviewer = ['admin', 'gestor'].includes(unit.role) && !unit.contractor_id;
-  if (!reviewer && !(unit.role === 'admin_contratada' && unit.contractor_id))
+  if (!reviewer && !isContractorManager(unit))
     throw new HttpError(403, 'Sem acesso à validação de executores.');
   return { unit, reviewer };
 }
@@ -77,6 +85,8 @@ export async function submitExecutor(
     throw new HttpError(403, 'Envie somente o seu próprio documento.');
   if (reviewer)
     throw new HttpError(403, 'O envio deve ser realizado pelo responsável da contratada.');
+  if (input.action === 'register' && !input.cpf)
+    throw new HttpError(400, 'Informe o CPF do colaborador.');
   if (!unit.identity_upload_enabled && (input.files.length || input.action === 'resubmit'))
     throw new HttpError(403, 'O envio de documentos está desativado nesta empresa.');
   if (input.action === 'resubmit' && !input.files.length)
@@ -123,9 +133,10 @@ export async function submitExecutor(
       person = created;
     }
     await c.query(
-      "INSERT INTO memberships(user_id,unit_id,role,contractor_id,phone,identity_document_required) VALUES($1,$2,'executante',$3,$4,true)",
-      [person.id, unit.id, unit.contractor_id, phone],
+      'INSERT INTO memberships(user_id,unit_id,role,contractor_id,phone,identity_document_required) VALUES($1,$2,$5,$3,$4,true)',
+      [person.id, unit.id, unit.contractor_id, phone, input.role || 'executante'],
     );
+    await savePersonCpf(c, person.id, input.cpf!);
   } else {
     if (!input.userId) throw new HttpError(400, 'Selecione o executor.');
     const {

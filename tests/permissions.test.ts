@@ -30,5 +30,5 @@ await test('menus seguem a matriz e somente administradores da empresa acessam c
     'team',
     'account',
   ]);
-  assert(!allowedMenus(ordinary, { role: 'gestor', contractor_id: 'external' }).includes('team'));
+  assert(allowedMenus(ordinary, { role: 'gestor', contractor_id: 'external' }).includes('team'));
 });

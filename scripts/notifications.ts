@@ -2,6 +2,7 @@ import { setTimeout } from 'node:timers/promises';
 import { db } from '../src/lib/db';
 import { processNotification } from '../src/lib/notifications';
 import { processInvitation } from '../src/lib/invitation-delivery';
+import { processContractorRegistrationInvite } from '../src/lib/contractorRegistrationDelivery';
 
 let stopping = false;
 process.on('SIGTERM', () => {
@@ -15,6 +16,7 @@ try {
   while (!stopping) {
     try {
       await processInvitation(db);
+      if (!stopping) await processContractorRegistrationInvite(db);
       if (!stopping) await processNotification(db);
     } catch {
       console.error('Falha ao processar notificações. Verifique banco, migrações e configuração.');

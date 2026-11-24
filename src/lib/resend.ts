@@ -4,6 +4,7 @@ export async function sendResendEmail(
   to: string,
   text: string,
   deliveryId: string,
+  subject = 'Nexus PTW · Defina sua senha',
 ): Promise<{ status: 'sent' | 'blocked' | 'uncertain'; error: string | null }> {
   let response: Response;
   try {
@@ -14,7 +15,7 @@ export async function sendResendEmail(
         'Content-Type': 'application/json',
         'Idempotency-Key': `nexus-invitation/${deliveryId}`,
       },
-      body: JSON.stringify({ from, to: [to], subject: 'Nexus PTW · Defina sua senha', text }),
+      body: JSON.stringify({ from, to: [to], subject, text }),
       redirect: 'error',
       signal: AbortSignal.timeout(10000),
     });

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
-import { hashPassword } from '../src/lib/security';
-import { decryptSecret } from '../src/lib/integrations';
+import { hashPassword, digest } from '../src/lib/security';
+import { decryptSecret, encryptSecret } from '../src/lib/integrations';
 import { aprProfiles } from '../src/lib/forms';
 import { totp } from '../src/lib/totp';
 const db = await PGlite.create();
@@ -35,6 +35,9 @@ await db.exec(
   await readFile(new URL('../db/016-contractor-executors.sql', import.meta.url), 'utf8'),
 );
 await db.exec(await readFile(new URL('../db/017-login-mfa.sql', import.meta.url), 'utf8'));
+await db.exec(
+  await readFile(new URL('../db/019-contractor-onboarding.sql', import.meta.url), 'utf8'),
+);
 await db.exec(
   await readFile(new URL('../db/018-identity-upload-policy.sql', import.meta.url), 'utf8'),
 );
@@ -119,7 +122,8 @@ try {
       body &&
       typeof body === 'object' &&
       'action' in body &&
-      ['approve', 'reject'].includes(String(body.action))
+      ['approve', 'reject'].includes(String(body.action)) &&
+      !path.startsWith('/api/contractor-registrations')
     )
       body = { password, ...body };
     const r = await fetch(base + path, {
@@ -1204,9 +1208,13 @@ try {
   person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
     (p: { id: string }) => p.id === person.id,
   );
-  await call('/api/admin', change(person, { contractorId: firstContractor.id }), 409);
+  await call(
+    '/api/admin',
+    change(person, { contractorId: firstContractor.id, role: 'gestor' }),
+    409,
+  );
   await call('/api/admin', editRegional);
-  await call('/api/admin', change(person, { contractorId: firstContractor.id }));
+  await call('/api/admin', change(person, { contractorId: firstContractor.id, role: 'gestor' }));
   assert.equal(
     (
       await db.query('SELECT 1 FROM memberships WHERE user_id=$1 AND unit_id=$2', [
@@ -1699,12 +1707,19 @@ try {
     ),
   );
   assert.equal(tenantIntegrations.openwaDefaultUrl, '');
+  const companyReviewerCookie = cookie;
+  await db.query(
+    "INSERT INTO memberships(user_id,unit_id,role) VALUES($1,$2,'admin') ON CONFLICT DO NOTHING",
+    [user.id, unassignedUnit.id],
+  );
+  await call('/api/auth', { email: 'test@nexus.local', password });
   await call('/api/admin', {
     action: 'contractor',
     unitId: unassignedUnit.id,
     name: 'Contratada compartilhada',
     cnpj: '44555666000177',
   });
+  cookie = companyReviewerCookie;
   const sharedContractor = (
     await call(`/api/workspace?unit=${unassignedUnit.id}`)
   ).contractors.find((c: { cnpj: string }) => c.cnpj === '44555666000177');
@@ -1720,12 +1735,16 @@ try {
     { action: 'unit', unitId: unit.id, name: 'Unidade indevida', kind: 'CDD', regionId: null },
     403,
   );
-  await call('/api/admin', {
-    action: 'contractor',
-    unitId: unit.id,
-    name: 'Cadastro da unidade',
-    cnpj: '77888999000100',
-  });
+  await call(
+    '/api/admin',
+    {
+      action: 'contractor',
+      unitId: unit.id,
+      name: 'Cadastro da unidade',
+      cnpj: '77888999000100',
+    },
+    403,
+  );
   await call(
     '/api/admin',
     {
@@ -1759,11 +1778,23 @@ try {
     403,
   );
   await call('/api/whatsapp?unit=' + unit.id, undefined, 403);
+  await call(
+    '/api/admin',
+    {
+      action: 'linkContractor',
+      unitId: unit.id,
+      contractorId: sharedContractor.id,
+    },
+    403,
+  );
+  const unitAdminCookie = cookie;
+  await call('/api/auth', { email: 'test@nexus.local', password });
   await call('/api/admin', {
     action: 'linkContractor',
     unitId: unit.id,
     contractorId: sharedContractor.id,
   });
+  cookie = unitAdminCookie;
   await call(
     '/api/admin',
     {
@@ -1789,7 +1820,7 @@ try {
   );
   const sharedContact = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
     (p: { contractor_id: string; role: string }) =>
-      p.contractor_id === sharedContractor.id && p.role === 'admin_contratada',
+      p.contractor_id === sharedContractor.id && p.role === 'gestor',
   );
   await call('/api/admin', {
     action: 'deleteRegistration',
@@ -1906,7 +1937,7 @@ try {
   const contactA = onboardingView.people.find(
     (p: { email: string }) => p.email === onboardingDetails.email,
   );
-  assert.equal(contactA.role, 'admin_contratada');
+  assert.equal(contactA.role, 'gestor');
   assert.equal(contactA.password_pending, true);
   assert.equal(onboardingView.identityPolicy.enabled, false);
   await call('/api/identity-policy', {
@@ -1932,6 +1963,7 @@ try {
     '/api/contractor-team',
     {
       action: 'register',
+      cpf: '39053344705',
       unitId: unit.id,
       name: 'Bloqueado',
       email: 'blocked@test.example',
@@ -1963,6 +1995,7 @@ try {
   assert.equal((await call(`/api/workspace?unit=${unit.id}`)).identityOnboarding.required, false);
   const registration = {
     action: 'register',
+    cpf: '39053344705',
     unitId: unit.id,
     name: 'Executor onboarding',
     email: 'executor-onboarding@test.example',
@@ -2039,7 +2072,12 @@ try {
     version: secondIdentityPolicy.version,
   });
   await call('/api/auth', { email: 'other-onboarding@test.example', password });
-  assert.equal((await call(`/api/contractor-team?unit=${unit.id}`)).people.length, 0);
+  assert.deepEqual(
+    (await call(`/api/contractor-team?unit=${unit.id}`)).people.map(
+      (person: { id: string }) => person.id,
+    ),
+    [otherContact.id],
+  );
   assert.equal(
     (
       await fetch(`${base}/api/executor-files/${executorA.files[0].id}`, {
@@ -2062,6 +2100,7 @@ try {
   assert.equal((await call(`/api/contractor-team?unit=${unit.id}`)).reviewer, false);
   const offTeam = await call('/api/contractor-team', {
     action: 'register',
+    cpf: '12345678909',
     unitId: unit.id,
     name: 'Executor sem exigência',
     email: 'optional-doc@test.example',
@@ -2146,6 +2185,127 @@ try {
   });
   assert.equal(sessionDecision.status, 200, await sessionDecision.text());
   await db.query('UPDATE companies SET approval_mfa_required=false WHERE id=$1', [company.id]);
+  // Seed the bearer invitation because the HTTP harness intentionally has no public HTTPS origin.
+  const registrationId = randomUUID(),
+    registrationToken = randomBytes(32).toString('hex');
+  await db.query(
+    'INSERT INTO contractor_registrations(id,company_id,unit_id,email,created_by,token_hash,token_ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7)',
+    [
+      registrationId,
+      company.id,
+      unit.id,
+      'registration-http@external.test',
+      user.id,
+      digest(registrationToken),
+      encryptSecret(registrationToken, registrationId, 'contractor-registration-token'),
+    ],
+  );
+  const reviewerCookie = cookie;
+  await call('/api/contractor-registrations', {
+    action: 'resend',
+    unitId: unit.id,
+    id: registrationId,
+    version: 1,
+    confirmed: true,
+  });
+  await call(
+    '/api/contractor-registrations',
+    { action: 'resend', unitId: unit.id, id: registrationId, version: 1, confirmed: true },
+    409,
+  );
+  cookie = '';
+  await call(`/api/contractor-registrations?unit=${unit.id}`, undefined, 401);
+  await call('/api/contractor-registration', { action: 'read', token: 'invalid' }, 403);
+  const registrationView = await call('/api/contractor-registration', {
+    action: 'read',
+    token: registrationToken,
+  });
+  assert.equal(registrationView.email, 'registration-http@external.test');
+  const publicRegistration = {
+    name: 'Contratada pelo link',
+    cnpj: '91827364000122',
+    details: {
+      contactName: 'Gestora externa',
+      email: registrationView.email,
+      phone: '11999998888',
+      cep: '01001000',
+      street: 'Praça da Sé',
+      number: '1',
+      district: 'Sé',
+      city: 'São Paulo',
+      state: 'SP',
+    },
+    people: [
+      {
+        name: 'Gestora externa',
+        cpf: '93541134780',
+        email: registrationView.email,
+        phone: '11999998888',
+        role: 'gestor',
+      },
+    ],
+  };
+  await call(
+    '/api/contractor-registration',
+    {
+      action: 'submit',
+      token: registrationToken,
+      version: registrationView.version,
+      data: { ...publicRegistration, people: [{ ...publicRegistration.people[0], role: 'admin' }] },
+    },
+    400,
+  );
+  await call('/api/contractor-registration', {
+    action: 'submit',
+    token: registrationToken,
+    version: registrationView.version,
+    data: publicRegistration,
+    card: {
+      mime: 'application/pdf',
+      base64: Buffer.from('%PDF-1.7\nCartao CNPJ HTTP fixture').toString('base64'),
+    },
+  });
+  assert.equal(
+    (await db.query('SELECT 1 FROM users WHERE email=$1', [registrationView.email])).rows.length,
+    0,
+  );
+  cookie = reviewerCookie;
+  const pendingRegistrations = await call(`/api/contractor-registrations?unit=${unit.id}`);
+  assert(
+    pendingRegistrations.registrations.some(
+      (entry: { id: string; status: string }) =>
+        entry.id === registrationId && entry.status === 'submitted',
+    ),
+  );
+  const registrationCardResponse = await fetch(
+    `${base}/api/contractor-registrations/${registrationId}/card`,
+    { headers: { Cookie: cookie } },
+  );
+  assert.equal(registrationCardResponse.status, 200);
+  assert(registrationCardResponse.headers.get('Cache-Control')?.includes('no-store'));
+  assert((await registrationCardResponse.text()).startsWith('%PDF-'));
+  await call('/api/contractor-registrations', {
+    action: 'approve',
+    unitId: unit.id,
+    id: registrationId,
+    version: registrationView.version + 1,
+    reason: 'Empresa e colaboradora conferidas',
+    confirmed: true,
+  });
+  const provisioned = (
+    await db.query<{ role: string; password_pending: boolean }>(
+      'SELECT m.role,u.password_pending FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.email=$1',
+      [registrationView.email],
+    )
+  ).rows[0];
+  assert.equal(provisioned.role, 'gestor');
+  assert.equal(provisioned.password_pending, true);
+  const publicApproved = await call('/api/contractor-registration', {
+    action: 'read',
+    token: registrationToken,
+  });
+  assert.equal(publicApproved.status, 'approved');
+  assert.equal(publicApproved.data, null);
   console.log(
     'Integração OK: APR/PT, integrações, gestão de acessos por unidade, contatos independentes, isolamento de documentos/fotos por terceirizada, desativação sem exclusão, proteção do último administrador e CSRF. Nenhuma chamada a provedores reais.',
   );

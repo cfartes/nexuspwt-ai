@@ -163,6 +163,11 @@ export async function POST(request: Request) {
     const user = await currentUser();
     const input = schema.parse(await request.json());
     const unit = await unitAccess(user, input.unitId, ['admin']);
+    if (['contractor', 'linkContractor'].includes(input.action) && !user.platform_admin)
+      throw new HttpError(
+        403,
+        'Envie o link de cadastro e aprove a solicitação da contratada para liberar o vínculo.',
+      );
     await transaction(async (c) => {
       // Serialize shared access/configuration changes before taking individual unit or membership locks.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [

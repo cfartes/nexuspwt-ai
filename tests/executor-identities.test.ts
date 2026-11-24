@@ -102,7 +102,7 @@ await test('contratada cadastra somente sua equipe; documentos privados, revisã
     assert(contact.password_pending);
     assert.equal(
       (
-        await pool.query("SELECT 1 FROM memberships WHERE user_id=$1 AND role='admin_contratada'", [
+        await pool.query("SELECT 1 FROM memberships WHERE user_id=$1 AND role='gestor'", [
           contact.id,
         ])
       ).rowCount,
@@ -149,6 +149,7 @@ await test('contratada cadastra somente sua equipe; documentos privados, revisã
     assert(
       !executorSubmission.safeParse({
         action: 'register',
+        cpf: '39053344705',
         unitId: unit,
         documentType: 'RG',
         files: [],
@@ -157,6 +158,7 @@ await test('contratada cadastra somente sua equipe; documentos privados, revisã
     );
     const input = executorSubmission.parse({
       action: 'register',
+      cpf: '39053344705',
       unitId: unit,
       name: 'Executor A',
       email: 'executor@identity.test',

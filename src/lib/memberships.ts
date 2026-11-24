@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { type User, unitAccess } from './auth';
 import { HttpError } from './security';
+import { contractorRoleValues } from './contractorRoles';
 
 export async function saveMembership(
   client: PoolClient,
@@ -31,6 +32,11 @@ export async function saveMembership(
   if (input.role === 'admin_empresa' && input.contractorId)
     throw new HttpError(400, 'Admin da empresa deve pertencer à equipe própria.');
   const requestedRole = input.role;
+  if (input.contractorId && !contractorRoleValues.some((role) => role === input.role))
+    throw new HttpError(
+      400,
+      'Para contratadas, selecione Gestor Contratada, Seg. Trabalho Contratada ou Executor Contratada.',
+    );
   const storedRole = input.role === 'admin_empresa' ? 'admin' : input.role;
   if (storedRole === 'admin_contratada' && !input.contractorId)
     throw new HttpError(400, 'Responsável da contratada exige vínculo com a contratada.');

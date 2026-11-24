@@ -31,7 +31,7 @@ import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
 import RemoveApr from './remove-apr';
-import { allowedMenus, roleLabels } from '@/lib/permissions';
+import { allowedMenus, roleLabels, personRoleLabel } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
 import AuditPanel from './audit-panel';
@@ -395,7 +395,7 @@ export default function Workspace() {
                 ? 'Superadmin'
                 : unit.company_admin
                   ? roleLabels.admin_empresa
-                  : roleLabels[unit.role] || unit.role}
+                  : personRoleLabel(unit.role, unit.contractor_id)}
             </small>
           </span>
           <LogOut size={17} />
