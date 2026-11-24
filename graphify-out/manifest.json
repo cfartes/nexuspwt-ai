@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/components/workspace.tsx": {
-    "mtime": 1795548646.031495,
-    "seen": 1795548749.1576834,
-    "ast_hash": "70900ccbd73c2a89827d412ec25a6ec5",
+    "mtime": 1795551507.2274985,
+    "seen": 1795551526.9033904,
+    "ast_hash": "3f270d42b1dd9e8ccf713a6b4f2c08c8",
     "semantic_hash": ""
   },
   "src/index.ts": {
@@ -1098,15 +1098,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795548747.9686916,
-    "seen": 1795550187.2195923,
-    "ast_hash": "b8a2b2097e25a7b7edc957a30c0b2053",
+    "mtime": 1795550186.3995066,
+    "seen": 1795551526.923456,
+    "ast_hash": "9c50d2348cfd340c4697779c54a13c1f",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795548749.4970338,
-    "seen": 1795550187.219604,
-    "ast_hash": "e1027cee1bcc320055c8c4592a769fff",
+    "mtime": 1795550187.5459063,
+    "seen": 1795551526.9234607,
+    "ast_hash": "a719ba4d04e7c1519c9d4145ecae5289",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1269,6 +1269,12 @@
     "mtime": 1795548646.1900892,
     "seen": 1795548749.1789992,
     "ast_hash": "e04cbf8b14b05cb5809ee42b74cdc26e",
+    "semantic_hash": ""
+  },
+  "src/components/workspace-navigation.tsx": {
+    "mtime": 1795551330.5600884,
+    "seen": 1795551526.9033835,
+    "ast_hash": "4aa6cc9030bf1daa69297cee4196e7a0",
     "semantic_hash": ""
   },
   "package-lock.json": {

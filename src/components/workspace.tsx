@@ -40,7 +40,8 @@ import ApprovalConfirmation from './approval-confirmation';
 import AuditPanel from './audit-panel';
 import ContractorTeam from './contractor-team';
 import PersonalDocuments from './PersonalDocuments';
-type Tab =
+import WorkspaceNavigation from './workspace-navigation';
+export type Tab =
   | 'overview'
   | 'APR'
   | 'PT'
@@ -374,8 +375,8 @@ export default function Workspace() {
   );
   const menuList: [Tab, string, typeof LayoutDashboard][] = [
     ['overview', 'Visão geral', LayoutDashboard],
-    ['APR', 'Análises de risco', FileCheck2],
-    ['PT', 'Permissões de trabalho', ClipboardList],
+    ['APR', 'APR', FileCheck2],
+    ['PT', 'PT', ClipboardList],
     ['approvals', 'Aprovações', CheckCircle2],
     ['contractors', 'Terceirizadas', Building2],
     ['people', 'Pessoas e acessos', Users],
@@ -387,18 +388,23 @@ export default function Workspace() {
         ]
       : []),
     ...(unit.role === 'admin'
-      ? [['companies', 'Empresas', Building2] as [Tab, string, typeof LayoutDashboard]]
+      ? [['companies', 'Empresa', Building2] as [Tab, string, typeof LayoutDashboard]]
       : []),
     ['account', 'Minha conta e segurança', ShieldCheck],
-    ['settings', 'Configurações da empresa', Settings2],
+    ['settings', 'Configurações da Empresa', Settings2],
     ['audit', 'Auditoria', History],
-    ['team', 'Executores e documentos', Users],
+    ['team', 'Executores e Documentos', Users],
     ['identity', 'Meus documentos', FileCheck2],
   ];
   const permitted = allowedMenus(ws.user, unit);
   const nav = menuList.filter(([id]) => permitted.includes(id));
   const currentTab = permitted.includes(tab) ? tab : (permitted[0] as Tab);
-  const title = nav.find((n) => n[0] === currentTab)?.[1];
+  const title =
+    currentTab === 'APR'
+      ? 'Análises de risco'
+      : currentTab === 'PT'
+        ? 'Permissões de trabalho'
+        : nav.find((n) => n[0] === currentTab)?.[1];
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -411,25 +417,17 @@ export default function Workspace() {
           </span>
         </a>
         <div className="workspace-label">SEGURANÇA DO TRABALHO</div>
-        <nav aria-label="Menu principal">
-          {nav.map(([id, label, Icon]) => (
-            <button
-              key={id}
-              className={currentTab === id ? 'nav active' : 'nav'}
-              aria-current={currentTab === id ? 'page' : undefined}
-              onClick={() => {
-                setTab(id);
-                setSearch('');
-                setError('');
-                setNotice('');
-              }}
-            >
-              <Icon size={19} />
-              <span>{label}</span>
-              {id === 'approvals' && needsMe.length > 0 && <b>{needsMe.length}</b>}
-            </button>
-          ))}
-        </nav>
+        <WorkspaceNavigation
+          items={nav}
+          active={currentTab}
+          pending={needsMe.length}
+          onSelect={(id) => {
+            setTab(id);
+            setSearch('');
+            setError('');
+            setNotice('');
+          }}
+        />
         <div className="sidebar-bottom">
           <span className="pilot-dot" /> Ambiente piloto{' '}
           <small>Uma operação mais segura, etapa por etapa.</small>
