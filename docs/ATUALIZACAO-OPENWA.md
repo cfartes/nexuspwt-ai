@@ -9,6 +9,26 @@ O erro observado em `whatsapp-web.js/src/Client.js` corresponde ao caminho descr
 
 ## Executar na VPS
 
+### Correção do QR Code na versão 0.32.0
+
+Se a versão instalada já é 0.32.0 e novas sessões falham com `auth timeout`, URL `/login/` e `WAWebSocketModel` ausente, use:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cfartes/nexuspwt-ai/main/scripts/upgrade_openwa.py -o /tmp/upgrade-openwa.py && python3 /tmp/upgrade-openwa.py --fix-login
+```
+
+Esse é o problema [whatsapp-web.js #201988](https://github.com/wwebjs/whatsapp-web.js/issues/201988), corrigido pelo [PR oficial #201990](https://github.com/wwebjs/whatsapp-web.js/pull/201990). O script fixa o commit `38eb45b2759450cc6fccb6a7a3f2cbc3bdb87db2` e verifica o SHA-256 do diff antes de aplicá-lo. Exige Git, OpenWA 0.32.0 e whatsapp-web.js 1.34.8; não instala dependências na VPS.
+
+Primeiro copia somente o `Client.js` instalado para um diretório temporário e aplica os hunks oficiais com `git apply --check`, preservando as adaptações do OpenWA. Conflito, download inválido ou versão diferente abortam antes de parar qualquer sessão. A imagem local deriva do ID exato da imagem ativa, mantém o mesmo Chromium e passa pela verificação de sintaxe do Node. Não altera o arquivo dentro do container ativo.
+
+Depois reutiliza o procedimento de backup consistente, migração e subida descrito abaixo. O override gerenciado mantém suas configurações existentes, incluindo `WWEBJS_AUTH_TIMEOUT_MS`, e passa a apontar para `nexus-openwa-login:<imagem-base>-<commit>`. A chave de API, os bancos e os diretórios de autenticação são preservados. A pausa afeta todas as sessões desse gateway, inclusive Nexus Atende; não envia mensagens e não apaga sessões.
+
+Ao concluir, no painel OpenWA, reconecte uma vez a sessão PTW e confira o QR Code. Confira também se a sessão Nexus Atende retomou. Não execute o script sem `--fix-login` depois disso: a imagem oficial 0.32.0 contém a biblioteca anterior e voltaria a introduzir o problema. Esta imagem local é uma solução temporária até uma atualização oficial do OpenWA incorporar a correção; não publique a imagem como versão oficial.
+
+Validação local desta correção: 13 testes Linux com Docker simulado; aplicação real do patch sobre o `Client.js` da imagem oficial 0.32.0; construção da imagem derivada; verificação de sintaxe; evento `qr` gerado em navegador isolado com a biblioteca corrigida. Nenhum telefone foi pareado. Isso não confirma autenticação completa, envio de mensagens ou retomada das sessões da VPS.
+
+### Atualização inicial de 0.24.0 para 0.32.0
+
 Como root:
 
 ```bash

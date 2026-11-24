@@ -1,17 +1,22 @@
 """Atualiza somente o OpenWA, mantendo compose, override de mídia e volumes existentes."""
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
+import urllib.request
 from datetime import datetime, timezone
 
 ROOT = Path('/opt/openwa')
 IMAGE = 'ghcr.io/rmyndharis/openwa:0.32.0'
 VERSION = '0.32.0'
 CONTAINER = 'openwa-api'
+LOGIN_FIX = '38eb45b2759450cc6fccb6a7a3f2cbc3bdb87db2'
+LOGIN_FIX_SHA256 = 'fee22b717aede8e1f11821d59d2ac910b6a2e851ade39b84c0006476d6286f7e'
 
 
 def output(*command):
@@ -36,7 +41,45 @@ def volume_sources(config, service):
     return result
 
 
-def main():
+def build_login_image(original):
+    if not shutil.which('git'):
+        raise ValueError('Git precisa estar instalado para conferir e aplicar o patch oficial. Nenhum serviço foi parado.')
+    if original['Config']['Labels'].get('io.nexus.wwebjs-login-fix') == LOGIN_FIX:
+        raise ValueError('A imagem ativa já contém este patch. Nenhum serviço foi parado; confira o erro atual da sessão.')
+    versions = output('docker', 'exec', CONTAINER, 'node', '-p',
+                      "require('/app/package.json').version+' '+require('/app/node_modules/whatsapp-web.js/package.json').version")
+    if versions != VERSION + ' 1.34.8':
+        raise ValueError('Este patch exige OpenWA 0.32.0 e whatsapp-web.js 1.34.8. Nenhum serviço foi parado.')
+    print('Preparando patch oficial do login; sessões atuais continuam ativas.', flush=True)
+    with urllib.request.urlopen(f'https://github.com/wwebjs/whatsapp-web.js/commit/{LOGIN_FIX}.diff', timeout=30) as response:
+        patch = response.read(1_000_001)
+    if hashlib.sha256(patch).hexdigest() != LOGIN_FIX_SHA256:
+        raise ValueError('O patch baixado não corresponde ao SHA-256 verificado. Nenhum serviço foi parado.')
+    with tempfile.TemporaryDirectory(prefix='nexus-openwa-login-') as directory:
+        context = Path(directory)
+        (context / 'src').mkdir()
+        subprocess.run(['docker', 'cp', CONTAINER + ':/app/node_modules/whatsapp-web.js/src/Client.js', str(context / 'src' / 'Client.js')], check=True)
+        (context / 'login.patch').write_bytes(patch)
+        subprocess.run(['git', 'init', '--quiet', str(context)], check=True)
+        before = (context / 'src' / 'Client.js').read_bytes()
+        # Apply hunks to the installed file, keeping OpenWA's existing patches; conflicts abort.
+        for flags in (['--check'], []):
+            result = subprocess.run(['git', 'apply', *flags, 'login.patch'], cwd=context, capture_output=True, text=True)
+            if result.returncode:
+                raise ValueError('O patch oficial conflita com a biblioteca instalada. Nenhum serviço foi parado. ' + result.stderr.strip())
+        if (context / 'src' / 'Client.js').read_bytes() == before:
+            raise ValueError('O patch não alterou a biblioteca. Nenhum serviço foi parado.')
+        base_image = 'nexus-openwa-login-base:' + original['Image'].split(':')[-1][:12]
+        target = 'nexus-openwa-login:' + original['Image'].split(':')[-1][:12] + '-' + LOGIN_FIX[:12]
+        subprocess.run(['docker', 'tag', original['Image'], base_image], check=True)
+        (context / 'Dockerfile').write_text(f'FROM {base_image}\nCOPY --chmod=0644 src/Client.js /app/node_modules/whatsapp-web.js/src/Client.js\nLABEL io.nexus.wwebjs-login-fix="{LOGIN_FIX}"\n')
+        (context / '.dockerignore').write_text('.git\nlogin.patch\n')
+        subprocess.run(['docker', 'build', '--pull=false', '--network=none', '-t', target, str(context)], check=True)
+        subprocess.run(['docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'node', target, '--check', '/app/node_modules/whatsapp-web.js/src/Client.js'], check=True)
+        return target
+
+
+def main(fix_login=False):
     os.umask(0o077)
     base, media = ROOT / 'docker-compose.yml', ROOT / 'nexus-media.override.yml'
     managed = ROOT / 'nexus-version.override.json'
@@ -62,6 +105,8 @@ def main():
         if not any(mount['Destination'] == '/app/data' for mount in original['Mounts']):
             raise ValueError('Volume persistente /app/data não identificado. Nenhum serviço foi parado.')
         compose = ['docker', 'compose', '--project-directory', str(ROOT), '-p', project, '-f', str(base), '-f', str(media)]
+        if str(managed.resolve()) in files:
+            compose.extend(['-f', str(managed)])
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
         backup = ROOT / 'backups' / ('nexus-upgrade-' + stamp)
         backup.mkdir(parents=True, mode=0o700)
@@ -80,10 +125,15 @@ def main():
             raise ValueError('Identidade do nó OpenWA não identificada. Nenhum serviço foi parado.')
         backup_override = backup / 'backup-compose.json'
         save(backup_override, {'services': {service: {'image': old_image, 'environment': runtime}}})
+        target_image = build_login_image(original) if fix_login else IMAGE
         candidate = backup / 'candidate-compose.json'
-        save(candidate, {'services': {service: {'image': IMAGE, 'environment': {
+        candidate_config = json.loads(managed.read_text()) if managed.exists() else {'services': {service: {}}}
+        candidate_service = candidate_config['services'][service]
+        candidate_service['image'] = target_image
+        candidate_service.setdefault('environment', {}).update({
             'WWEBJS_WEB_VERSION': 'off', 'NODE_ID': node_id,
-        }}}})
+        })
+        save(candidate, candidate_config)
         upgrade = [*compose, '-f', str(candidate)]
         config = json.loads(output(*upgrade, 'config', '--format', 'json'))
         if config.get('services', {}).get(service, {}).get('container_name') != CONTAINER:
@@ -94,9 +144,10 @@ def main():
         for key, value in config['services'][service].get('environment', {}).items():
             if value is not None and key.startswith(('DATABASE_', 'MAIN_DATABASE_', 'POSTGRES_', 'API_', 'STORAGE_', 'S3_', 'SESSION_DATA_PATH', 'BAILEYS_AUTH_DIR', 'OPENWA_DATA_DIR', 'PLUGIN')) and str(value) != runtime.get(key):
                 raise ValueError('Configuração de banco, chaves ou armazenamento difere do container ativo. Revise o Compose/.env antes de atualizar.')
-        print(f'Baixando OpenWA {VERSION}; container atual continua ativo.', flush=True)
-        subprocess.run(['docker', 'pull', IMAGE], check=True)
-        if output('docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'node', IMAGE, '-p', "require('/app/package.json').version") != VERSION:
+        if not fix_login:
+            print(f'Baixando OpenWA {VERSION}; container atual continua ativo.', flush=True)
+            subprocess.run(['docker', 'pull', target_image], check=True)
+        if output('docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'node', target_image, '-p', "require('/app/package.json').version") != VERSION:
             raise ValueError('A imagem baixada não corresponde à versão esperada.')
         stopped = False
         changed = False
@@ -116,7 +167,7 @@ def main():
             subprocess.run(['tar', '-tzf', str(archives[0])], check=True, stdout=subprocess.DEVNULL)
             print(f'Backup completo: {archives[0]}', flush=True)
             save(managed, json.loads(candidate.read_text()))
-            upgrade = [*compose, '-f', str(managed)]
+            upgrade = compose if str(managed.resolve()) in files else [*compose, '-f', str(managed)]
             changed = True
             print(f'Aplicando migrações. Log privado: {backup / "migration.log"}', flush=True)
             with (backup / 'migration.log').open('w') as log:
@@ -125,6 +176,8 @@ def main():
             subprocess.run([*upgrade, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '180', service], check=True)
             if output('docker', 'exec', CONTAINER, 'node', '-p', "require('/app/package.json').version") != VERSION:
                 raise ValueError('A versão em execução não foi confirmada.')
+            if fix_login and output('docker', 'inspect', '--format', '{{index .Config.Labels "io.nexus.wwebjs-login-fix"}}', CONTAINER) != LOGIN_FIX:
+                raise ValueError('O patch na imagem em execução não foi confirmado.')
         except BaseException:
             if stopped and not changed:
                 subprocess.run(['docker', 'start', CONTAINER], check=True)
@@ -139,7 +192,9 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        if sys.argv[1:] not in ([], ['--fix-login']):
+            raise ValueError('Uso: python3 upgrade_openwa.py [--fix-login]')
+        main(fix_login='--fix-login' in sys.argv)
     except ValueError as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

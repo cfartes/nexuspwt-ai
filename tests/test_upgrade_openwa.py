@@ -14,13 +14,15 @@ import upgrade_openwa as upgrade
 
 
 class OpenwaUpgradeTests(unittest.TestCase):
-    def scenario(self, fail=None, wrong_mount=False, wrong_environment=False, service='openwa-api', relative_files=False, wrong_container=False, extra_file=False):
+    def scenario(self, fail=None, wrong_mount=False, wrong_environment=False, service='openwa-api', relative_files=False, wrong_container=False, extra_file=False, fix_login=False, existing_managed=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             base, media = root / 'docker-compose.yml', root / 'nexus-media.override.yml'
             base.write_text('original compose')
             media.write_text('original media override')
             (root / '.env').write_text('PRIVATE_KEY=kept-secret\n')
+            if existing_managed:
+                (root / 'nexus-version.override.json').write_text(json.dumps({'services': {service: {'image': upgrade.IMAGE, 'environment': {'WWEBJS_AUTH_TIMEOUT_MS': '120000'}}}}))
             original = {
                 'Image': 'old-image-id', 'State': {'Running': True},
                 'Config': {'Hostname': 'old-node-id', 'Env': ['API_MASTER_KEY=kept-secret'], 'Labels': {
@@ -32,10 +34,14 @@ class OpenwaUpgradeTests(unittest.TestCase):
             }
             if wrong_environment:
                 original['Config']['Env'].append('DATABASE_NAME=existing')
+            if existing_managed:
+                original['Config']['Labels']['com.docker.compose.project.config_files'] += ',' + str(root / 'nexus-version.override.json')
             commands = []
             def output(*command):
                 if command[:3] == ('docker', 'inspect', 'openwa-api'):
                     return json.dumps([original])
+                if command[:2] == ('docker', 'inspect') and '--format' in command:
+                    return upgrade.LOGIN_FIX
                 if command[-3:] == ('config', '--format', 'json'):
                     return json.dumps({'services': {service: {'container_name': 'another-app' if wrong_container else 'openwa-api', 'environment': {'DATABASE_NAME': 'other'} if wrong_environment else {}, 'volumes': [{'type': 'volume', 'source': 'data', 'target': '/app/data'}]}}, 'volumes': {'data': {'name': 'wrong' if wrong_mount else 'openwa_data'}}})
                 if command[0:2] == ('docker', 'exec') and command[-2] == '-e':
@@ -64,17 +70,17 @@ class OpenwaUpgradeTests(unittest.TestCase):
                     raise subprocess.CalledProcessError(1, command)
             previous_umask = os.umask(0o077)
             try:
-                with patch.object(upgrade, 'ROOT', root), patch.object(upgrade, 'output', side_effect=output), patch.object(upgrade.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                with patch.object(upgrade, 'ROOT', root), patch.object(upgrade, 'build_login_image', side_effect=ValueError('patch conflict') if fail == 'patch' else None, return_value='nexus-openwa-login:test'), patch.object(upgrade, 'output', side_effect=output), patch.object(upgrade.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                     if fail or wrong_mount or wrong_environment or wrong_container or extra_file:
                         with self.assertRaises((ValueError, subprocess.CalledProcessError)):
-                            upgrade.main()
+                            upgrade.main(fix_login=fix_login)
                     else:
-                        upgrade.main()
+                        upgrade.main(fix_login=fix_login)
                 self.assertEqual(base.read_text(), 'original compose')
                 self.assertEqual(media.read_text(), 'original media override')
                 self.assertEqual((root / '.env').read_text(), 'PRIVATE_KEY=kept-secret\n')
                 self.assertFalse(any('down' in command or '--volumes' in command or 'prune' in command for command in commands))
-                if wrong_mount or wrong_environment or wrong_container or extra_file:
+                if wrong_mount or wrong_environment or wrong_container or extra_file or fail == 'patch':
                     self.assertFalse(any('stop' in command for command in commands))
                     return
                 backup = next((root / 'backups').glob('nexus-upgrade-*'))
@@ -86,8 +92,13 @@ class OpenwaUpgradeTests(unittest.TestCase):
                     self.assertFalse((root / 'nexus-version.override.json').exists())
                 else:
                     override = json.loads((root / 'nexus-version.override.json').read_text())
-                    self.assertEqual(override['services'][service]['image'], upgrade.IMAGE)
-                    self.assertEqual(override['services'][service]['environment'], {'WWEBJS_WEB_VERSION': 'off', 'NODE_ID': 'old-node-id'})
+                    self.assertEqual(override['services'][service]['image'], 'nexus-openwa-login:test' if fix_login else upgrade.IMAGE)
+                    expected_environment = {'WWEBJS_WEB_VERSION': 'off', 'NODE_ID': 'old-node-id'}
+                    if existing_managed:
+                        expected_environment['WWEBJS_AUTH_TIMEOUT_MS'] = '120000'
+                    self.assertEqual(override['services'][service]['environment'], expected_environment)
+                    if fix_login:
+                        self.assertFalse(any(command[:2] == ['docker', 'pull'] for command in commands))
                     self.assertTrue(any('migration:run:prod' in command for command in commands))
                     self.assertNotIn(['docker', 'start', 'openwa-api'], commands)
                     if fail:
@@ -98,6 +109,7 @@ class OpenwaUpgradeTests(unittest.TestCase):
                         self.assertIn('--no-deps', launch)
                         self.assertIn('--no-build', launch)
                         self.assertIn('--wait', launch)
+                        self.assertEqual(launch.count(str(root / 'nexus-version.override.json')), 1)
             finally:
                 os.umask(previous_umask)
 
@@ -130,6 +142,20 @@ class OpenwaUpgradeTests(unittest.TestCase):
 
     def test_health_failure_never_starts_old_browser_on_new_profile(self):
         self.scenario(fail='health')
+
+    def test_login_fix_uses_local_image_and_preserves_managed_environment(self):
+        self.scenario(service='openwa', fix_login=True, existing_managed=True)
+
+    def test_patch_conflict_never_stops_existing_sessions(self):
+        self.scenario(fix_login=True, fail='patch')
+
+    def test_patch_integrity_failure_never_runs_docker_build(self):
+        original = {'Config': {'Labels': {}}}
+        with patch.object(upgrade.shutil, 'which', return_value='/usr/bin/git'), patch.object(upgrade, 'output', return_value='0.32.0 1.34.8'), patch.object(upgrade.urllib.request, 'urlopen') as request, patch.object(upgrade.subprocess, 'run') as run:
+            request.return_value.__enter__.return_value.read.return_value = b'tampered patch'
+            with self.assertRaisesRegex(ValueError, 'SHA-256'):
+                upgrade.build_login_image(original)
+            run.assert_not_called()
 
 
 if __name__ == '__main__':
