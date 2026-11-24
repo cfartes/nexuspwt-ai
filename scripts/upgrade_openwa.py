@@ -107,7 +107,7 @@ def main():
             # The old image understands its own config; its official backup captures SQLite/Postgres and auth.
             print(f'Criando o backup. Log privado: {backup / "backup.log"}', flush=True)
             with (backup / 'backup.log').open('w') as log:
-                subprocess.run([*compose, '-f', str(backup_override), 'run', '--rm', '--no-deps', '--no-build', '--pull', 'never',
+                subprocess.run([*compose, '-f', str(backup_override), 'run', '--rm', '--no-deps', '--pull', 'never',
                                 '--user', '0:0', '--entrypoint', 'bash', '-e', 'BACKUP_DIR=/backup', '-e', 'TMPDIR=/backup',
                                 '-v', f'{backup}:/backup', service, '/app/scripts/backup.sh'], stdout=log, stderr=subprocess.STDOUT, check=True)
             archives = list(backup.glob('openwa-backup-*.tar.gz'))
@@ -120,7 +120,7 @@ def main():
             changed = True
             print(f'Aplicando migrações. Log privado: {backup / "migration.log"}', flush=True)
             with (backup / 'migration.log').open('w') as log:
-                subprocess.run([*upgrade, 'run', '--rm', '--no-deps', '--no-build', '--pull', 'never', '--entrypoint', 'npm', service, 'run', 'migration:run:prod'], stdout=log, stderr=subprocess.STDOUT, check=True)
+                subprocess.run([*upgrade, 'run', '--rm', '--no-deps', '--pull', 'never', '--entrypoint', 'npm', service, 'run', 'migration:run:prod'], stdout=log, stderr=subprocess.STDOUT, check=True)
             print('Iniciando a nova versão e aguardando a saúde do serviço (até 180 segundos).', flush=True)
             subprocess.run([*upgrade, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '180', service], check=True)
             if output('docker', 'exec', CONTAINER, 'node', '-p', "require('/app/package.json').version") != VERSION:

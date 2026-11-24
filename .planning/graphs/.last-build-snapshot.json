@@ -1,23 +1,7 @@
 {
   "version": 1,
-  "timestamp": "2026-11-24T17:17:44.454Z",
+  "timestamp": "2026-11-24T17:25:35.739Z",
   "nodes": [
-    {
-      "id": "src_lib_contractorregistration_registrationrow",
-      "label": "RegistrationRow",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "HttpError",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "RegistrationRow"
-      },
-      "norm_label": "registrationrow",
-      "source_file": "src/lib/contractorRegistration.ts",
-      "source_location": "L69"
-    },
     {
       "id": "src_lib_identitypolicyrepository_identitysubmissionstate",
       "label": "IdentitySubmissionState",
@@ -49,6 +33,38 @@
       "norm_label": "httperror",
       "source_file": "src/lib/security.ts",
       "source_location": "L19"
+    },
+    {
+      "id": "src_lib_types_identitypolicy",
+      "label": "IdentityPolicy",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "IdentityPolicy"
+      },
+      "norm_label": "identitypolicy",
+      "source_file": "src/lib/types.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "src_lib_types_personalidentitystate",
+      "label": "PersonalIdentityState",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "PersonalIdentityState"
+      },
+      "norm_label": "personalidentitystate",
+      "source_file": "src/lib/types.ts",
+      "source_location": "L17"
     },
     {
       "id": "scripts_rolling_deploy_rollingdeployment",
@@ -99,6 +115,22 @@
       "norm_label": "rollingtests",
       "source_file": "tests/test_rolling_deploy.py",
       "source_location": "L15"
+    },
+    {
+      "id": "src_lib_contractorregistration_registrationrow",
+      "label": "RegistrationRow",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "integrations.ts",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "RegistrationRow"
+      },
+      "norm_label": "registrationrow",
+      "source_file": "src/lib/contractorRegistration.ts",
+      "source_location": "L69"
     },
     {
       "id": "src_lib_integrations_integrationrow",
@@ -179,6 +211,22 @@
       "norm_label": "configresponse",
       "source_file": "src/components/integration-settings.tsx",
       "source_location": "L11"
+    },
+    {
+      "id": "src_components_notification_panel_notification",
+      "label": "Notification",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "Notification"
+      },
+      "norm_label": "notification",
+      "source_file": "src/components/notification-panel.tsx",
+      "source_location": "L5"
     },
     {
       "id": "src_components_whatsapp_settings_connection",
@@ -268,7 +316,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "metadata": {
         "type_path": "Person"
@@ -284,7 +332,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "metadata": {
         "type_path": "Team"
@@ -299,7 +347,7 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 44,
+      "community": 45,
       "community_name": "ContractorPublicRegistration.tsx",
       "file_type": "code",
       "metadata": {
@@ -315,7 +363,7 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 44,
+      "community": 45,
       "community_name": "ContractorPublicRegistration.tsx",
       "file_type": "code",
       "metadata": {
@@ -324,54 +372,6 @@
       "norm_label": "registrationview",
       "source_file": "src/components/ContractorPublicRegistration.tsx",
       "source_location": "L10"
-    },
-    {
-      "id": "src_components_contractorregistrations_registration",
-      "label": "Registration",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "Registration"
-      },
-      "norm_label": "registration",
-      "source_file": "src/components/ContractorRegistrations.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_lib_contractorregistration_contractorregistrationdata_ede750635f93",
-      "label": "ContractorRegistrationData",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "ContractorRegistrationData"
-      },
-      "norm_label": "contractorregistrationdata",
-      "source_file": "src/lib/contractorRegistration.ts",
-      "source_location": "L62"
-    },
-    {
-      "id": "src_lib_contractorroles_contractorrole",
-      "label": "ContractorRole",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "ContractorRole"
-      },
-      "norm_label": "contractorrole",
-      "source_file": "src/lib/contractorRoles.ts",
-      "source_location": "L6"
     },
     {
       "id": "src_lib_companies_company",
@@ -406,6 +406,22 @@
       "source_location": "L38"
     },
     {
+      "id": "src_lib_contractorroles_contractorrole",
+      "label": "ContractorRole",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "ContractorRole"
+      },
+      "norm_label": "contractorrole",
+      "source_file": "src/lib/contractorRoles.ts",
+      "source_location": "L6"
+    },
+    {
       "id": "src_lib_contractors_contractordetails_50ca9f7a1d3e",
       "label": "ContractorDetails",
       "_callable": true,
@@ -436,6 +452,38 @@
       "norm_label": "maskkind",
       "source_file": "src/lib/input-masks.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_components_contractorregistrations_registration",
+      "label": "Registration",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 46,
+      "community_name": "ContractorRegistrations.tsx",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "Registration"
+      },
+      "norm_label": "registration",
+      "source_file": "src/components/ContractorRegistrations.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_lib_contractorregistration_contractorregistrationdata_ede750635f93",
+      "label": "ContractorRegistrationData",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 46,
+      "community_name": "ContractorRegistrations.tsx",
+      "file_type": "code",
+      "metadata": {
+        "type_path": "ContractorRegistrationData"
+      },
+      "norm_label": "contractorregistrationdata",
+      "source_file": "src/lib/contractorRegistration.ts",
+      "source_location": "L62"
     },
     {
       "id": "tests_test_production_data_maintenancetests",
@@ -469,22 +517,6 @@
       "norm_label": "history",
       "source_file": "src/components/document-history.tsx",
       "source_location": "L6"
-    },
-    {
-      "id": "src_components_notification_panel_notification",
-      "label": "Notification",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "workspace.tsx",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "Notification"
-      },
-      "norm_label": "notification",
-      "source_file": "src/components/notification-panel.tsx",
-      "source_location": "L5"
     },
     {
       "id": "src_components_registration_panel_registrationtab",
@@ -551,8 +583,8 @@
       "source_location": "L43"
     },
     {
-      "id": "src_lib_types_identitypolicy",
-      "label": "IdentityPolicy",
+      "id": "src_lib_types_person",
+      "label": "Person",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
@@ -560,27 +592,11 @@
       "community_name": "workspace.tsx",
       "file_type": "code",
       "metadata": {
-        "type_path": "IdentityPolicy"
+        "type_path": "Person"
       },
-      "norm_label": "identitypolicy",
+      "norm_label": "person",
       "source_file": "src/lib/types.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "src_lib_types_personalidentitystate",
-      "label": "PersonalIdentityState",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "workspace.tsx",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "PersonalIdentityState"
-      },
-      "norm_label": "personalidentitystate",
-      "source_file": "src/lib/types.ts",
-      "source_location": "L17"
+      "source_location": "L26"
     },
     {
       "id": "src_lib_types_unit",
@@ -741,22 +757,6 @@
       "norm_label": "assignment",
       "source_file": "src/components/approver-settings.tsx",
       "source_location": "L9"
-    },
-    {
-      "id": "src_lib_types_person",
-      "label": "Person",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "Popup",
-      "file_type": "code",
-      "metadata": {
-        "type_path": "Person"
-      },
-      "norm_label": "person",
-      "source_file": "src/lib/types.ts",
-      "source_location": "L26"
     },
     {
       "id": "src_lib_auth_user",
@@ -1379,6 +1379,18 @@
       "source_location": "L41"
     },
     {
+      "id": "src_lib_approval_security_cpfdigest",
+      "label": "cpfDigest()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "cpfdigest()",
+      "source_file": "src/lib/approval-security.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "src_lib_approval_security_identitysnapshot",
       "label": "identitySnapshot()",
       "_callable": true,
@@ -1389,6 +1401,41 @@
       "norm_label": "identitysnapshot()",
       "source_file": "src/lib/approval-security.ts",
       "source_location": "L26"
+    },
+    {
+      "id": "src_lib_approval_security_recordidentity",
+      "label": "recordIdentity()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "metadata": {
+        "unresolved_calls": [
+          {
+            "callee": "query",
+            "receiver_type": "PoolClient",
+            "lang": "typescript",
+            "line": "L193",
+            "file": "src/lib/approval-security.ts"
+          }
+        ]
+      },
+      "norm_label": "recordidentity()",
+      "source_file": "src/lib/approval-security.ts",
+      "source_location": "L179"
+    },
+    {
+      "id": "src_lib_approval_security_validcpf",
+      "label": "validCpf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "validcpf()",
+      "source_file": "src/lib/approval-security.ts",
+      "source_location": "L16"
     },
     {
       "id": "src_lib_apr_responsibles_aprresponsibles",
@@ -1802,6 +1849,18 @@
       "source_location": "L3"
     },
     {
+      "id": "src_lib_integrations_encryptsecret",
+      "label": "encryptSecret()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "encryptsecret()",
+      "source_file": "src/lib/integrations.ts",
+      "source_location": "L15"
+    },
+    {
       "id": "src_lib_integrations_publicintegration",
       "label": "publicIntegration()",
       "_callable": true,
@@ -1847,6 +1906,29 @@
       "norm_label": "invitationlink()",
       "source_file": "src/lib/invitations.ts",
       "source_location": "L102"
+    },
+    {
+      "id": "src_lib_personcpf_savepersoncpf",
+      "label": "savePersonCpf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "metadata": {
+        "unresolved_calls": [
+          {
+            "callee": "query",
+            "receiver_type": "PoolClient",
+            "lang": "typescript",
+            "line": "L20",
+            "file": "src/lib/personCpf.ts"
+          }
+        ]
+      },
+      "norm_label": "savepersoncpf()",
+      "source_file": "src/lib/personCpf.ts",
+      "source_location": "L6"
     },
     {
       "id": "src_lib_remove_apr_removeapr",
@@ -1954,6 +2036,30 @@
       "norm_label": "newtotpsecret()",
       "source_file": "src/lib/totp.ts",
       "source_location": "L3"
+    },
+    {
+      "id": "src_lib_totp_totp",
+      "label": "totp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "totp()",
+      "source_file": "src/lib/totp.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_lib_totp_totpstep",
+      "label": "totpStep()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "totpstep()",
+      "source_file": "src/lib/totp.ts",
+      "source_location": "L24"
     },
     {
       "id": "scripts_deploy_vps_choose",
@@ -2805,6 +2911,30 @@
       "source_location": "L15"
     },
     {
+      "id": "src_app_definir_senha_page_page",
+      "label": "Page()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "page()",
+      "source_file": "src/app/definir-senha/page.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_components_define_password_definepassword",
+      "label": "DefinePassword()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "definepassword()",
+      "source_file": "src/components/define-password.tsx",
+      "source_location": "L6"
+    },
+    {
       "id": "src_components_identityuploadsettings_identityuploadsettings",
       "label": "IdentityUploadSettings()",
       "_callable": true,
@@ -2863,6 +2993,18 @@
       "norm_label": "signaturesettings()",
       "source_file": "src/components/integration-settings.tsx",
       "source_location": "L132"
+    },
+    {
+      "id": "src_components_notification_panel_notificationpanel",
+      "label": "NotificationPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "notificationpanel()",
+      "source_file": "src/components/notification-panel.tsx",
+      "source_location": "L26"
     },
     {
       "id": "src_components_password_input_passwordinput",
@@ -2961,28 +3103,16 @@
       "source_location": "L54"
     },
     {
-      "id": "src_components_workspace_workspace_logout",
-      "label": "logout()",
+      "id": "src_components_workspace_login",
+      "label": "Login()",
       "_callable": true,
       "_origin": "ast",
       "community": 24,
       "community_name": "api",
       "file_type": "code",
-      "norm_label": "logout()",
+      "norm_label": "login()",
       "source_file": "src/components/workspace.tsx",
-      "source_location": "L256"
-    },
-    {
-      "id": "src_components_workspace_workspace_workflow",
-      "label": "workflow()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 24,
-      "community_name": "api",
-      "file_type": "code",
-      "norm_label": "workflow()",
-      "source_file": "src/components/workspace.tsx",
-      "source_location": "L239"
+      "source_location": "L923"
     },
     {
       "id": "src_lib_api_response_readapijson",
@@ -3019,42 +3149,6 @@
       "norm_label": "datetime()",
       "source_file": "src/components/audit-panel.tsx",
       "source_location": "L57"
-    },
-    {
-      "id": "src_lib_contractorroles_iscontractormanager",
-      "label": "isContractorManager()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "permissions.ts",
-      "file_type": "code",
-      "norm_label": "iscontractormanager()",
-      "source_file": "src/lib/contractorRoles.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_lib_permissions_allowedmenus",
-      "label": "allowedMenus()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "permissions.ts",
-      "file_type": "code",
-      "norm_label": "allowedmenus()",
-      "source_file": "src/lib/permissions.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "src_lib_permissions_canviewaudit",
-      "label": "canViewAudit()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "permissions.ts",
-      "file_type": "code",
-      "norm_label": "canviewaudit()",
-      "source_file": "src/lib/permissions.ts",
-      "source_location": "L19"
     },
     {
       "id": "src_index_dosomestuff",
@@ -3114,7 +3208,7 @@
       "file_type": "code",
       "norm_label": ".test_backup_failure_restarts_old_container_without_new_browser()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L122"
+      "source_location": "L125"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_different_database_configuration_aborts_before_stopping",
@@ -3126,7 +3220,7 @@
       "file_type": "code",
       "norm_label": ".test_different_database_configuration_aborts_before_stopping()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L107"
+      "source_location": "L110"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_different_volumes_abort_before_stopping",
@@ -3138,7 +3232,7 @@
       "file_type": "code",
       "norm_label": ".test_different_volumes_abort_before_stopping()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L104"
+      "source_location": "L107"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_extra_compose_file_is_not_silently_ignored",
@@ -3150,7 +3244,7 @@
       "file_type": "code",
       "norm_label": ".test_extra_compose_file_is_not_silently_ignored()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L116"
+      "source_location": "L119"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_health_failure_never_starts_old_browser_on_new_profile",
@@ -3162,7 +3256,7 @@
       "file_type": "code",
       "norm_label": ".test_health_failure_never_starts_old_browser_on_new_profile()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L128"
+      "source_location": "L131"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_migration_failure_requires_backup_restore_before_downgrade",
@@ -3174,7 +3268,7 @@
       "file_type": "code",
       "norm_label": ".test_migration_failure_requires_backup_restore_before_downgrade()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L125"
+      "source_location": "L128"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_relative_paths_and_whitespace_are_normalized",
@@ -3186,7 +3280,7 @@
       "file_type": "code",
       "norm_label": ".test_relative_paths_and_whitespace_are_normalized()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L113"
+      "source_location": "L116"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_service_alias_is_detected_from_container_labels",
@@ -3198,7 +3292,7 @@
       "file_type": "code",
       "norm_label": ".test_service_alias_is_detected_from_container_labels()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L110"
+      "source_location": "L113"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_service_must_still_target_the_openwa_container",
@@ -3210,7 +3304,7 @@
       "file_type": "code",
       "norm_label": ".test_service_must_still_target_the_openwa_container()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L119"
+      "source_location": "L122"
     },
     {
       "id": "tests_test_upgrade_openwa_openwaupgradetests_test_upgrade_preserves_config_volumes_and_backs_up_before_migration",
@@ -3222,19 +3316,7 @@
       "file_type": "code",
       "norm_label": ".test_upgrade_preserves_config_volumes_and_backs_up_before_migration()",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L101"
-    },
-    {
-      "id": "src_app_cadastro_contratada_page_page",
-      "label": "Page()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "page()",
-      "source_file": "src/app/cadastro-contratada/page.tsx",
-      "source_location": "L7"
+      "source_location": "L104"
     },
     {
       "id": "src_components_contractor_team_contractorteam",
@@ -3242,7 +3324,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "norm_label": "contractorteam()",
       "source_file": "src/components/contractor-team.tsx",
@@ -3254,7 +3336,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "metadata": {
         "unresolved_calls": [
@@ -3272,52 +3354,40 @@
       "source_location": "L29"
     },
     {
-      "id": "src_components_contractorpublicregistration_contractorpublicregistration",
-      "label": "ContractorPublicRegistration()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "contractorpublicregistration()",
-      "source_file": "src/components/ContractorPublicRegistration.tsx",
-      "source_location": "L33"
-    },
-    {
-      "id": "src_components_contractorpublicregistration_registrationrequest",
-      "label": "registrationRequest()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "registrationrequest()",
-      "source_file": "src/components/ContractorPublicRegistration.tsx",
-      "source_location": "L21"
-    },
-    {
       "id": "src_components_personaldocuments_personaldocuments",
       "label": "PersonalDocuments()",
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "norm_label": "personaldocuments()",
       "source_file": "src/components/PersonalDocuments.tsx",
       "source_location": "L15"
     },
     {
-      "id": "src_components_admin_panel_adminpanel",
-      "label": "AdminPanel()",
+      "id": "src_app_cadastro_contratada_page_page",
+      "label": "Page()",
       "_callable": true,
       "_origin": "ast",
       "community": 45,
       "community_name": "ContractorPublicRegistration.tsx",
       "file_type": "code",
-      "norm_label": "adminpanel()",
-      "source_file": "src/components/admin-panel.tsx",
-      "source_location": "L14"
+      "norm_label": "page()",
+      "source_file": "src/app/cadastro-contratada/page.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_components_company_editor_companyeditor",
+      "label": "CompanyEditor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "norm_label": "companyeditor()",
+      "source_file": "src/components/company-editor.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_components_company_fields_companyfields",
@@ -3330,6 +3400,18 @@
       "norm_label": "companyfields()",
       "source_file": "src/components/company-fields.tsx",
       "source_location": "L5"
+    },
+    {
+      "id": "src_components_contractor_editor_contractoreditor",
+      "label": "ContractorEditor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "norm_label": "contractoreditor()",
+      "source_file": "src/components/contractor-editor.tsx",
+      "source_location": "L9"
     },
     {
       "id": "src_components_contractor_fields_contractorfields",
@@ -3354,6 +3436,30 @@
       "norm_label": "find()",
       "source_file": "src/components/contractor-fields.tsx",
       "source_location": "L37"
+    },
+    {
+      "id": "src_components_contractorpublicregistration_contractorpublicregistration",
+      "label": "ContractorPublicRegistration()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "norm_label": "contractorpublicregistration()",
+      "source_file": "src/components/ContractorPublicRegistration.tsx",
+      "source_location": "L33"
+    },
+    {
+      "id": "src_components_contractorpublicregistration_registrationrequest",
+      "label": "registrationRequest()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "norm_label": "registrationrequest()",
+      "source_file": "src/components/ContractorPublicRegistration.tsx",
+      "source_location": "L21"
     },
     {
       "id": "src_components_masked_input_maskedinput",
@@ -3390,42 +3496,6 @@
       "norm_label": "unmask()",
       "source_file": "src/lib/input-masks.ts",
       "source_location": "L2"
-    },
-    {
-      "id": "src_app_definir_senha_page_page",
-      "label": "Page()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "define-password.tsx",
-      "file_type": "code",
-      "norm_label": "page()",
-      "source_file": "src/app/definir-senha/page.tsx",
-      "source_location": "L7"
-    },
-    {
-      "id": "src_components_define_password_definepassword",
-      "label": "DefinePassword()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "define-password.tsx",
-      "file_type": "code",
-      "norm_label": "definepassword()",
-      "source_file": "src/components/define-password.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_components_workspace_login",
-      "label": "Login()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "define-password.tsx",
-      "file_type": "code",
-      "norm_label": "login()",
-      "source_file": "src/components/workspace.tsx",
-      "source_location": "L923"
     },
     {
       "id": "tests_test_production_data_maintenancetests_scenario",
@@ -3584,30 +3654,6 @@
       "source_location": "L7"
     },
     {
-      "id": "src_components_document_history_documenthistory",
-      "label": "DocumentHistory()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "workspace.tsx",
-      "file_type": "code",
-      "norm_label": "documenthistory()",
-      "source_file": "src/components/document-history.tsx",
-      "source_location": "L28"
-    },
-    {
-      "id": "src_components_notification_panel_notificationpanel",
-      "label": "NotificationPanel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "workspace.tsx",
-      "file_type": "code",
-      "norm_label": "notificationpanel()",
-      "source_file": "src/components/notification-panel.tsx",
-      "source_location": "L26"
-    },
-    {
       "id": "src_components_reassign_approval_reassignapproval",
       "label": "ReassignApproval()",
       "_callable": true,
@@ -3618,6 +3664,18 @@
       "norm_label": "reassignapproval()",
       "source_file": "src/components/reassign-approval.tsx",
       "source_location": "L5"
+    },
+    {
+      "id": "src_components_remove_apr_removeapr",
+      "label": "RemoveApr()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 49,
+      "community_name": "workspace.tsx",
+      "file_type": "code",
+      "norm_label": "removeapr()",
+      "source_file": "src/components/remove-apr.tsx",
+      "source_location": "L7"
     },
     {
       "id": "src_components_workspace_documenttable",
@@ -3656,6 +3714,18 @@
       "source_location": "L69"
     },
     {
+      "id": "src_components_workspace_workspace_logout",
+      "label": "logout()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 49,
+      "community_name": "workspace.tsx",
+      "file_type": "code",
+      "norm_label": "logout()",
+      "source_file": "src/components/workspace.tsx",
+      "source_location": "L256"
+    },
+    {
       "id": "src_components_workspace_workspace_save",
       "label": "save()",
       "_callable": true,
@@ -3666,6 +3736,18 @@
       "norm_label": "save()",
       "source_file": "src/components/workspace.tsx",
       "source_location": "L204"
+    },
+    {
+      "id": "src_components_workspace_workspace_workflow",
+      "label": "workflow()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 49,
+      "community_name": "workspace.tsx",
+      "file_type": "code",
+      "norm_label": "workflow()",
+      "source_file": "src/components/workspace.tsx",
+      "source_location": "L239"
     },
     {
       "id": "src_lib_types_asinput",
@@ -3737,6 +3819,18 @@
       "norm_label": "documenteditor()",
       "source_file": "src/components/document-editor.tsx",
       "source_location": "L33"
+    },
+    {
+      "id": "src_components_document_history_documenthistory",
+      "label": "DocumentHistory()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "documenthistory()",
+      "source_file": "src/components/document-history.tsx",
+      "source_location": "L28"
     },
     {
       "id": "src_components_pt_lifecycle_controls_ptlifecyclecontrols",
@@ -4014,6 +4108,18 @@
       "source_location": "L3"
     },
     {
+      "id": "src_components_admin_panel_adminpanel",
+      "label": "AdminPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "adminpanel()",
+      "source_file": "src/components/admin-panel.tsx",
+      "source_location": "L14"
+    },
+    {
       "id": "src_components_approver_settings_approversettings",
       "label": "ApproverSettings()",
       "_callable": true,
@@ -4024,30 +4130,6 @@
       "norm_label": "approversettings()",
       "source_file": "src/components/approver-settings.tsx",
       "source_location": "L10"
-    },
-    {
-      "id": "src_components_company_editor_companyeditor",
-      "label": "CompanyEditor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "Popup",
-      "file_type": "code",
-      "norm_label": "companyeditor()",
-      "source_file": "src/components/company-editor.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_components_contractor_editor_contractoreditor",
-      "label": "ContractorEditor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "Popup",
-      "file_type": "code",
-      "norm_label": "contractoreditor()",
-      "source_file": "src/components/contractor-editor.tsx",
-      "source_location": "L9"
     },
     {
       "id": "src_components_contractorregistrations_contractorregistrations",
@@ -4122,16 +4204,40 @@
       "source_location": "L47"
     },
     {
-      "id": "src_components_remove_apr_removeapr",
-      "label": "RemoveApr()",
+      "id": "src_lib_contractorroles_iscontractormanager",
+      "label": "isContractorManager()",
       "_callable": true,
       "_origin": "ast",
       "community": 52,
       "community_name": "Popup",
       "file_type": "code",
-      "norm_label": "removeapr()",
-      "source_file": "src/components/remove-apr.tsx",
-      "source_location": "L7"
+      "norm_label": "iscontractormanager()",
+      "source_file": "src/lib/contractorRoles.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_lib_permissions_allowedmenus",
+      "label": "allowedMenus()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "allowedmenus()",
+      "source_file": "src/lib/permissions.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "src_lib_permissions_canviewaudit",
+      "label": "canViewAudit()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "canviewaudit()",
+      "source_file": "src/lib/permissions.ts",
+      "source_location": "L19"
     },
     {
       "id": "src_lib_permissions_companymanager",
@@ -4299,53 +4405,6 @@
       "source_location": "L2"
     },
     {
-      "id": "src_lib_approval_security_cpfdigest",
-      "label": "cpfDigest()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "cpfdigest()",
-      "source_file": "src/lib/approval-security.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_lib_approval_security_recordidentity",
-      "label": "recordIdentity()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "metadata": {
-        "unresolved_calls": [
-          {
-            "callee": "query",
-            "receiver_type": "PoolClient",
-            "lang": "typescript",
-            "line": "L193",
-            "file": "src/lib/approval-security.ts"
-          }
-        ]
-      },
-      "norm_label": "recordidentity()",
-      "source_file": "src/lib/approval-security.ts",
-      "source_location": "L179"
-    },
-    {
-      "id": "src_lib_approval_security_validcpf",
-      "label": "validCpf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "validcpf()",
-      "source_file": "src/lib/approval-security.ts",
-      "source_location": "L16"
-    },
-    {
       "id": "src_lib_approvers_eligibleapprover",
       "label": "eligibleApprover()",
       "_callable": true,
@@ -4507,18 +4566,6 @@
       "source_location": "L8"
     },
     {
-      "id": "src_lib_integrations_encryptsecret",
-      "label": "encryptSecret()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "encryptsecret()",
-      "source_file": "src/lib/integrations.ts",
-      "source_location": "L15"
-    },
-    {
       "id": "src_lib_invitations_createinvitation",
       "label": "createInvitation()",
       "_callable": true,
@@ -4577,29 +4624,6 @@
       "source_location": "L57"
     },
     {
-      "id": "src_lib_personcpf_savepersoncpf",
-      "label": "savePersonCpf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "metadata": {
-        "unresolved_calls": [
-          {
-            "callee": "query",
-            "receiver_type": "PoolClient",
-            "lang": "typescript",
-            "line": "L20",
-            "file": "src/lib/personCpf.ts"
-          }
-        ]
-      },
-      "norm_label": "savepersoncpf()",
-      "source_file": "src/lib/personCpf.ts",
-      "source_location": "L6"
-    },
-    {
       "id": "src_lib_security_hashpassword",
       "label": "hashPassword()",
       "_callable": true,
@@ -4610,30 +4634,6 @@
       "norm_label": "hashpassword()",
       "source_file": "src/lib/security.ts",
       "source_location": "L3"
-    },
-    {
-      "id": "src_lib_totp_totp",
-      "label": "totp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "totp()",
-      "source_file": "src/lib/totp.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_lib_totp_totpstep",
-      "label": "totpStep()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "totpstep()",
-      "source_file": "src/lib/totp.ts",
-      "source_location": "L24"
     },
     {
       "id": "src_lib_unit_limit_assertunitcapacity",
@@ -4693,28 +4693,6 @@
       "norm_label": "query()",
       "source_file": "tests/companies.test.ts",
       "source_location": "L58"
-    },
-    {
-      "id": "next_config",
-      "label": "next.config.ts",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "HttpError",
-      "file_type": "code",
-      "norm_label": "next.config.ts",
-      "source_file": "next.config.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "next_config_config",
-      "label": "config",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "HttpError",
-      "file_type": "code",
-      "norm_label": "config",
-      "source_file": "next.config.ts",
-      "source_location": "L2"
     },
     {
       "id": "src_app_api_address_route",
@@ -5102,6 +5080,28 @@
       "source_location": "L1"
     },
     {
+      "id": "src_lib_approval_security",
+      "label": "approval-security.ts",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "approval-security.ts",
+      "source_file": "src/lib/approval-security.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_apr_responsibles",
+      "label": "apr-responsibles.ts",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "apr-responsibles.ts",
+      "source_file": "src/lib/apr-responsibles.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_auth",
       "label": "auth.ts",
       "_origin": "ast",
@@ -5256,6 +5256,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_lib_personcpf",
+      "label": "personCpf.ts",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "personcpf.ts",
+      "source_file": "src/lib/personCpf.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_remove_apr",
       "label": "remove-apr.ts",
       "_origin": "ast",
@@ -5289,6 +5300,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_lib_totp",
+      "label": "totp.ts",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "HttpError",
+      "file_type": "code",
+      "norm_label": "totp.ts",
+      "source_file": "src/lib/totp.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_validation_uuid",
       "label": "uuid",
       "_origin": "ast",
@@ -5300,26 +5322,15 @@
       "source_location": "L3"
     },
     {
-      "id": "tests_address_test",
-      "label": "address.test.ts",
+      "id": "tests_approval_security_test",
+      "label": "approval-security.test.ts",
       "_origin": "ast",
       "community": 0,
       "community_name": "HttpError",
       "file_type": "code",
-      "norm_label": "address.test.ts",
-      "source_file": "tests/address.test.ts",
+      "norm_label": "approval-security.test.ts",
+      "source_file": "tests/approval-security.test.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "ref_next",
-      "label": "next",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "HttpError",
-      "file_type": "concept",
-      "norm_label": "next",
-      "source_file": "package.json",
-      "source_location": "L25"
     },
     {
       "id": "ref_zod",
@@ -5342,19 +5353,7 @@
       "node_kind": "heading",
       "norm_label": "god nodes (most connected - your core abstractions)",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L65"
-    },
-    {
-      "id": "planning_graphs_graph_report_surprising_connections_you_probably_didn_t_know_these",
-      "label": "Surprising Connections (you probably didn't know these)",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "HttpError",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "surprising connections (you probably didn't know these)",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L77"
+      "source_location": "L64"
     },
     {
       "id": "scripts_deploy_vps",
@@ -5443,6 +5442,126 @@
       "norm_label": "test_upgrade_openwa.py",
       "source_file": "tests/test_upgrade_openwa.py",
       "source_location": "L1"
+    },
+    {
+      "id": "planning_graphs_graph_report",
+      "label": "GRAPH_REPORT.md",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "graph_report.md",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "planning_graphs_graph_report_community_hubs_navigation",
+      "label": "Community Hubs (Navigation)",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "community hubs (navigation)",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L18"
+    },
+    {
+      "id": "planning_graphs_graph_report_corpus_check",
+      "label": "Corpus Check",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "corpus check",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "planning_graphs_graph_report_graph_freshness",
+      "label": "Graph Freshness",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "graph freshness",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "planning_graphs_graph_report_graph_report_nexus_ptw_2026_11_24",
+      "label": "Graph Report - Nexus PTW  (2026-11-24)",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "graph report - nexus ptw  (2026-11-24)",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "planning_graphs_graph_report_import_cycles",
+      "label": "Import Cycles",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "import cycles",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L88"
+    },
+    {
+      "id": "planning_graphs_graph_report_knowledge_gaps",
+      "label": "Knowledge Gaps",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "knowledge gaps",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L252"
+    },
+    {
+      "id": "planning_graphs_graph_report_suggested_questions",
+      "label": "Suggested Questions",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "suggested questions",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L255"
+    },
+    {
+      "id": "planning_graphs_graph_report_summary",
+      "label": "Summary",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "summary",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L8"
+    },
+    {
+      "id": "planning_graphs_graph_report_surprising_connections_you_probably_didn_t_know_these",
+      "label": "Surprising Connections (you probably didn't know these)",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "deploy_vps.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "surprising connections (you probably didn't know these)",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L76"
     },
     {
       "id": "scripts_deploy_vps_rationale_1",
@@ -6052,17 +6171,6 @@
       "source_location": "L24"
     },
     {
-      "id": "package_dependencies_next",
-      "label": "next@16.4.6",
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "next@16.4.6",
-      "source_file": "package.json",
-      "source_location": "L25"
-    },
-    {
       "id": "package_dependencies_pg",
       "label": "pg@^8.16.3",
       "_origin": "ast",
@@ -6404,6 +6512,39 @@
       "source_location": "L7"
     },
     {
+      "id": "next_config",
+      "label": "next.config.ts",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "next",
+      "file_type": "code",
+      "norm_label": "next.config.ts",
+      "source_file": "next.config.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "next_config_config",
+      "label": "config",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "next",
+      "file_type": "code",
+      "norm_label": "config",
+      "source_file": "next.config.ts",
+      "source_location": "L2"
+    },
+    {
+      "id": "package_dependencies_next",
+      "label": "next@16.4.6",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "next",
+      "file_type": "code",
+      "norm_label": "next@16.4.6",
+      "source_file": "package.json",
+      "source_location": "L25"
+    },
+    {
       "id": "src_app_layout",
       "label": "layout.tsx",
       "_origin": "ast",
@@ -6446,6 +6587,17 @@
       "norm_label": "appupdatenotice.tsx",
       "source_file": "src/components/AppUpdateNotice.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "ref_next",
+      "label": "next",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "next",
+      "file_type": "concept",
+      "norm_label": "next",
+      "source_file": "package.json",
+      "source_location": "L25"
     },
     {
       "id": "deploy_compose_production_app_depends_on",
@@ -6754,6 +6906,17 @@
       "norm_label": "scripts/notifications.ts",
       "source_file": "scripts/notifications.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_api_admin_route_phone",
+      "label": "phone",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "integrations.ts",
+      "file_type": "code",
+      "norm_label": "phone",
+      "source_file": "src/app/api/admin/route.ts",
+      "source_location": "L26"
     },
     {
       "id": "src_lib_contractorregistrationdelivery",
@@ -7229,6 +7392,39 @@
       "source_location": "L71"
     },
     {
+      "id": "src_app_definir_senha_page",
+      "label": "definir-senha/page.tsx",
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "definir-senha/page.tsx",
+      "source_file": "src/app/definir-senha/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_definir_senha_page_metadata",
+      "label": "metadata",
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "metadata",
+      "source_file": "src/app/definir-senha/page.tsx",
+      "source_location": "L2"
+    },
+    {
+      "id": "src_components_define_password",
+      "label": "define-password.tsx",
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "define-password.tsx",
+      "source_file": "src/components/define-password.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_identityuploadsettings",
       "label": "IdentityUploadSettings.tsx",
       "_origin": "ast",
@@ -7249,6 +7445,28 @@
       "norm_label": "integration-settings.tsx",
       "source_file": "src/components/integration-settings.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_components_notification_panel",
+      "label": "notification-panel.tsx",
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "notification-panel.tsx",
+      "source_file": "src/components/notification-panel.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_notification_panel_statuses",
+      "label": "statuses",
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "api",
+      "file_type": "code",
+      "norm_label": "statuses",
+      "source_file": "src/components/notification-panel.tsx",
+      "source_location": "L18"
     },
     {
       "id": "src_components_password_input",
@@ -7405,28 +7623,16 @@
       "source_location": "L69"
     },
     {
-      "id": "planning_graphs_graph_report",
-      "label": "GRAPH_REPORT.md",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "page",
-      "norm_label": "graph_report.md",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L1"
-    },
-    {
-      "id": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "label": "Communities (56 total, 19 thin omitted)",
+      "id": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
+      "label": "Communities (55 total, 20 thin omitted)",
       "_origin": "ast",
       "community": 26,
       "community_name": "Communities (43 total, 16 thin omitted)",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "communities (56 total, 19 thin omitted)",
+      "norm_label": "communities (55 total, 20 thin omitted)",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L111"
+      "source_location": "L110"
     },
     {
       "id": "planning_graphs_graph_report_community_0_httperror",
@@ -7438,7 +7644,7 @@
       "node_kind": "heading",
       "norm_label": "community 0 - \"httperror\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L113"
+      "source_location": "L112"
     },
     {
       "id": "planning_graphs_graph_report_community_10_compileroptions",
@@ -7450,7 +7656,7 @@
       "node_kind": "heading",
       "norm_label": "community 10 - \"compileroptions\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L153"
+      "source_location": "L152"
     },
     {
       "id": "planning_graphs_graph_report_community_11_scripts",
@@ -7462,7 +7668,7 @@
       "node_kind": "heading",
       "norm_label": "community 11 - \"scripts\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L157"
+      "source_location": "L156"
     },
     {
       "id": "planning_graphs_graph_report_community_12_formulário_2_pt_permissão_de_trabalho_integrada",
@@ -7474,7 +7680,7 @@
       "node_kind": "heading",
       "norm_label": "community 12 - \"formulario 2: pt (permissao de trabalho integrada)\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L161"
+      "source_location": "L160"
     },
     {
       "id": "planning_graphs_graph_report_community_13_dependencies",
@@ -7486,7 +7692,7 @@
       "node_kind": "heading",
       "norm_label": "community 13 - \"dependencies\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L165"
+      "source_location": "L164"
     },
     {
       "id": "planning_graphs_graph_report_community_14_environment",
@@ -7498,7 +7704,7 @@
       "node_kind": "heading",
       "norm_label": "community 14 - \"environment\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L169"
+      "source_location": "L168"
     },
     {
       "id": "planning_graphs_graph_report_community_15_x_runtime",
@@ -7510,7 +7716,7 @@
       "node_kind": "heading",
       "norm_label": "community 15 - \"x-runtime\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L173"
+      "source_location": "L172"
     },
     {
       "id": "planning_graphs_graph_report_community_16_next",
@@ -7522,7 +7728,7 @@
       "node_kind": "heading",
       "norm_label": "community 16 - \"next\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L177"
+      "source_location": "L176"
     },
     {
       "id": "planning_graphs_graph_report_community_17_app",
@@ -7534,7 +7740,7 @@
       "node_kind": "heading",
       "norm_label": "community 17 - \"app\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L181"
+      "source_location": "L180"
     },
     {
       "id": "planning_graphs_graph_report_community_18_bootstrap",
@@ -7546,7 +7752,7 @@
       "node_kind": "heading",
       "norm_label": "community 18 - \"bootstrap\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L185"
+      "source_location": "L184"
     },
     {
       "id": "planning_graphs_graph_report_community_19_database",
@@ -7558,7 +7764,7 @@
       "node_kind": "heading",
       "norm_label": "community 19 - \"database\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L189"
+      "source_location": "L188"
     },
     {
       "id": "planning_graphs_graph_report_community_1_deploy_vps_py",
@@ -7570,7 +7776,7 @@
       "node_kind": "heading",
       "norm_label": "community 1 - \"deploy_vps.py\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L117"
+      "source_location": "L116"
     },
     {
       "id": "planning_graphs_graph_report_community_20_labels",
@@ -7582,7 +7788,7 @@
       "node_kind": "heading",
       "norm_label": "community 20 - \"labels\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L193"
+      "source_location": "L192"
     },
     {
       "id": "planning_graphs_graph_report_community_21_healthcheck",
@@ -7594,7 +7800,7 @@
       "node_kind": "heading",
       "norm_label": "community 21 - \"healthcheck\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L197"
+      "source_location": "L196"
     },
     {
       "id": "planning_graphs_graph_report_community_22_networks",
@@ -7606,7 +7812,7 @@
       "node_kind": "heading",
       "norm_label": "community 22 - \"networks\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L201"
+      "source_location": "L200"
     },
     {
       "id": "planning_graphs_graph_report_community_23_build",
@@ -7618,7 +7824,7 @@
       "node_kind": "heading",
       "norm_label": "community 23 - \"build\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L205"
+      "source_location": "L204"
     },
     {
       "id": "planning_graphs_graph_report_community_24_api",
@@ -7630,7 +7836,7 @@
       "node_kind": "heading",
       "norm_label": "community 24 - \"api\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L209"
+      "source_location": "L208"
     },
     {
       "id": "planning_graphs_graph_report_community_25_notifications",
@@ -7642,7 +7848,7 @@
       "node_kind": "heading",
       "norm_label": "community 25 - \"notifications\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L213"
+      "source_location": "L212"
     },
     {
       "id": "planning_graphs_graph_report_community_26_communities_43_total_16_thin_omitted",
@@ -7654,7 +7860,7 @@
       "node_kind": "heading",
       "norm_label": "community 26 - \"communities (43 total, 16 thin omitted)\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L217"
+      "source_location": "L216"
     },
     {
       "id": "planning_graphs_graph_report_community_29_prettierrc_json",
@@ -7666,19 +7872,19 @@
       "node_kind": "heading",
       "norm_label": "community 29 - \".prettierrc.json\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L221"
+      "source_location": "L220"
     },
     {
-      "id": "planning_graphs_graph_report_community_2_admin_route_ts",
-      "label": "Community 2 - \"admin/route.ts\"",
+      "id": "planning_graphs_graph_report_community_2_integrations_ts",
+      "label": "Community 2 - \"integrations.ts\"",
       "_origin": "ast",
       "community": 26,
       "community_name": "Communities (43 total, 16 thin omitted)",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "community 2 - \"admin/route.ts\"",
+      "norm_label": "community 2 - \"integrations.ts\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L121"
+      "source_location": "L120"
     },
     {
       "id": "planning_graphs_graph_report_community_3_permissions_ts",
@@ -7690,31 +7896,19 @@
       "node_kind": "heading",
       "norm_label": "community 3 - \"permissions.ts\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L125"
+      "source_location": "L124"
     },
     {
-      "id": "planning_graphs_graph_report_community_43_production_data_ts",
-      "label": "Community 43 - \"production-data.ts\"",
+      "id": "planning_graphs_graph_report_community_44_contractorpublicregistration_tsx",
+      "label": "Community 44 - \"ContractorPublicRegistration.tsx\"",
       "_origin": "ast",
       "community": 26,
       "community_name": "Communities (43 total, 16 thin omitted)",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "community 43 - \"production-data.ts\"",
+      "norm_label": "community 44 - \"contractorpublicregistration.tsx\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L225"
-    },
-    {
-      "id": "planning_graphs_graph_report_community_44_contractor_team_tsx",
-      "label": "Community 44 - \"contractor-team.tsx\"",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "community 44 - \"contractor-team.tsx\"",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L229"
+      "source_location": "L224"
     },
     {
       "id": "planning_graphs_graph_report_community_45_contractorpublicregistration_tsx",
@@ -7726,19 +7920,19 @@
       "node_kind": "heading",
       "norm_label": "community 45 - \"contractorpublicregistration.tsx\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L233"
+      "source_location": "L228"
     },
     {
-      "id": "planning_graphs_graph_report_community_46_types_ts",
-      "label": "Community 46 - \"types.ts\"",
+      "id": "planning_graphs_graph_report_community_46_define_password_tsx",
+      "label": "Community 46 - \"define-password.tsx\"",
       "_origin": "ast",
       "community": 26,
       "community_name": "Communities (43 total, 16 thin omitted)",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "community 46 - \"types.ts\"",
+      "norm_label": "community 46 - \"define-password.tsx\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L237"
+      "source_location": "L232"
     },
     {
       "id": "planning_graphs_graph_report_community_47_atualização_do_openwa_0_24_0_para_0_32_0",
@@ -7750,7 +7944,7 @@
       "node_kind": "heading",
       "norm_label": "community 47 - \"atualizacao do openwa 0.24.0 para 0.32.0\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L241"
+      "source_location": "L236"
     },
     {
       "id": "planning_graphs_graph_report_community_49_workspace_tsx",
@@ -7762,7 +7956,7 @@
       "node_kind": "heading",
       "norm_label": "community 49 - \"workspace.tsx\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L245"
+      "source_location": "L240"
     },
     {
       "id": "planning_graphs_graph_report_community_4_001_initial_sql",
@@ -7774,7 +7968,7 @@
       "node_kind": "heading",
       "norm_label": "community 4 - \"001-initial.sql\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L129"
+      "source_location": "L128"
     },
     {
       "id": "planning_graphs_graph_report_community_51_totpqrcode",
@@ -7786,7 +7980,7 @@
       "node_kind": "heading",
       "norm_label": "community 51 - \"totpqrcode\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L249"
+      "source_location": "L244"
     },
     {
       "id": "planning_graphs_graph_report_community_52_popup",
@@ -7798,19 +7992,7 @@
       "node_kind": "heading",
       "norm_label": "community 52 - \"popup\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L253"
-    },
-    {
-      "id": "planning_graphs_graph_report_community_53_contractorregistrations_tsx",
-      "label": "Community 53 - \"ContractorRegistrations.tsx\"",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "community 53 - \"contractorregistrations.tsx\"",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L257"
+      "source_location": "L248"
     },
     {
       "id": "planning_graphs_graph_report_community_5_document_editor_tsx",
@@ -7822,7 +8004,7 @@
       "node_kind": "heading",
       "norm_label": "community 5 - \"document-editor.tsx\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L133"
+      "source_location": "L132"
     },
     {
       "id": "planning_graphs_graph_report_community_6_environment",
@@ -7834,19 +8016,19 @@
       "node_kind": "heading",
       "norm_label": "community 6 - \"environment\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L137"
+      "source_location": "L136"
     },
     {
-      "id": "planning_graphs_graph_report_community_7_contractorregistration_ts",
-      "label": "Community 7 - \"contractorRegistration.ts\"",
+      "id": "planning_graphs_graph_report_community_7_admin_route_ts",
+      "label": "Community 7 - \"admin/route.ts\"",
       "_origin": "ast",
       "community": 26,
       "community_name": "Communities (43 total, 16 thin omitted)",
       "file_type": "document",
       "node_kind": "heading",
-      "norm_label": "community 7 - \"contractorregistration.ts\"",
+      "norm_label": "community 7 - \"admin/route.ts\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L141"
+      "source_location": "L140"
     },
     {
       "id": "planning_graphs_graph_report_community_8_nexus_ptw_ai",
@@ -7858,7 +8040,7 @@
       "node_kind": "heading",
       "norm_label": "community 8 - \"nexus ptw ai\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L145"
+      "source_location": "L144"
     },
     {
       "id": "planning_graphs_graph_report_community_9_package_json",
@@ -7870,103 +8052,7 @@
       "node_kind": "heading",
       "norm_label": "community 9 - \"package.json\"",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L149"
-    },
-    {
-      "id": "planning_graphs_graph_report_community_hubs_navigation",
-      "label": "Community Hubs (Navigation)",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "community hubs (navigation)",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L18"
-    },
-    {
-      "id": "planning_graphs_graph_report_corpus_check",
-      "label": "Corpus Check",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "corpus check",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L3"
-    },
-    {
-      "id": "planning_graphs_graph_report_graph_freshness",
-      "label": "Graph Freshness",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "graph freshness",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L13"
-    },
-    {
-      "id": "planning_graphs_graph_report_graph_report_nexus_ptw_2026_11_24",
-      "label": "Graph Report - Nexus PTW  (2026-11-24)",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "graph report - nexus ptw  (2026-11-24)",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L1"
-    },
-    {
-      "id": "planning_graphs_graph_report_import_cycles",
-      "label": "Import Cycles",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "import cycles",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L89"
-    },
-    {
-      "id": "planning_graphs_graph_report_knowledge_gaps",
-      "label": "Knowledge Gaps",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "knowledge gaps",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L261"
-    },
-    {
-      "id": "planning_graphs_graph_report_suggested_questions",
-      "label": "Suggested Questions",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "suggested questions",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L264"
-    },
-    {
-      "id": "planning_graphs_graph_report_summary",
-      "label": "Summary",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "Communities (43 total, 16 thin omitted)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "summary",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L8"
+      "source_location": "L148"
     },
     {
       "id": "eslint_config",
@@ -8131,39 +8217,6 @@
       "file_type": "code",
       "norm_label": "auditactionlabels",
       "source_file": "src/lib/audit-labels.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_permissions",
-      "label": "permissions.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "permissions.ts",
-      "file_type": "code",
-      "norm_label": "permissions.ts",
-      "source_file": "src/lib/permissions.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_permissions_rolelabels",
-      "label": "roleLabels",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "permissions.ts",
-      "file_type": "code",
-      "norm_label": "rolelabels",
-      "source_file": "src/lib/permissions.ts",
-      "source_location": "L2"
-    },
-    {
-      "id": "tests_permissions_test",
-      "label": "permissions.test.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "permissions.ts",
-      "file_type": "code",
-      "norm_label": "permissions.test.ts",
-      "source_file": "tests/permissions.test.ts",
       "source_location": "L1"
     },
     {
@@ -9033,33 +9086,11 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_cadastro_contratada_page",
-      "label": "cadastro-contratada/page.tsx",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "cadastro-contratada/page.tsx",
-      "source_file": "src/app/cadastro-contratada/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_cadastro_contratada_page_metadata",
-      "label": "metadata",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "metadata",
-      "source_file": "src/app/cadastro-contratada/page.tsx",
-      "source_location": "L2"
-    },
-    {
       "id": "src_components_contractor_team",
       "label": "contractor-team.tsx",
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "norm_label": "contractor-team.tsx",
       "source_file": "src/components/contractor-team.tsx",
@@ -9070,62 +9101,18 @@
       "label": "statuses",
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "norm_label": "statuses",
       "source_file": "src/components/contractor-team.tsx",
       "source_location": "L24"
     },
     {
-      "id": "src_components_contractorpublicregistration",
-      "label": "ContractorPublicRegistration.tsx",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "contractorpublicregistration.tsx",
-      "source_file": "src/components/ContractorPublicRegistration.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_contractorregistrations",
-      "label": "ContractorRegistrations.tsx",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "contractorregistrations.tsx",
-      "source_file": "src/components/ContractorRegistrations.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_contractorregistrations_deliverystatuses",
-      "label": "deliveryStatuses",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "deliverystatuses",
-      "source_file": "src/components/ContractorRegistrations.tsx",
-      "source_location": "L27"
-    },
-    {
-      "id": "src_components_contractorregistrations_statuses",
-      "label": "statuses",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "statuses",
-      "source_file": "src/components/ContractorRegistrations.tsx",
-      "source_location": "L21"
-    },
-    {
       "id": "src_components_personaldocuments",
       "label": "PersonalDocuments.tsx",
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "norm_label": "personaldocuments.tsx",
       "source_file": "src/components/PersonalDocuments.tsx",
@@ -9136,55 +9123,33 @@
       "label": "statusLabels",
       "_origin": "ast",
       "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
+      "community_name": "contractor-team.tsx",
       "file_type": "code",
       "norm_label": "statuslabels",
       "source_file": "src/components/PersonalDocuments.tsx",
       "source_location": "L7"
     },
     {
-      "id": "src_lib_contractorregistration_contractorregistrationdata",
-      "label": "contractorRegistrationData",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "contractorregistrationdata",
-      "source_file": "src/lib/contractorRegistration.ts",
-      "source_location": "L19"
-    },
-    {
-      "id": "src_lib_contractorroles",
-      "label": "contractorRoles.ts",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "contractorroles.ts",
-      "source_file": "src/lib/contractorRoles.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_contractorroles_contractorrolelabels",
-      "label": "contractorRoleLabels",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "ContractorPublicRegistration.tsx",
-      "file_type": "code",
-      "norm_label": "contractorrolelabels",
-      "source_file": "src/lib/contractorRoles.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_admin_panel",
-      "label": "admin-panel.tsx",
+      "id": "src_app_cadastro_contratada_page",
+      "label": "cadastro-contratada/page.tsx",
       "_origin": "ast",
       "community": 45,
       "community_name": "ContractorPublicRegistration.tsx",
       "file_type": "code",
-      "norm_label": "admin-panel.tsx",
-      "source_file": "src/components/admin-panel.tsx",
+      "norm_label": "cadastro-contratada/page.tsx",
+      "source_file": "src/app/cadastro-contratada/page.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_cadastro_contratada_page_metadata",
+      "label": "metadata",
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "norm_label": "metadata",
+      "source_file": "src/app/cadastro-contratada/page.tsx",
+      "source_location": "L2"
     },
     {
       "id": "src_components_company_editor",
@@ -9228,6 +9193,17 @@
       "file_type": "code",
       "norm_label": "contractor-fields.tsx",
       "source_file": "src/components/contractor-fields.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_contractorpublicregistration",
+      "label": "ContractorPublicRegistration.tsx",
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "ContractorPublicRegistration.tsx",
+      "file_type": "code",
+      "norm_label": "contractorpublicregistration.tsx",
+      "source_file": "src/components/ContractorPublicRegistration.tsx",
       "source_location": "L1"
     },
     {
@@ -9319,37 +9295,48 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_definir_senha_page",
-      "label": "definir-senha/page.tsx",
+      "id": "src_components_contractorregistrations",
+      "label": "ContractorRegistrations.tsx",
       "_origin": "ast",
       "community": 46,
-      "community_name": "define-password.tsx",
+      "community_name": "ContractorRegistrations.tsx",
       "file_type": "code",
-      "norm_label": "definir-senha/page.tsx",
-      "source_file": "src/app/definir-senha/page.tsx",
+      "norm_label": "contractorregistrations.tsx",
+      "source_file": "src/components/ContractorRegistrations.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_app_definir_senha_page_metadata",
-      "label": "metadata",
+      "id": "src_components_contractorregistrations_deliverystatuses",
+      "label": "deliveryStatuses",
       "_origin": "ast",
       "community": 46,
-      "community_name": "define-password.tsx",
+      "community_name": "ContractorRegistrations.tsx",
       "file_type": "code",
-      "norm_label": "metadata",
-      "source_file": "src/app/definir-senha/page.tsx",
-      "source_location": "L2"
+      "norm_label": "deliverystatuses",
+      "source_file": "src/components/ContractorRegistrations.tsx",
+      "source_location": "L27"
     },
     {
-      "id": "src_components_define_password",
-      "label": "define-password.tsx",
+      "id": "src_components_contractorregistrations_statuses",
+      "label": "statuses",
       "_origin": "ast",
       "community": 46,
-      "community_name": "define-password.tsx",
+      "community_name": "ContractorRegistrations.tsx",
       "file_type": "code",
-      "norm_label": "define-password.tsx",
-      "source_file": "src/components/define-password.tsx",
-      "source_location": "L1"
+      "norm_label": "statuses",
+      "source_file": "src/components/ContractorRegistrations.tsx",
+      "source_location": "L21"
+    },
+    {
+      "id": "src_lib_contractorregistration_contractorregistrationdata",
+      "label": "contractorRegistrationData",
+      "_origin": "ast",
+      "community": 46,
+      "community_name": "ContractorRegistrations.tsx",
+      "file_type": "code",
+      "norm_label": "contractorregistrationdata",
+      "source_file": "src/lib/contractorRegistration.ts",
+      "source_location": "L19"
     },
     {
       "id": "docs_atualizacao_openwa",
@@ -9528,28 +9515,6 @@
       "source_location": "L15"
     },
     {
-      "id": "src_components_notification_panel",
-      "label": "notification-panel.tsx",
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "workspace.tsx",
-      "file_type": "code",
-      "norm_label": "notification-panel.tsx",
-      "source_file": "src/components/notification-panel.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_notification_panel_statuses",
-      "label": "statuses",
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "workspace.tsx",
-      "file_type": "code",
-      "norm_label": "statuses",
-      "source_file": "src/components/notification-panel.tsx",
-      "source_location": "L18"
-    },
-    {
       "id": "src_components_reassign_approval",
       "label": "reassign-approval.tsx",
       "_origin": "ast",
@@ -9558,6 +9523,17 @@
       "file_type": "code",
       "norm_label": "reassign-approval.tsx",
       "source_file": "src/components/reassign-approval.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_remove_apr",
+      "label": "remove-apr.tsx",
+      "_origin": "ast",
+      "community": 49,
+      "community_name": "workspace.tsx",
+      "file_type": "code",
+      "norm_label": "remove-apr.tsx",
+      "source_file": "src/components/remove-apr.tsx",
       "source_location": "L1"
     },
     {
@@ -9627,17 +9603,6 @@
       "source_location": "L9"
     },
     {
-      "id": "src_lib_apr_responsibles",
-      "label": "apr-responsibles.ts",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "document-editor.tsx",
-      "file_type": "code",
-      "norm_label": "apr-responsibles.ts",
-      "source_file": "src/lib/apr-responsibles.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_lib_forms",
       "label": "forms.ts",
       "_origin": "ast",
@@ -9680,6 +9645,17 @@
       "norm_label": "ppeoptions",
       "source_file": "src/lib/forms.ts",
       "source_location": "L33"
+    },
+    {
+      "id": "src_lib_forms_ptprofiles",
+      "label": "ptProfiles",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "ptprofiles",
+      "source_file": "src/lib/forms.ts",
+      "source_location": "L28"
     },
     {
       "id": "src_lib_forms_ptsections",
@@ -9792,6 +9768,72 @@
       "source_location": "L4"
     },
     {
+      "id": "tests_api_integration",
+      "label": "api.integration.ts",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "api.integration.ts",
+      "source_file": "tests/api.integration.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "tests_api_integration_rows_company",
+      "label": "{\n  rows: [company],\n}",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "{\n  rows: [company],\n}",
+      "source_file": "tests/api.integration.ts",
+      "source_location": "L46"
+    },
+    {
+      "id": "tests_api_integration_rows_unit",
+      "label": "{\n  rows: [unit],\n}",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "{\n  rows: [unit],\n}",
+      "source_file": "tests/api.integration.ts",
+      "source_location": "L49"
+    },
+    {
+      "id": "tests_api_integration_rows_user",
+      "label": "{\n  rows: [user],\n}",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "{\n  rows: [user],\n}",
+      "source_file": "tests/api.integration.ts",
+      "source_location": "L56"
+    },
+    {
+      "id": "tests_api_integration_server",
+      "label": "server",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "server",
+      "source_file": "tests/api.integration.ts",
+      "source_location": "L70"
+    },
+    {
+      "id": "tests_api_integration_socket",
+      "label": "socket",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "document-editor.tsx",
+      "file_type": "code",
+      "norm_label": "socket",
+      "source_file": "tests/api.integration.ts",
+      "source_location": "L66"
+    },
+    {
       "id": "tests_core_test",
       "label": "core.test.ts",
       "_origin": "ast",
@@ -9880,6 +9922,17 @@
       "source_location": "L27"
     },
     {
+      "id": "src_components_admin_panel",
+      "label": "admin-panel.tsx",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "admin-panel.tsx",
+      "source_file": "src/components/admin-panel.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_approver_settings",
       "label": "approver-settings.tsx",
       "_origin": "ast",
@@ -9957,14 +10010,58 @@
       "source_location": "L18"
     },
     {
-      "id": "src_components_remove_apr",
-      "label": "remove-apr.tsx",
+      "id": "src_lib_contractorroles",
+      "label": "contractorRoles.ts",
       "_origin": "ast",
       "community": 52,
       "community_name": "Popup",
       "file_type": "code",
-      "norm_label": "remove-apr.tsx",
-      "source_file": "src/components/remove-apr.tsx",
+      "norm_label": "contractorroles.ts",
+      "source_file": "src/lib/contractorRoles.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_contractorroles_contractorrolelabels",
+      "label": "contractorRoleLabels",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "contractorrolelabels",
+      "source_file": "src/lib/contractorRoles.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_permissions",
+      "label": "permissions.ts",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "permissions.ts",
+      "source_file": "src/lib/permissions.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_permissions_rolelabels",
+      "label": "roleLabels",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "rolelabels",
+      "source_file": "src/lib/permissions.ts",
+      "source_location": "L2"
+    },
+    {
+      "id": "tests_permissions_test",
+      "label": "permissions.test.ts",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "Popup",
+      "file_type": "code",
+      "norm_label": "permissions.test.ts",
+      "source_file": "tests/permissions.test.ts",
       "source_location": "L1"
     },
     {
@@ -9977,6 +10074,28 @@
       "norm_label": "lucide-react",
       "source_file": "package.json",
       "source_location": "L24"
+    },
+    {
+      "id": "package_overrides",
+      "label": "overrides",
+      "_origin": "ast",
+      "community": 53,
+      "community_name": "overrides",
+      "file_type": "code",
+      "norm_label": "overrides",
+      "source_file": "package.json",
+      "source_location": "L33"
+    },
+    {
+      "id": "package_overrides_tmp",
+      "label": "tmp",
+      "_origin": "ast",
+      "community": 53,
+      "community_name": "overrides",
+      "file_type": "code",
+      "norm_label": "tmp",
+      "source_file": "package.json",
+      "source_location": "L34"
     },
     {
       "id": "scripts_clean_production",
@@ -10644,17 +10763,6 @@
       "source_location": "L25"
     },
     {
-      "id": "src_app_api_admin_route_phone",
-      "label": "phone",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "phone",
-      "source_file": "src/app/api/admin/route.ts",
-      "source_location": "L26"
-    },
-    {
       "id": "src_app_api_admin_route_role",
       "label": "role",
       "_origin": "ast",
@@ -10696,17 +10804,6 @@
       "file_type": "code",
       "norm_label": "dynamic",
       "source_file": "src/app/api/version/route.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_approval_security",
-      "label": "approval-security.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "approval-security.ts",
-      "source_file": "src/lib/approval-security.ts",
       "source_location": "L1"
     },
     {
@@ -10798,17 +10895,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_lib_forms_ptprofiles",
-      "label": "ptProfiles",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "ptprofiles",
-      "source_file": "src/lib/forms.ts",
-      "source_location": "L28"
-    },
-    {
       "id": "src_lib_invitations",
       "label": "invitations.ts",
       "_origin": "ast",
@@ -10875,28 +10961,6 @@
       "source_location": "L5"
     },
     {
-      "id": "src_lib_personcpf",
-      "label": "personCpf.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "personcpf.ts",
-      "source_file": "src/lib/personCpf.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_totp",
-      "label": "totp.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "totp.ts",
-      "source_file": "src/lib/totp.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_lib_unit_limit",
       "label": "unit-limit.ts",
       "_origin": "ast",
@@ -10908,70 +10972,15 @@
       "source_location": "L1"
     },
     {
-      "id": "tests_api_integration",
-      "label": "api.integration.ts",
+      "id": "tests_address_test",
+      "label": "address.test.ts",
       "_origin": "ast",
       "community": 7,
       "community_name": "admin/route.ts",
       "file_type": "code",
-      "norm_label": "api.integration.ts",
-      "source_file": "tests/api.integration.ts",
+      "norm_label": "address.test.ts",
+      "source_file": "tests/address.test.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "tests_api_integration_rows_company",
-      "label": "{\n  rows: [company],\n}",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "{\n  rows: [company],\n}",
-      "source_file": "tests/api.integration.ts",
-      "source_location": "L46"
-    },
-    {
-      "id": "tests_api_integration_rows_unit",
-      "label": "{\n  rows: [unit],\n}",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "{\n  rows: [unit],\n}",
-      "source_file": "tests/api.integration.ts",
-      "source_location": "L49"
-    },
-    {
-      "id": "tests_api_integration_rows_user",
-      "label": "{\n  rows: [user],\n}",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "{\n  rows: [user],\n}",
-      "source_file": "tests/api.integration.ts",
-      "source_location": "L56"
-    },
-    {
-      "id": "tests_api_integration_server",
-      "label": "server",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "server",
-      "source_file": "tests/api.integration.ts",
-      "source_location": "L70"
-    },
-    {
-      "id": "tests_api_integration_socket",
-      "label": "socket",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "socket",
-      "source_file": "tests/api.integration.ts",
-      "source_location": "L66"
     },
     {
       "id": "tests_api_response_test",
@@ -10993,17 +11002,6 @@
       "file_type": "code",
       "norm_label": "app-release.test.ts",
       "source_file": "tests/app-release.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "tests_approval_security_test",
-      "label": "approval-security.test.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "file_type": "code",
-      "norm_label": "approval-security.test.ts",
-      "source_file": "tests/approval-security.test.ts",
       "source_location": "L1"
     },
     {
@@ -11864,28 +11862,6 @@
       "source_location": "L2"
     },
     {
-      "id": "package_overrides",
-      "label": "overrides",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "package.json",
-      "file_type": "code",
-      "norm_label": "overrides",
-      "source_file": "package.json",
-      "source_location": "L33"
-    },
-    {
-      "id": "package_overrides_tmp",
-      "label": "tmp",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "package.json",
-      "file_type": "code",
-      "norm_label": "tmp",
-      "source_file": "package.json",
-      "source_location": "L34"
-    },
-    {
       "id": "package_private",
       "label": "private",
       "_origin": "ast",
@@ -12005,6 +11981,17 @@
       "norm_label": "typescript",
       "source_file": "package.json",
       "source_location": "L47"
+    },
+    {
+      "id": "ref_node_crypto",
+      "label": "ref_node_crypto",
+      "community": 0,
+      "community_name": "HttpError",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_crypto",
+      "source_file": "",
+      "type": "external"
     },
     {
       "id": "ref_node_util",
@@ -12337,21 +12324,10 @@
       "type": "external"
     },
     {
-      "id": "ref_node_assert",
-      "label": "ref_node_assert",
-      "community": 7,
-      "community_name": "admin/route.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_assert",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "ref_node_child_process",
       "label": "ref_node_child_process",
-      "community": 7,
-      "community_name": "admin/route.ts",
+      "community": 5,
+      "community_name": "document-editor.tsx",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_child_process",
@@ -12359,13 +12335,13 @@
       "type": "external"
     },
     {
-      "id": "ref_node_crypto",
-      "label": "ref_node_crypto",
+      "id": "ref_node_assert",
+      "label": "ref_node_assert",
       "community": 7,
       "community_name": "admin/route.ts",
       "external": true,
       "file_type": "concept",
-      "norm_label": "ref_node_crypto",
+      "norm_label": "ref_node_assert",
       "source_file": "",
       "type": "external"
     },
@@ -20663,7 +20639,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L123",
+      "source_location": "L126",
       "weight": 1
     },
     {
@@ -20675,7 +20651,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L108",
+      "source_location": "L111",
       "weight": 1
     },
     {
@@ -20687,7 +20663,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L105",
+      "source_location": "L108",
       "weight": 1
     },
     {
@@ -20699,7 +20675,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L117",
+      "source_location": "L120",
       "weight": 1
     },
     {
@@ -20711,7 +20687,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L129",
+      "source_location": "L132",
       "weight": 1
     },
     {
@@ -20723,7 +20699,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L126",
+      "source_location": "L129",
       "weight": 1
     },
     {
@@ -20735,7 +20711,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L114",
+      "source_location": "L117",
       "weight": 1
     },
     {
@@ -20747,7 +20723,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L111",
+      "source_location": "L114",
       "weight": 1
     },
     {
@@ -20759,7 +20735,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L120",
+      "source_location": "L123",
       "weight": 1
     },
     {
@@ -20771,7 +20747,7 @@
       "confidence_score": 1,
       "context": "call",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L102",
+      "source_location": "L105",
       "weight": 1
     },
     {
@@ -43726,421 +43702,399 @@
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_0_httperror",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L113",
+      "source_location": "L112",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_1_deploy_vps_py",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L117",
+      "source_location": "L116",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "target": "planning_graphs_graph_report_community_2_admin_route_ts",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
+      "target": "planning_graphs_graph_report_community_2_integrations_ts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L121",
+      "source_location": "L120",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_3_permissions_ts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L125",
+      "source_location": "L124",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_4_001_initial_sql",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L129",
+      "source_location": "L128",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_5_document_editor_tsx",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L133",
+      "source_location": "L132",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_6_environment",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L137",
+      "source_location": "L136",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "target": "planning_graphs_graph_report_community_7_contractorregistration_ts",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
+      "target": "planning_graphs_graph_report_community_7_admin_route_ts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L141",
+      "source_location": "L140",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_8_nexus_ptw_ai",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L145",
+      "source_location": "L144",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_9_package_json",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L149",
+      "source_location": "L148",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_10_compileroptions",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L153",
+      "source_location": "L152",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_11_scripts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L157",
+      "source_location": "L156",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_12_formulário_2_pt_permissão_de_trabalho_integrada",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L161",
+      "source_location": "L160",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_13_dependencies",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L165",
+      "source_location": "L164",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_14_environment",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L169",
+      "source_location": "L168",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_15_x_runtime",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L173",
+      "source_location": "L172",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_16_next",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L177",
+      "source_location": "L176",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_17_app",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L181",
+      "source_location": "L180",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_18_bootstrap",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L185",
+      "source_location": "L184",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_19_database",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L189",
+      "source_location": "L188",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_20_labels",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L193",
+      "source_location": "L192",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_21_healthcheck",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L197",
+      "source_location": "L196",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_22_networks",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L201",
+      "source_location": "L200",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_23_build",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L205",
+      "source_location": "L204",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_24_api",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L209",
+      "source_location": "L208",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_25_notifications",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L213",
+      "source_location": "L212",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_26_communities_43_total_16_thin_omitted",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L217",
+      "source_location": "L216",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_29_prettierrc_json",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L221",
+      "source_location": "L220",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "target": "planning_graphs_graph_report_community_43_production_data_ts",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
+      "target": "planning_graphs_graph_report_community_44_contractorpublicregistration_tsx",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L225",
+      "source_location": "L224",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "target": "planning_graphs_graph_report_community_44_contractor_team_tsx",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1,
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L229",
-      "weight": 1
-    },
-    {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_45_contractorpublicregistration_tsx",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L233",
+      "source_location": "L228",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "target": "planning_graphs_graph_report_community_46_types_ts",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
+      "target": "planning_graphs_graph_report_community_46_define_password_tsx",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L237",
+      "source_location": "L232",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_47_atualização_do_openwa_0_24_0_para_0_32_0",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L241",
+      "source_location": "L236",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_49_workspace_tsx",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L245",
+      "source_location": "L240",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_51_totpqrcode",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L249",
+      "source_location": "L244",
       "weight": 1
     },
     {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "source": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "target": "planning_graphs_graph_report_community_52_popup",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L253",
-      "weight": 1
-    },
-    {
-      "source": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
-      "target": "planning_graphs_graph_report_community_53_contractorregistrations_tsx",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1,
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L257",
+      "source_location": "L248",
       "weight": 1
     },
     {
       "source": "planning_graphs_graph_report_graph_report_nexus_ptw_2026_11_24",
-      "target": "planning_graphs_graph_report_communities_56_total_19_thin_omitted",
+      "target": "planning_graphs_graph_report_communities_55_total_20_thin_omitted",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L111",
+      "source_location": "L110",
       "weight": 1
     },
     {
@@ -44173,7 +44127,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L261",
+      "source_location": "L252",
       "weight": 1
     },
     {
@@ -44184,7 +44138,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L264",
+      "source_location": "L255",
       "weight": 1
     },
     {
@@ -44206,7 +44160,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L65",
+      "source_location": "L64",
       "weight": 1
     },
     {
@@ -44217,7 +44171,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L77",
+      "source_location": "L76",
       "weight": 1
     },
     {
@@ -44239,7 +44193,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L89",
+      "source_location": "L88",
       "weight": 1
     },
     {
@@ -49387,7 +49341,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L101",
+      "source_location": "L104",
       "weight": 1
     },
     {
@@ -49398,7 +49352,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L104",
+      "source_location": "L107",
       "weight": 1
     },
     {
@@ -49409,7 +49363,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L107",
+      "source_location": "L110",
       "weight": 1
     },
     {
@@ -49420,7 +49374,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L110",
+      "source_location": "L113",
       "weight": 1
     },
     {
@@ -49431,7 +49385,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L113",
+      "source_location": "L116",
       "weight": 1
     },
     {
@@ -49442,7 +49396,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L116",
+      "source_location": "L119",
       "weight": 1
     },
     {
@@ -49453,7 +49407,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L119",
+      "source_location": "L122",
       "weight": 1
     },
     {
@@ -49464,7 +49418,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L122",
+      "source_location": "L125",
       "weight": 1
     },
     {
@@ -49475,7 +49429,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L125",
+      "source_location": "L128",
       "weight": 1
     },
     {
@@ -49486,7 +49440,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L128",
+      "source_location": "L131",
       "weight": 1
     },
     {
@@ -50379,7 +50333,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L64",
+      "source_location": "L67",
       "weight": 1
     },
     {
@@ -50391,7 +50345,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "tests/test_upgrade_openwa.py",
-      "source_location": "L64",
+      "source_location": "L67",
       "weight": 1
     },
     {
@@ -50403,7 +50357,7 @@
       "confidence_score": 0.95,
       "context": "HttpError",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L66",
+      "source_location": "L65",
       "weight": 1
     },
     {
@@ -50415,19 +50369,7 @@
       "confidence_score": 0.95,
       "context": "HttpError",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L269",
-      "weight": 1
-    },
-    {
-      "source": "planning_graphs_graph_report_surprising_connections_you_probably_didn_t_know_these",
-      "target": "src_lib_security_httperror",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "context": "HttpError",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L80",
+      "source_location": "L258",
       "weight": 1
     },
     {
@@ -50451,7 +50393,7 @@
       "confidence_score": 0.95,
       "context": "RollingDeployment",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L267",
+      "source_location": "L258",
       "weight": 1
     },
     {
@@ -50463,7 +50405,7 @@
       "confidence_score": 0.95,
       "context": "RollingDeployment",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L78",
+      "source_location": "L77",
       "weight": 1
     },
     {
@@ -50475,47 +50417,23 @@
       "confidence_score": 0.95,
       "context": "api()",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L69",
-      "weight": 1
-    },
-    {
-      "source": "planning_graphs_graph_report_suggested_questions",
-      "target": "src_components_workspace_api",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "context": "api()",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L279",
-      "weight": 1
-    },
-    {
-      "source": "planning_graphs_graph_report_god_nodes_most_connected_your_core_abstractions",
-      "target": "src_lib_http_apierror",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "context": "apiError()",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L67",
-      "weight": 1
-    },
-    {
-      "source": "planning_graphs_graph_report_suggested_questions",
-      "target": "src_lib_http_apierror",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "context": "apiError()",
-      "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L275",
+      "source_location": "L68",
       "weight": 1
     },
     {
       "source": "planning_graphs_graph_report_surprising_connections_you_probably_didn_t_know_these",
+      "target": "src_components_workspace_api",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "context": "api()",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L79",
+      "weight": 1
+    },
+    {
+      "source": "planning_graphs_graph_report_god_nodes_most_connected_your_core_abstractions",
       "target": "src_lib_http_apierror",
       "relation": "references",
       "_origin": "ast",
@@ -50523,7 +50441,19 @@
       "confidence_score": 0.95,
       "context": "apiError()",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L86",
+      "source_location": "L66",
+      "weight": 1
+    },
+    {
+      "source": "planning_graphs_graph_report_suggested_questions",
+      "target": "src_lib_http_apierror",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "context": "apiError()",
+      "source_file": ".planning/graphs/GRAPH_REPORT.md",
+      "source_location": "L266",
       "weight": 1
     },
     {
@@ -50535,7 +50465,7 @@
       "confidence_score": 0.95,
       "context": "assertOrigin()",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L72",
+      "source_location": "L71",
       "weight": 1
     },
     {
@@ -50547,7 +50477,7 @@
       "confidence_score": 0.95,
       "context": "currentUser()",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L68",
+      "source_location": "L67",
       "weight": 1
     },
     {
@@ -50559,7 +50489,7 @@
       "confidence_score": 0.95,
       "context": "transaction()",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L73",
+      "source_location": "L72",
       "weight": 1
     },
     {
@@ -50571,7 +50501,7 @@
       "confidence_score": 0.95,
       "context": "unitAccess()",
       "source_file": ".planning/graphs/GRAPH_REPORT.md",
-      "source_location": "L70",
+      "source_location": "L69",
       "weight": 1
     }
   ]

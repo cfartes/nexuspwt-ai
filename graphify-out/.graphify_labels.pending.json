@@ -43,15 +43,16 @@
   "41": ".prettierrc.js",
   "42": "sw.js",
   "43": ".scenario",
-  "44": "ContractorPublicRegistration.tsx",
+  "44": "contractor-team.tsx",
   "45": "ContractorPublicRegistration.tsx",
-  "46": "define-password.tsx",
+  "46": "ContractorRegistrations.tsx",
   "47": "Atualização do OpenWA 0.24.0 para 0.32.0",
   "48": ".scenario",
   "49": "workspace.tsx",
   "50": "020-pt-lifecycle.sql",
   "51": "totpQrCode",
   "52": "Popup",
+  "53": "overrides",
   "55": "clean_production.sh",
   "56": "seed_validation.sh"
 }

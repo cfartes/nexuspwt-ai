@@ -46,10 +46,13 @@ class OpenwaUpgradeTests(unittest.TestCase):
             def run(command, **kwargs):
                 commands.append(command)
                 self.assertFalse(any('kept-secret' in value for value in command))
+                if '--rm' in command and 'compose' in command:
+                    self.assertNotIn('--no-build', command)
+                    self.assertNotIn('--build', command)
+                    self.assertEqual(command[command.index('--pull') + 1], 'never')
                 if '/app/scripts/backup.sh' in command:
                     self.assertIn(['docker', 'stop', '--time', '60', 'openwa-api'], commands)
                     self.assertIn('--no-deps', command)
-                    self.assertIn('--no-build', command)
                     self.assertEqual(command[command.index('--entrypoint') + 1], 'bash')
                     if fail == 'backup':
                         raise subprocess.CalledProcessError(1, command)
