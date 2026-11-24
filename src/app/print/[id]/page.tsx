@@ -93,8 +93,7 @@ export default async function PrintPage({
         {doc.removed_at && (
           <p>
             <strong>
-              APR REMOVIDA DA OPERAÇÃO — mantida somente para histórico. Não utilizar para execução
-              de serviços.
+              {`${doc.kind} REMOVIDA DA OPERAÇÃO — mantida somente para histórico. Não utilizar para execução de serviços.`}
             </strong>
           </p>
         )}

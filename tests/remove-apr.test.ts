@@ -4,9 +4,9 @@ import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import pg from 'pg';
-import { removeApr } from '../src/lib/remove-apr';
+import { removeDocument } from '../src/lib/remove-document';
 import type { User } from '../src/lib/auth';
-await test('APR: somente admin da unidade, bloqueio por qualquer PT e remoção com histórico preservado', async () => {
+await test('remoção: APR exige admin e nenhuma PT; PT exige Superadmin, preservando histórico e evidências', async () => {
   const db = await PGlite.create();
   for (const file of (await readdir(new URL('../db/', import.meta.url)))
     .filter((f) => f.endsWith('.sql'))
@@ -64,6 +64,21 @@ await test('APR: somente admin da unidade, bloqueio por qualquer PT e remoção 
     apr,
     rootId,
   ]);
+  await db.query("INSERT INTO document_versions(document_id,version,snapshot) VALUES($1,1,'{}')", [
+    pt,
+  ]);
+  await db.query(
+    "INSERT INTO approvals(document_id,version,profile,user_id) VALUES($1,1,'Perfil PT',$2)",
+    [pt, rootId],
+  );
+  await db.query('INSERT INTO notification_outbox(document_id,version,user_id) VALUES($1,1,$2)', [
+    pt,
+    rootId,
+  ]);
+  await db.query(
+    "INSERT INTO photos(id,document_id,actor_id,caption,captured_at,latitude,longitude,accuracy,mime,sha256,content) VALUES(gen_random_uuid(),$1,$2,'Evidência',now(),0,0,1,'image/png','hash',decode('1234','hex'))",
+    [pt, rootId],
+  );
   const socket = new PGLiteSocketServer({ db, host: '127.0.0.1', port: 55444, maxConnections: 5 });
   await socket.start();
   const pool = new pg.Pool({
@@ -74,7 +89,7 @@ await test('APR: somente admin da unidade, bloqueio por qualquer PT e remoção 
     const c = await pool.connect();
     try {
       await c.query('BEGIN');
-      await removeApr(c, who, id, version);
+      await removeDocument(c, who, id, version);
       await c.query('COMMIT');
     } catch (e) {
       await c.query('ROLLBACK');
@@ -87,7 +102,69 @@ await test('APR: somente admin da unidade, bloqueio por qualquer PT e remoção 
   try {
     await assert.rejects(remove(manager, apr), status(403));
     await assert.rejects(remove(root, linked), status(409));
-    await assert.rejects(remove(root, pt), status(400));
+    await assert.rejects(remove(root, pt), status(403));
+    await assert.rejects(remove(manager, pt, 99), status(409));
+    await db.query('UPDATE memberships SET active=false WHERE user_id=$1', [manager.id]);
+    await assert.rejects(remove(manager, pt), status(403));
+    await db.query('UPDATE memberships SET active=true WHERE user_id=$1', [manager.id]);
+    await remove(manager, pt);
+    const removedPt = (
+      await db.query<{ removed_by: string; removed_at: string }>(
+        'SELECT removed_by,removed_at FROM documents WHERE id=$1',
+        [pt],
+      )
+    ).rows[0];
+    assert.equal(removedPt.removed_by, manager.id);
+    assert(removedPt.removed_at);
+    for (const [table, column] of [
+      ['document_versions', 'document_id'],
+      ['approvals', 'document_id'],
+      ['photos', 'document_id'],
+    ] as const)
+      assert.equal(
+        (await db.query(`SELECT 1 FROM ${table} WHERE ${column}=$1`, [pt])).rows.length,
+        1,
+      );
+    assert.equal(
+      (
+        await db.query<{ status: string }>(
+          'SELECT status FROM notification_outbox WHERE document_id=$1',
+          [pt],
+        )
+      ).rows[0].status,
+      'cancelled',
+    );
+    assert.equal(
+      (await db.query('SELECT 1 FROM documents WHERE id=$1 AND removed_at IS NULL', [linked])).rows
+        .length,
+      1,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "SELECT 1 FROM audit_events WHERE document_id=$1 AND actor_id=$2 AND action='pt.removida'",
+          [pt, manager.id],
+        )
+      ).rows.length,
+      1,
+    );
+    await assert.rejects(remove(manager, pt), status(409));
+    for (const documentStatus of ['em_aprovacao', 'aprovado', 'encerrado']) {
+      const otherPt = crypto.randomUUID();
+      await db.query(
+        'INSERT INTO documents(id,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version,status) SELECT $1,company_id,unit_id,contractor_id,kind,title,location,starts_at,ends_at,created_by,apr_id,apr_version,$2 FROM documents WHERE id=$3',
+        [otherPt, documentStatus, pt],
+      );
+      await remove(manager, otherPt);
+      assert(
+        (
+          await db.query<{ removed_at: string }>('SELECT removed_at FROM documents WHERE id=$1', [
+            otherPt,
+          ])
+        ).rows[0].removed_at,
+      );
+    }
+    await assert.rejects(remove(root, linked), status(409));
     await assert.rejects(remove(root, apr, 99), status(409));
     await remove(root, apr);
     const saved = (

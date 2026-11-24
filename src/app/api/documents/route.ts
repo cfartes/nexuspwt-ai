@@ -30,7 +30,10 @@ export async function POST(request: Request) {
       if (existing && existing.unit_id !== unit.id)
         throw new HttpError(403, 'Documento indisponível.');
       if (existing?.removed_at)
-        throw new HttpError(409, 'APR removida. Não é possível alterar este documento.');
+        throw new HttpError(
+          409,
+          `${existing.kind} removida. Não é possível alterar este documento.`,
+        );
       if (existing) assertContractorAccess(unit, existing.contractor_id);
       if (d.kind === 'PT') {
         if (existing && existing.starts_at.toISOString().slice(0, 10) !== d.startsAt)

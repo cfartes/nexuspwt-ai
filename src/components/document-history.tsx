@@ -17,6 +17,7 @@ const actions: Record<string, string> = {
   'workflow.reopen': 'PT reaberta para nova aprovação',
   'workflow.extend': 'Término da PT prorrogado para nova aprovação',
   'apr.removida': 'APR removida da operação',
+  'pt.removida': 'PT excluída da operação pelo Superadmin',
   'rascunho.criado': 'Rascunho criado',
   'rascunho.atualizado': 'Rascunho atualizado',
   'workflow.submit': 'Enviado para análise',

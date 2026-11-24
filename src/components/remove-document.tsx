@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react';
 import type { DocumentRow } from '@/lib/types';
 import Popup from './popup';
 import { api } from './workspace';
-export default function RemoveApr({
+export default function RemoveDocument({
   document,
   online,
   onRemoved,
@@ -16,6 +16,7 @@ export default function RemoveApr({
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const label = document.kind === 'PT' ? 'Excluir PT' : 'Remover APR';
   return (
     <>
       <button
@@ -26,21 +27,22 @@ export default function RemoveApr({
           setError('');
         }}
       >
-        <Trash2 size={15} /> Remover APR
+        <Trash2 size={15} /> {label}
       </button>
       {open && (
-        <Popup title="Remover APR" busy={busy} onClose={() => setOpen(false)}>
+        <Popup title={label} busy={busy} onClose={() => setOpen(false)}>
           <div className="admin-form">
             <p>
               Remover{' '}
               <strong>
-                APR-{document.number} · {document.title}
+                {document.kind}-{document.number} · {document.title}
               </strong>
               ?
             </p>
             <p className="muted">
-              A APR será retirada da operação e não poderá ser usada em novas PTs. O histórico será
-              preservado. Qualquer PT vinculada, inclusive rascunho, impede a remoção.
+              {document.kind === 'PT'
+                ? 'A PT será retirada da operação. O histórico, as aprovações e as fotos serão preservados. Esta ação é exclusiva do Superadmin.'
+                : 'A APR será retirada da operação e não poderá ser usada em novas PTs. O histórico será preservado. Qualquer PT vinculada, inclusive rascunho, impede a remoção.'}
             </p>
             {error && (
               <div className="alert error" role="alert">

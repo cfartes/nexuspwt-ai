@@ -60,7 +60,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         throw new HttpError(403, 'Este perfil administra somente os executores da contratada.');
       assertContractorAccess(unit, d.contractor_id);
       if (d.removed_at)
-        throw new HttpError(409, 'APR removida. Não é possível executar ações neste documento.');
+        throw new HttpError(
+          409,
+          `${d.kind} removida. Não é possível executar ações neste documento.`,
+        );
       if (['submit', 'approve'].includes(input.action))
         await assertExecutorsValidated(c, unit.id, d.data.executors);
       if (d.version !== input.version)

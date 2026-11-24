@@ -1487,6 +1487,40 @@ try {
   });
   assert.equal(removedPrint.status, 200);
   assert((await removedPrint.text()).includes('APR REMOVIDA DA OPERAÇÃO'));
+  const currentApr = (await call(`/api/workspace?unit=${unit.id}`)).documents.find(
+    (row: { id: string }) => row.id === d.id,
+  );
+  const removablePt = {
+    ...pt,
+    id: randomUUID(),
+    version: 0,
+    contractorId: currentApr.contractor_id,
+  };
+  await call('/api/documents', removablePt);
+  await call('/api/auth', { email: 'convidado@nexus.local', password: 'Nova!123' });
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1 }, 403);
+  cookie = adminCookie;
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 99 }, 409);
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1 });
+  await call(`/api/documents/${removablePt.id}/remove`, { version: 1 }, 409);
+  assert(
+    !(await call(`/api/workspace?unit=${unit.id}`)).documents.some(
+      (row: { id: string }) => row.id === removablePt.id,
+    ),
+  );
+  await call('/api/documents', { ...removablePt, version: 1 }, 409);
+  await call(`/api/documents/${removablePt.id}/workflow`, { action: 'submit', version: 1 }, 409);
+  await call(`/api/documents/${removablePt.id}/photos`, { ...photoPayload, id: randomUUID() }, 409);
+  assert(
+    (await call(`/api/documents/${removablePt.id}/history`)).events.some(
+      (event: { action: string }) => event.action === 'pt.removida',
+    ),
+  );
+  const removedPtPrint = await fetch(base + `/print/${removablePt.id}`, {
+    headers: { Cookie: cookie },
+  });
+  assert.equal(removedPtPrint.status, 200);
+  assert((await removedPtPrint.text()).includes('PT REMOVIDA DA OPERAÇÃO'));
   const globalAccount = {
     action: 'user',
     unitId: unit.id,

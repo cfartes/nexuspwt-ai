@@ -52,7 +52,7 @@
   "50": "020-pt-lifecycle.sql",
   "51": "totpQrCode",
   "52": "Popup",
-  "54": "permissions.ts",
+  "53": "production-data.ts",
   "55": "clean_production.sh",
   "56": "seed_validation.sh",
   "61": "reset_validation_passwords.sh"

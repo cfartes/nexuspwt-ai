@@ -33,7 +33,7 @@ import DocumentEditor from './document-editor';
 import RegistrationPanel, { type RegistrationTab } from './registration-panel';
 import SettingsPanel from './settings-panel';
 import NotificationPanel from './notification-panel';
-import RemoveApr from './remove-apr';
+import RemoveDocument from './remove-document';
 import { allowedMenus, roleLabels, personRoleLabel } from '@/lib/permissions';
 import SecuritySettings from './security-settings';
 import ApprovalConfirmation from './approval-confirmation';
@@ -580,10 +580,11 @@ export default function Workspace() {
                     contractors={ws.contractors}
                     onOpen={(d) => setEditor(asInput(d))}
                     canRemoveApr={unit.role === 'admin'}
+                    canRemovePt={!!ws.user.platform_admin}
                     online={online}
                     onRemoved={async () => {
                       await load(unit.id);
-                      setNotice('APR removida da operação. Histórico preservado.');
+                      setNotice('Documento removido da operação. Histórico preservado.');
                     }}
                   />
                 </section>
@@ -659,10 +660,11 @@ export default function Workspace() {
                 contractors={ws.contractors}
                 onOpen={(d) => setEditor(asInput(d))}
                 canRemoveApr={unit.role === 'admin'}
+                canRemovePt={!!ws.user.platform_admin}
                 online={online}
                 onRemoved={async () => {
                   await load(unit.id);
-                  setNotice('APR removida da operação. Histórico preservado.');
+                  setNotice('Documento removido da operação. Histórico preservado.');
                 }}
               />
             </section>
@@ -853,6 +855,7 @@ function DocumentTable({
   contractors,
   onOpen,
   canRemoveApr = false,
+  canRemovePt = false,
   online = false,
   onRemoved,
 }: {
@@ -860,6 +863,7 @@ function DocumentTable({
   contractors: WorkspaceData['contractors'];
   onOpen: (d: DocumentRow) => void;
   canRemoveApr?: boolean;
+  canRemovePt?: boolean;
   online?: boolean;
   onRemoved?: () => Promise<unknown>;
 }) {
@@ -920,9 +924,10 @@ function DocumentTable({
                   >
                     <ChevronRight size={18} />
                   </button>
-                  {canRemoveApr && d.kind === 'APR' && onRemoved && (
-                    <RemoveApr document={d} online={online} onRemoved={onRemoved} />
-                  )}
+                  {((canRemoveApr && d.kind === 'APR') || (canRemovePt && d.kind === 'PT')) &&
+                    onRemoved && (
+                      <RemoveDocument document={d} online={online} onRemoved={onRemoved} />
+                    )}
                 </div>
               </td>
             </tr>
