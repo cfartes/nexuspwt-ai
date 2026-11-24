@@ -49,4 +49,7 @@
   'whatsapp.notifications': 'Avisos do WhatsApp alterados',
   'empresa.limite_unidades_alterado': 'Limite de unidades atualizado',
   'notificacao.reenvio_solicitado': 'Reenvio de notificaÃ§Ã£o solicitado',
+  'workflow.close': 'PT encerrada',
+  'workflow.reopen': 'PT reaberta para nova aprovação',
+  'workflow.extend': 'Término da PT prorrogado para nova aprovação',
 };

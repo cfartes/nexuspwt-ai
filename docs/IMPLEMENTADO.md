@@ -66,3 +66,10 @@ Removidos botão de conferir identidade, aviso de pendência e bloqueio de decis
 ### Data de emissão da PT — 24/11/2026
 
 Novas PTs só podem ser criadas para o dia atual no horário de Brasília, com validação no servidor. A data fica fixa no formulário; edições não podem trocar a data original. A data duplicada no formulário precisa corresponder à emissão. Uma criação offline enviada apenas no dia seguinte é recusada sem descartar o registro da fila local; não há alteração automática ou retroativa da data. APRs e consultas a documentos históricos permanecem disponíveis. Não exige migração do banco.
+
+
+### Ciclo da PT no mesmo dia — 24/11/2026
+
+Implementadas aprovação interna pelos três perfis da PT, encerramento com foto e horário do servidor, reabertura e prorrogação com motivo. Ações restritas a Admin/Gestor/Segurança do Trabalho internos. Término futuro no mesmo dia (Brasília), sem atravessar meia-noite. Reabertura e prorrogação criam versão em rascunho para nova aprovação, preservando decisões, fotos e snapshots antigos. Edição direta de PT aprovada/encerrada é bloqueada. Auditoria inclui horários anterior/novo; aprovadores podem consultar o encerramento da versão que aprovaram. Migração aditiva 020 no manifesto online. Assinatura eletrônica e autorização operacional formal continuam separadas das aprovações internas do piloto.
+
+Validação: 44 testes automatizados aprovados, build de produção, TypeScript e integração HTTP. O teste HTTP cobre aprovação, encerramento com foto, conflito de versão, reabertura, nova aprovação e prorrogação. Testes de serviço cobrem horários/meia-noite, perfis internos/externos, preservação dos snapshots e consulta do encerramento pelo aprovador anterior. Sem aplicação na VPS, envios reais aos provedores ou homologação visual nesta etapa.

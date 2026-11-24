@@ -36,6 +36,8 @@ const detailFields = [
   'companyAdmin',
   'version',
   'previousVersion',
+  'previousEndTime',
+  'endTime',
   'profile',
   'previousUserId',
   'comment',

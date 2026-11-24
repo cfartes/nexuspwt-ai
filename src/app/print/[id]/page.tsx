@@ -54,8 +54,8 @@ export default async function PrintPage({
   } = await db.query('SELECT name FROM contractors WHERE id=$1', [d.contractor_id]);
   d.contractor = contractor.name;
   const { rows: approvals } = await db.query(
-    'SELECT a.*,u.name FROM approvals a JOIN users u ON u.id=a.user_id WHERE a.document_id=$1 AND a.version=$2 ORDER BY a.profile',
-    [id, d.version],
+    'SELECT a.*,u.name FROM approvals a JOIN users u ON u.id=a.user_id WHERE a.document_id=$1 AND (a.version=$2 OR ($3::boolean AND a.version=$2-1)) ORDER BY a.profile',
+    [id, d.version, d.kind === 'PT' && d.status === 'encerrado'],
   );
   const approved = approvals.length > 0 && approvals.every((a) => a.decision === 'aprovado');
   try {

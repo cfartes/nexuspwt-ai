@@ -126,6 +126,7 @@ export const statuses: Record<string, string> = {
   em_aprovacao: 'Em aprovação',
   aprovado: 'Aprovado',
   rejeitado: 'Rejeitado',
+  encerrado: 'Encerrado',
 };
 export const dateLabel = (value: string) =>
   new Date(value.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR');

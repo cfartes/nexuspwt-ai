@@ -33,10 +33,15 @@ export async function POST(request: Request) {
         throw new HttpError(409, 'APR removida. Não é possível alterar este documento.');
       if (existing) assertContractorAccess(unit, existing.contractor_id);
       if (d.kind === 'PT') {
-        const dateError = !existing ? ptCreationError(d.startsAt) : null;
-        if (dateError) throw new HttpError(400, dateError);
         if (existing && existing.starts_at.toISOString().slice(0, 10) !== d.startsAt)
           throw new HttpError(409, 'A data de emissão da PT não pode ser alterada.');
+        if (d.endsAt !== d.startsAt)
+          throw new HttpError(400, 'A PT deve iniciar e terminar no mesmo dia.');
+        const endTime = d.data.answers['general.endsAt'];
+        if (endTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime))
+          throw new HttpError(400, 'Horário de término inválido.');
+        const dateError = !existing ? ptCreationError(d.startsAt) : null;
+        if (dateError) throw new HttpError(400, dateError);
         if (d.data.answers['general.date'] && d.data.answers['general.date'] !== d.startsAt)
           throw new HttpError(400, 'A data do formulário deve ser a mesma data de emissão da PT.');
       }
@@ -126,7 +131,7 @@ export async function POST(request: Request) {
             409,
             'O documento foi alterado em outro dispositivo. Recarregue e revise os dados antes de salvar.',
           );
-        if (existing.status === 'aprovado')
+        if (['aprovado', 'encerrado'].includes(existing.status))
           throw new HttpError(
             409,
             'Documento aprovado é imutável. Use Criar revisão para revisar a APR.',

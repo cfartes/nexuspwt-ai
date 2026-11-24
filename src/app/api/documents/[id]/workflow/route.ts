@@ -9,6 +9,8 @@ import { aprResponsibles } from '@/lib/apr-responsibles';
 import { authenticateDecision, assertDecisionIdentity } from '@/lib/approval-security';
 import { assertExecutorsValidated } from '@/lib/executor-identities';
 import { sessionEvidence } from '@/lib/session-security';
+import { changePtLifecycle } from '@/lib/pt-lifecycle';
+import { ptCreationError, ptEndError } from '@/lib/pt-calendar';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     assertOrigin(request);
@@ -17,7 +19,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     uuid.parse(id);
     const input = z
       .object({
-        action: z.enum(['submit', 'approve', 'reject', 'revise']),
+        action: z.enum(['submit', 'approve', 'reject', 'revise', 'close', 'reopen', 'extend']),
+        endTime: z.string().max(5).default(''),
         version: z.number().int().positive(),
         comment: z.string().trim().max(2000).default(''),
         password: z.string().max(256).default(''),
@@ -62,6 +65,28 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         await assertExecutorsValidated(c, unit.id, d.data.executors);
       if (d.version !== input.version)
         throw new HttpError(409, 'Versão desatualizada. Recarregue o documento.');
+      if (['close', 'reopen', 'extend'].includes(input.action)) {
+        await changePtLifecycle(
+          c,
+          user,
+          unit,
+          d,
+          input.action as 'close' | 'reopen' | 'extend',
+          input.comment,
+          input.endTime,
+        );
+        return;
+      }
+      if (d.kind === 'PT' && ['submit', 'approve'].includes(input.action)) {
+        const dateError = ptCreationError(d.starts_at.toISOString().slice(0, 10));
+        if (
+          dateError ||
+          d.ends_at.toISOString().slice(0, 10) !== d.starts_at.toISOString().slice(0, 10)
+        )
+          throw new HttpError(400, 'A PT só pode ser enviada e aprovada para o dia atual.');
+        const endError = ptEndError(d.data.answers['general.endsAt'] || '');
+        if (endError) throw new HttpError(400, endError);
+      }
       if (input.action === 'revise') {
         if (unit.role === 'aprovador')
           throw new HttpError(403, 'Aprovador possui acesso somente para consulta e decisão.');
@@ -107,12 +132,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         });
         const errors = submissionErrors(data);
         if (errors.length) throw new HttpError(400, errors.join(' '));
-        // PT liberation requires a validated client policy and signed-document integration; no provisional bypass.
-        if (d.kind === 'PT')
-          throw new HttpError(
-            422,
-            'Liberação da PT ainda depende das regras de segurança do contratante e da integração de assinaturas. O preenchimento pode ser salvo como rascunho.',
-          );
         const profiles = d.kind === 'APR' ? aprProfiles : ptProfiles;
         const selected = await aprResponsibles(c, data, true);
         const { rows: assignments } = await c.query(

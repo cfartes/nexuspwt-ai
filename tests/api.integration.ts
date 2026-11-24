@@ -1,4 +1,4 @@
-import { ptToday } from '../src/lib/pt-calendar';
+import { ptToday, ptClock } from '../src/lib/pt-calendar';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { randomUUID, randomBytes } from 'node:crypto';
@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import { hashPassword, digest } from '../src/lib/security';
 import { decryptSecret, encryptSecret } from '../src/lib/integrations';
-import { aprProfiles } from '../src/lib/forms';
+import { aprProfiles, ptProfiles } from '../src/lib/forms';
 import { totp } from '../src/lib/totp';
 const db = await PGlite.create();
 process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);
@@ -42,6 +42,7 @@ await db.exec(
 await db.exec(
   await readFile(new URL('../db/018-identity-upload-policy.sql', import.meta.url), 'utf8'),
 );
+await db.exec(await readFile(new URL('../db/020-pt-lifecycle.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -568,12 +569,92 @@ try {
   );
   const invalidDate = { ...pt, id: randomUUID(), endsAt: ptToday(new Date(Date.now() + 86400000)) };
   await call('/api/documents', invalidDate, 400);
-  const blocked = await call(
-    `/api/documents/${pt.id}/workflow`,
-    { action: 'submit', version: 1 },
-    422,
-  );
-  assert.match(blocked.error, /contratante/);
+  await call(`/api/documents/${pt.id}/workflow`, { action: 'submit', version: 1 }, 400);
+  if (ptClock() < '23:56') {
+    for (const profile of ptProfiles)
+      await db.query(
+        "INSERT INTO approvers(company_id,unit_id,kind,profile,user_id) VALUES($1,$2,'PT',$3,$4)",
+        [company.id, unit.id, profile, user.id],
+      );
+    const cycle = {
+      ...pt,
+      id: randomUUID(),
+      data: { ...pt.data, answers: { ...pt.data.answers, 'general.endsAt': '23:57' } },
+    };
+    await call('/api/documents', cycle);
+    await call(`/api/documents/${cycle.id}/workflow`, { action: 'submit', version: 1 });
+    await call(`/api/documents/${cycle.id}/workflow`, { action: 'approve', version: 1 });
+    await call(
+      `/api/documents/${cycle.id}/workflow`,
+      { action: 'close', version: 1, comment: 'Conclusão conferida' },
+      400,
+    );
+    await call(`/api/documents/${cycle.id}/photos`, {
+      id: randomUUID(),
+      caption: 'Evidência da conclusão',
+      capturedAt: new Date().toISOString(),
+      latitude: -23,
+      longitude: -46,
+      accuracy: 5,
+      mime: 'image/png',
+      base64: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]).toString('base64'),
+    });
+    await call(`/api/documents/${cycle.id}/workflow`, {
+      action: 'close',
+      version: 1,
+      comment: 'Conclusão conferida',
+    });
+    await call('/api/documents', { ...cycle, version: 2, title: 'Não pode editar encerrada' }, 409);
+    await call(
+      `/api/documents/${cycle.id}/workflow`,
+      { action: 'reopen', version: 1, endTime: '23:58', comment: 'Retomada solicitada' },
+      409,
+    );
+    await call(`/api/documents/${cycle.id}/workflow`, {
+      action: 'reopen',
+      version: 2,
+      endTime: '23:58',
+      comment: 'Retomada solicitada',
+    });
+    await call(`/api/documents/${cycle.id}/workflow`, { action: 'approve', version: 3 }, 409);
+    await call(`/api/documents/${cycle.id}/workflow`, { action: 'submit', version: 3 });
+    await call(`/api/documents/${cycle.id}/workflow`, { action: 'approve', version: 3 });
+    await call(
+      `/api/documents/${cycle.id}/workflow`,
+      { action: 'extend', version: 3, endTime: '23:57', comment: 'Prorrogar serviço' },
+      400,
+    );
+    await call(
+      `/api/documents/${cycle.id}/workflow`,
+      { action: 'extend', version: 3, endTime: '24:00', comment: 'Prorrogar serviço' },
+      400,
+    );
+    await call(`/api/documents/${cycle.id}/workflow`, {
+      action: 'extend',
+      version: 3,
+      endTime: '23:59',
+      comment: 'Prorrogar serviço',
+    });
+    const changedPt = (
+      await db.query<{
+        status: string;
+        version: number;
+        data: { answers: Record<string, string> };
+      }>('SELECT * FROM documents WHERE id=$1', [cycle.id])
+    ).rows[0];
+    assert.equal(changedPt.status, 'rascunho');
+    assert.equal(changedPt.version, 4);
+    assert.equal(changedPt.data.answers['general.endsAt'], '23:59');
+    assert.equal(
+      (
+        await db.query<{ total: number }>(
+          'SELECT count(*)::int total FROM approvals WHERE document_id=$1 AND version=4',
+          [cycle.id],
+        )
+      ).rows[0].total,
+      0,
+    );
+  }
   const print = await fetch(base + '/print/' + d.id, { headers: { Cookie: cookie } });
   assert.equal(print.status, 200);
   assert.match(await print.text(), /NÃO AUTORIZA EXECUÇÃO/);

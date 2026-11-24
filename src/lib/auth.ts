@@ -98,8 +98,13 @@ export async function assertDocumentRead(
     throw new HttpError(403, 'Este perfil administra somente os executores da contratada.');
   if (unit.role === 'aprovador') {
     const { rowCount } = await client.query(
-      'SELECT 1 FROM approvals WHERE document_id=$1 AND version=$2 AND user_id=$3',
-      [document.id, document.version, user.id],
+      'SELECT 1 FROM approvals WHERE document_id=$1 AND (version=$2 OR ($4::boolean AND version=$2-1)) AND user_id=$3',
+      [
+        document.id,
+        document.version,
+        user.id,
+        document.kind === 'PT' && document.status === 'encerrado',
+      ],
     );
     if (!rowCount) throw new HttpError(403, 'Documento não atribuído a você.');
   }

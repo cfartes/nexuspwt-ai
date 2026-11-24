@@ -212,10 +212,10 @@ O banco fica somente na rede Docker. A aplicação escuta na interface local da 
 
 ## Decisões e limitações desta entrega
 
-- A validade da APR acompanha as datas previstas. A PT fica dentro desse intervalo; vencimento por turno e revalidação operacional aguardam o contratante.
+- A validade da APR acompanha as datas previstas. A PT fica dentro desse intervalo e só vale no dia de emissão (Brasília), com horário previsto de término obrigatório para envio/aprovação. Não permite término no dia seguinte.
 - O conteúdo da APR aprovada fica imutável no arquivo histórico. O autor ou gestor pode usar **Criar revisão**, informando um motivo, para abrir um novo rascunho do mesmo serviço. O contador representa versões salvas e pode saltar entre aprovações; numeração editorial separada ainda não foi definida com o contratante. Rascunhos intermediários não enviados para análise têm eventos registrados, mas não cópias integrais arquivadas.
 - O fluxo de aprovação interna é provisoriamente paralelo. Sequência, substitutos, proibição de autoaprovação e critérios de liberação dependem de confirmação.
-- A liberação da PT está bloqueada no servidor. Não basta preencher checklists para autorizar trabalho. Não há aprovação offline.
+- A aprovação interna da PT usa os três perfis configurados (Emitente do turno, Responsável pela área e Responsável pela atividade), checklists completos, executantes e horário futuro no mesmo dia. Aprovações não são realizadas offline; a integração de assinaturas continua separada e os impressos do piloto mantêm seu aviso de não autorização operacional.
 - N/A aparece nos checklists do protótipo; os itens que podem aceitá-lo devem ser homologados.
 - Escavação aparece como tipo proposto para alcançar a seção 16; o contratante ainda precisa confirmar esse gatilho.
 - PET, Anexo 1 de LOTOTO e anexos documentais adicionais não estão implementados. Fotos ilustrativas em cada etapa da APR também estão pendentes; a captura atual é para conclusão da PT.
@@ -275,3 +275,12 @@ Administrador da unidade precisa pertencer à equipe própria. Aprovador regiona
 Em Aprovadores → Aprovação por perfil, o administrador pode substituir, desativar e reativar atribuições locais, informando o motivo. Atribuições regionais compartilhadas são gerenciadas pelo administrador da plataforma. As alterações valem para novas submissões e não removem acessos já concedidos às unidades. Para transferir uma aprovação ainda pendente, use a opção de substituição no documento e registre o motivo; decisões concluídas permanecem intactas. O histórico registra cada transferência. A fila de avisos é ajustada por responsável, preservando envios em andamento ou de resultado incerto para revisão manual. Execute `npm run db:setup` antes de iniciar a versão atualizada para aplicar a migração `005-approver-management.sql`.
 
 A desativação impede novas requisições online e cancela avisos pendentes quando o processo os reavalia. Não apaga assinaturas, fotos, decisões nem cópias já baixadas em dispositivos offline. Mudanças só passam pela validação do servidor após reconectar. PTs com fotos não podem trocar de terceirizada ou APR; crie uma nova PT para preservar o contexto das evidências. O envio de foto e a alteração da PT usam a mesma trava do documento para evitar troca de vínculo durante uma captura em trânsito.
+
+
+### Encerramento, reabertura e prorrogação da PT
+
+No editor da PT, Admin/Gestor/Segurança do Trabalho internos da unidade podem **Encerrar PT**, **Reabrir para nova aprovação** e **Prorrogar término**, conforme o estado atual. Gestores e demais colaboradores de contratadas não executam essas ações. É obrigatório informar motivo, estar online, ter sincronizado alterações e estar no mesmo dia da emissão (Brasília).
+
+Encerrar exige PT aprovada e foto da conclusão; registra o horário real pelo servidor. Reabrir exige PT encerrada, novo término futuro no mesmo dia e devolve a rascunho. Prorrogar exige rascunho ou PT aprovada, término já informado e novo horário maior que o anterior e posterior ao atual. Uma PT aprovada prorrogada também volta a rascunho. Ambas precisam ser enviadas e aprovadas novamente; decisões anteriores não valem para a nova versão. O formulário de encerramento do ciclo anterior fica no histórico e é limpo no novo ciclo. Fotos e versões anteriores são preservadas.
+
+Ações usam versão para detectar concorrência e registram responsável, motivo e horários na auditoria. O horário anterior não é sobrescrito nos snapshots aprovados. PT vencida apresenta aviso e não pode receber nova aprovação sem corrigir o término. Em outro dia, é necessário criar outra PT. Use o atualizador existente para aplicar `020-pt-lifecycle.sql`, sem reinstalar o PostgreSQL. Atualizar app e worker.

@@ -29,7 +29,7 @@ await test('deploy online: adota schema existente, não reaplica SQL e recusa mu
     await onlineMigrations(client, directory);
     assert.equal(
       (await client.query('SELECT count(*)::int total FROM deployment_migrations')).rows[0].total,
-      19,
+      20,
     );
     await onlineMigrations(client, directory);
     assert.deepEqual(

@@ -19,7 +19,9 @@ import { enqueue } from '@/lib/offline';
 import { api } from './workspace';
 import DocumentHistory from './document-history';
 import ReassignApproval from './reassign-approval';
-import { ptToday, ptCreationError } from '@/lib/pt-calendar';
+import { ptToday, ptCreationError, ptEndError } from '@/lib/pt-calendar';
+import PtLifecycleControls from './pt-lifecycle-controls';
+import type { PtAction } from '@/lib/pt-lifecycle';
 type Photo = {
   id: string;
   caption: string;
@@ -38,6 +40,7 @@ export default function DocumentEditor({
   onRevise,
   onReassigned,
   onPhotoQueued,
+  onPtChanged,
 }: {
   value: DocumentInput;
   ws: WorkspaceData;
@@ -48,6 +51,7 @@ export default function DocumentEditor({
   onRevise: (reason: string) => Promise<void>;
   onReassigned: () => Promise<void>;
   onPhotoQueued: () => Promise<void>;
+  onPtChanged: (action: PtAction, reason: string, endTime: string) => Promise<void>;
 }) {
   const modal = useRef<HTMLElement>(null);
   const [d, setD] = useState(value),
@@ -60,7 +64,7 @@ export default function DocumentEditor({
   const readOnly =
     ws.unit.role === 'aprovador' ||
     (!!saved &&
-      (['aprovado', 'em_aprovacao'].includes(saved.status) ||
+      (['aprovado', 'em_aprovacao', 'encerrado'].includes(saved.status) ||
         (saved.created_by !== ws.user.id &&
           !['admin', 'gestor', 'seguranca_trabalho'].includes(ws.unit.role))));
   const update = (patch: Partial<DocumentInput>) => setD((prev) => ({ ...prev, ...patch }));
@@ -151,6 +155,15 @@ export default function DocumentEditor({
             <X />
           </button>
         </header>
+        {saved?.kind === 'PT' &&
+          saved.status === 'aprovado' &&
+          (saved.starts_at.slice(0, 10) !== ptToday() ||
+            ptEndError(saved.data.answers['general.endsAt'] || '')) && (
+            <p className="alert error">
+              O prazo desta PT terminou. Para continuar hoje, solicite prorrogação e nova aprovação.
+              Em outro dia, crie uma nova PT.
+            </p>
+          )}
         <div className="editor-tabs" role="tablist">
           {tabs.map(([key, label]) => (
             <button
@@ -247,48 +260,60 @@ export default function DocumentEditor({
                   <input
                     type="date"
                     min={d.startsAt}
+                    readOnly={d.kind === 'PT'}
                     value={d.endsAt}
                     onChange={(e) => update({ endsAt: e.target.value })}
                   />
                 </label>
                 {d.kind === 'PT' ? (
-                  <label className="span-2">
-                    APR vinculada *
-                    <select
-                      value={d.aprId || ''}
-                      onChange={(e) => {
-                        const apr = ws.documents.find((a) => a.id === e.target.value);
-                        update({
-                          aprId: e.target.value || null,
-                          ...(apr
-                            ? {
-                                contractorId: apr.contractor_id,
-                                location: apr.location,
-                                title: apr.title,
-                              }
-                            : {}),
-                        });
-                      }}
-                    >
-                      <option value="">Selecione a análise de riscos</option>
-                      {d.aprId && !ws.documents.some((a) => a.id === d.aprId) && (
-                        <option value={d.aprId}>
-                          APR vinculada · versão {saved?.apr_version} · consultar pelo link abaixo
-                        </option>
-                      )}
-                      {ws.documents
-                        .filter(
-                          (a) => a.kind === 'APR' && (a.status === 'aprovado' || a.id === d.aprId),
-                        )
-                        .map((a) => (
-                          <option key={a.id} value={a.id}>
-                            APR-{a.number} · versão{' '}
-                            {saved?.apr_id === a.id ? saved.apr_version : a.version} ·{' '}
-                            {saved?.apr_id === a.id ? 'Vínculo preservado' : a.title}
+                  <>
+                    <label>
+                      Horário previsto de término
+                      <input
+                        type="time"
+                        value={d.data.answers['general.endsAt'] || ''}
+                        onChange={(event) => answer('general.endsAt', event.target.value)}
+                      />
+                    </label>
+                    <label className="span-2">
+                      APR vinculada *
+                      <select
+                        value={d.aprId || ''}
+                        onChange={(e) => {
+                          const apr = ws.documents.find((a) => a.id === e.target.value);
+                          update({
+                            aprId: e.target.value || null,
+                            ...(apr
+                              ? {
+                                  contractorId: apr.contractor_id,
+                                  location: apr.location,
+                                  title: apr.title,
+                                }
+                              : {}),
+                          });
+                        }}
+                      >
+                        <option value="">Selecione a análise de riscos</option>
+                        {d.aprId && !ws.documents.some((a) => a.id === d.aprId) && (
+                          <option value={d.aprId}>
+                            APR vinculada · versão {saved?.apr_version} · consultar pelo link abaixo
                           </option>
-                        ))}
-                    </select>
-                  </label>
+                        )}
+                        {ws.documents
+                          .filter(
+                            (a) =>
+                              a.kind === 'APR' && (a.status === 'aprovado' || a.id === d.aprId),
+                          )
+                          .map((a) => (
+                            <option key={a.id} value={a.id}>
+                              APR-{a.number} · versão{' '}
+                              {saved?.apr_id === a.id ? saved.apr_version : a.version} ·{' '}
+                              {saved?.apr_id === a.id ? 'Vínculo preservado' : a.title}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </>
                 ) : (
                   <>
                     {[
@@ -839,6 +864,15 @@ export default function DocumentEditor({
             <button className="secondary" onClick={onClose}>
               Fechar
             </button>
+            {saved?.kind === 'PT' && (
+              <PtLifecycleControls
+                document={saved}
+                unit={ws.unit}
+                online={online}
+                unsaved={busy || JSON.stringify(d) !== JSON.stringify(value)}
+                onDone={onPtChanged}
+              />
+            )}
             {saved?.kind === 'APR' &&
               saved.status === 'aprovado' &&
               online &&

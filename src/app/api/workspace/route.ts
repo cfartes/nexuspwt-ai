@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       );
     const results = await Promise.all([
       db.query(
-        "SELECT d.*,u.name author FROM documents d JOIN users u ON u.id=d.created_by WHERE d.unit_id=$1 AND d.removed_at IS NULL AND ($6::uuid IS NULL OR d.contractor_id=$6) AND ($2 <> 'executante' OR d.created_by=$3 OR (d.kind='APR' AND d.status='aprovado') OR d.data->'executors' @> $4::jsonb) AND ($2<>'aprovador' OR EXISTS(SELECT 1 FROM approvals a WHERE a.document_id=d.id AND a.version=d.version AND a.user_id=$3)) ORDER BY (d.id=$5::uuid) DESC NULLS LAST,d.updated_at DESC LIMIT 500",
+        "SELECT d.*,u.name author FROM documents d JOIN users u ON u.id=d.created_by WHERE d.unit_id=$1 AND d.removed_at IS NULL AND ($6::uuid IS NULL OR d.contractor_id=$6) AND ($2 <> 'executante' OR d.created_by=$3 OR (d.kind='APR' AND d.status='aprovado') OR d.data->'executors' @> $4::jsonb) AND ($2<>'aprovador' OR EXISTS(SELECT 1 FROM approvals a WHERE a.document_id=d.id AND (a.version=d.version OR (d.kind='PT' AND d.status='encerrado' AND a.version=d.version-1)) AND a.user_id=$3)) ORDER BY (d.id=$5::uuid) DESC NULLS LAST,d.updated_at DESC LIMIT 500",
         [
           unit.id,
           unit.role,
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
         ],
       ),
       db.query(
-        'SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND d.removed_at IS NULL AND a.version=d.version AND ($2::uuid IS NULL OR d.contractor_id=$2)',
+        "SELECT a.*,u.name user_name FROM approvals a JOIN documents d ON d.id=a.document_id JOIN users u ON u.id=a.user_id WHERE d.unit_id=$1 AND d.removed_at IS NULL AND (a.version=d.version OR (d.kind='PT' AND d.status='encerrado' AND a.version=d.version-1)) AND ($2::uuid IS NULL OR d.contractor_id=$2)",
         [unit.id, unit.contractor_id],
       ),
       unit.role === 'admin'

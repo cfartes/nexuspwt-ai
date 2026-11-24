@@ -13,6 +13,9 @@ type History = {
   }[];
 };
 const actions: Record<string, string> = {
+  'workflow.close': 'PT encerrada',
+  'workflow.reopen': 'PT reaberta para nova aprovação',
+  'workflow.extend': 'Término da PT prorrogado para nova aprovação',
   'apr.removida': 'APR removida da operação',
   'rascunho.criado': 'Rascunho criado',
   'rascunho.atualizado': 'Rascunho atualizado',

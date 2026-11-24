@@ -60,6 +60,7 @@ export const ptSections: Section[] = [
     fields: [
       { key: 'date', label: 'Data', type: 'date' },
       { key: 'time', label: 'Hora do preenchimento', type: 'time' },
+      { key: 'endsAt', label: 'Horário previsto de término', type: 'time' },
       { key: 'requester', label: 'Solicitante' },
       { key: 'issuer', label: 'Emitente' },
       { key: 'otherActivity', label: 'Outra atividade: especificar' },

@@ -767,6 +767,26 @@ export default function Workspace() {
           online={online}
           onClose={() => setEditor(null)}
           onSave={save}
+          onPtChanged={async (action, reason, endTime) => {
+            if (busy.current || pending.some((job) => job.id === editor.id))
+              throw new Error('Aguarde a sincronização antes de alterar a PT.');
+            await api(`/api/documents/${editor.id}/workflow`, {
+              action,
+              version: editor.version,
+              comment: reason,
+              endTime,
+            });
+            const refreshed = await load(unit.id);
+            const changed = refreshed?.documents.find(
+              (document: DocumentRow) => document.id === editor.id,
+            );
+            if (changed) setEditor(asInput(changed));
+            setNotice(
+              action === 'close'
+                ? 'PT encerrada. Histórico preservado.'
+                : 'PT atualizada em rascunho. Envie para nova aprovação antes de retomar.',
+            );
+          }}
           onReassigned={async () => {
             await load(unit.id);
             setNotice('Responsável pendente substituído. O motivo foi registrado no histórico.');
