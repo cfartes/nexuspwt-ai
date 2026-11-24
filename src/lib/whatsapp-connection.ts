@@ -147,9 +147,11 @@ export async function connectWhatsapp(
       ? 'qr_ready'
       : status === 'MISSING'
         ? 'missing_session'
-        : ['CREATED', 'STOPPED', 'DISCONNECTED', 'FAILED'].includes(status)
-          ? 'disconnected'
-          : 'starting';
+        : status === 'FAILED'
+          ? 'failed'
+          : ['CREATED', 'STOPPED', 'DISCONNECTED'].includes(status)
+            ? 'disconnected'
+            : 'starting';
   if (input.action === 'notifications' && input.enabled && connectionStatus !== 'connected')
     throw new HttpError(409, 'Confirme o número conectado antes de habilitar os avisos.');
   let qrCode: string | null = null;

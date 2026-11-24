@@ -1,5 +1,6 @@
 'use client';
 import PasswordInput from './password-input';
+import { readApiJson } from '@/lib/api-response';
 import { ptToday } from '@/lib/pt-calendar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -58,7 +59,7 @@ export async function api(path: string, body?: unknown, method?: string) {
     cache: 'no-store',
     signal: AbortSignal.timeout(25000),
   });
-  const result = await response.json();
+  const result = await readApiJson(response);
   if (!response.ok)
     throw Object.assign(new Error(result.error || 'Falha na solicitação.'), {
       status: response.status,

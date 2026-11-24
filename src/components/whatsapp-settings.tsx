@@ -3,6 +3,7 @@ import PasswordInput from './password-input';
 import { useEffect, useState, useRef } from 'react';
 import { MessageCircle, RefreshCw, Save } from 'lucide-react';
 import { api } from './workspace';
+import { readApiJson } from '@/lib/api-response';
 
 type Connection = {
   version: number;
@@ -13,6 +14,7 @@ type Connection = {
   qrCode?: string | null;
 };
 const labels: Record<string, string> = {
+  failed: 'Falha ao iniciar sessão no OpenWA',
   not_started: 'Não conectado',
   legacy: 'Confirmar número da sessão existente',
   connected: 'Conectado',
@@ -104,7 +106,7 @@ export default function WhatsappSettings({
         }),
         signal: AbortSignal.timeout(65000),
       });
-      const result = await response.json();
+      const result = await readApiJson(response);
       if (!response.ok) {
         if (response.status === 429) {
           const seconds = Math.max(1, Math.min(86400, Number(result.retryAfterSeconds) || 60));
@@ -123,6 +125,14 @@ export default function WhatsappSettings({
       setPhone(result.phone);
     } catch (e) {
       setError((e as Error).message);
+      if ((e as { status?: number }).status === 429) {
+        const seconds = Math.max(
+          1,
+          Math.min(86400, Number((e as { retryAfterSeconds?: number }).retryAfterSeconds) || 60),
+        );
+        setNow(Date.now());
+        setRetryAt(Date.now() + seconds * 1000);
+      }
       if (
         ((e as { status?: number }).status || 0) >= 500 ||
         ['TimeoutError', 'TypeError'].includes((e as Error).name)
@@ -307,6 +317,13 @@ export default function WhatsappSettings({
             O aparelho conectado possui outro número ou o gateway não confirmou sua identidade.
             Desvincule esta sessão em Aparelhos conectados e conecte novamente com o número
             informado. Os avisos estão desativados.
+          </p>
+        )}
+        {connection?.status === 'failed' && (
+          <p role="alert" className="alert error">
+            O OpenWA informou falha ao iniciar esta sessão. Consulte o erro completo em Ver no
+            painel do gateway e os logs dessa tentativa. A sessão será reutilizada na próxima
+            tentativa; não é necessário criar outra. Os avisos estão desativados.
           </p>
         )}
         {connection?.status === 'missing_session' && (

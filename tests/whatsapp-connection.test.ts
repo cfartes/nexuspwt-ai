@@ -161,6 +161,12 @@ await test('pareamento por empresa: recupera criação incerta, confere número,
     assert.equal(result.sendNotifications, false);
     result = await run(companies[0].id, result.version, 'notifications', { enabled: true });
     assert.equal(result.sendNotifications, true);
+    state = 'FAILED';
+    result = await run(companies[0].id, result.version, 'refresh');
+    assert.equal(result.status, 'failed');
+    assert.equal(result.sendNotifications, false);
+    assert.equal(result.qrCode, null);
+    assert.equal(posts, 1, 'Consulta de falha não cria outra sessão');
     const view = JSON.stringify(
       connectionView(
         (
