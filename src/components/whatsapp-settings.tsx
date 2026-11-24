@@ -108,17 +108,13 @@ export default function WhatsappSettings({
       });
       const result = await readApiJson(response);
       if (!response.ok) {
-        if (response.status === 429) {
-          const seconds = Math.max(1, Math.min(86400, Number(result.retryAfterSeconds) || 60));
-          setNow(Date.now());
-          setRetryAt(Date.now() + seconds * 1000);
-        }
         if (response.status === 409) {
           const latest = await api(`/api/whatsapp?unit=${unitId}`);
           setConnection(latest);
         }
         throw Object.assign(new Error(result.error || 'Não foi possível atualizar a conexão.'), {
           status: response.status,
+          retryAfterSeconds: result.retryAfterSeconds,
         });
       }
       setConnection({ ...result, gatewayReady: true });

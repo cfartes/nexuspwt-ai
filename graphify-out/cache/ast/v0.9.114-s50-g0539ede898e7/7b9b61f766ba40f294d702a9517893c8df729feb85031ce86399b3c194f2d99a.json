@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_db_020_pt_lifecycle_sql", "label": "020-pt-lifecycle.sql", "file_type": "code", "source_file": "db/020-pt-lifecycle.sql", "source_location": null}, {"id": "documents", "label": "documents", "file_type": "code", "source_file": "", "source_location": "", "origin_file": "$graphify-root$/db/020-pt-lifecycle.sql"}], "edges": []}

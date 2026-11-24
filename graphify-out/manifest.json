@@ -600,15 +600,15 @@
     "semantic_hash": ""
   },
   "src/components/whatsapp-settings.tsx": {
-    "mtime": 1795518213.8419707,
-    "seen": 1795518354.6739688,
-    "ast_hash": "fd1df02c9cf8f0a774ac14d2e404f6b6",
+    "mtime": 1795539100.6179132,
+    "seen": 1795539214.6574814,
+    "ast_hash": "00a6882ce29b08629a8c73f268723e2c",
     "semantic_hash": ""
   },
   "src/components/workspace.tsx": {
-    "mtime": 1795519445.1445806,
-    "seen": 1795519702.0904138,
-    "ast_hash": "a8c8815c2185ddadd6ca014321eae08f",
+    "mtime": 1795524514.449568,
+    "seen": 1795539214.6574907,
+    "ast_hash": "0c5891d6bbe9122a1ff3ae957a95b6af",
     "semantic_hash": ""
   },
   "src/index.ts": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "src/lib/whatsapp-connection.ts": {
-    "mtime": 1795029120.8480475,
-    "seen": 1795262845.8337858,
-    "ast_hash": "e42f4ce23527394303652f7e1d02b54d",
+    "mtime": 1795524514.453566,
+    "seen": 1795539214.7122579,
+    "ast_hash": "6ec841f5d44c99f6ea8ec047c5af0ef2",
     "semantic_hash": ""
   },
   "tests/address.test.ts": {
@@ -984,9 +984,9 @@
     "semantic_hash": ""
   },
   "tests/whatsapp-connection.test.ts": {
-    "mtime": 1795112559.1646066,
-    "seen": 1795262845.8338287,
-    "ast_hash": "e61a8cb61ceffe1ba0d40672cd21f392",
+    "mtime": 1795524514.456652,
+    "seen": 1795539214.739562,
+    "ast_hash": "f266ffd935f9f8f5739d8573b2080abd",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -1110,15 +1110,15 @@
     "semantic_hash": ""
   },
   ".planning/graphs/GRAPH_REPORT.md": {
-    "mtime": 1795519869.3339462,
-    "seen": 1795521946.3415964,
-    "ast_hash": "a7e3b4e5391ed30110c6a77a7a2d6c30",
+    "mtime": 1795521946.138242,
+    "seen": 1795539214.7408164,
+    "ast_hash": "26b4ea7bf5601fdd2b70fa9dfec4787b",
     "semantic_hash": ""
   },
   ".planning/graphs/graph.html": {
-    "mtime": 1795519870.3867254,
-    "seen": 1795521946.3415995,
-    "ast_hash": "24c724b2879da267d3985efaa164b5e8",
+    "mtime": 1795521946.4239461,
+    "seen": 1795539214.7408276,
+    "ast_hash": "adbcee961624227d4433ecfa7f9680b8",
     "semantic_hash": ""
   },
   "docs/Nexus PTW AI Perfis e Permissoes.pdf": {
@@ -1215,6 +1215,36 @@
     "mtime": 1795521655.8227322,
     "seen": 1795521946.3419213,
     "ast_hash": "111709c75fd0b100702d308945fc501a",
+    "semantic_hash": ""
+  },
+  "db/019-contractor-onboarding.sql": {
+    "mtime": 1795515188.6480615,
+    "seen": 1795539214.5496845,
+    "ast_hash": "ddf5dfe997439c114a2b9b1c7df69d61",
+    "semantic_hash": ""
+  },
+  "db/020-pt-lifecycle.sql": {
+    "mtime": 1795519084.4844882,
+    "seen": 1795539214.5496955,
+    "ast_hash": "a67480d18bc6587ecd0e849ea4187f18",
+    "semantic_hash": ""
+  },
+  "src/lib/api-response.ts": {
+    "mtime": 1795524515.815559,
+    "seen": 1795539214.6586607,
+    "ast_hash": "195c803a4c63bc4ddecd19e3ad7cd8ac",
+    "semantic_hash": ""
+  },
+  "tests/api-response.test.ts": {
+    "mtime": 1795524516.0494502,
+    "seen": 1795539214.7128518,
+    "ast_hash": "41f46daa6a66ca506fc1d8b029394e74",
+    "semantic_hash": ""
+  },
+  "docs/DIAGNOSTICO-OPENWA.md": {
+    "mtime": 1795539156.4442194,
+    "seen": 1795539214.7444186,
+    "ast_hash": "b9b5e1d8ebd982669fa5d16b0a14aa0d",
     "semantic_hash": ""
   },
   "package-lock.json": {
