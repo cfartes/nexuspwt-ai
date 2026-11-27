@@ -1,4 +1,5 @@
 'use client';
+import { fetchApi } from '@/lib/fetchApi';
 import { useState } from 'react';
 import { z } from 'zod';
 
@@ -25,7 +26,7 @@ export default function PasswordRecovery() {
             setError('');
             setMessage('');
             try {
-              const response = await fetch('/api/password-recovery', {
+              const response = await fetchApi('/api/password-recovery', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),

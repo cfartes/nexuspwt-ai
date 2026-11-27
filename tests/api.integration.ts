@@ -1,6 +1,8 @@
 import { ptToday, ptClock } from '../src/lib/pt-calendar';
 import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
+import pg from 'pg';
+import { provisionRuntimeRoles } from '../scripts/runtime-roles.mjs';
 import { readFile } from 'node:fs/promises';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -10,7 +12,44 @@ import { hashPassword, digest } from '../src/lib/security';
 import { decryptSecret, encryptSecret } from '../src/lib/integrations';
 import { aprProfiles, ptProfiles } from '../src/lib/forms';
 import { totp } from '../src/lib/totp';
-const db = await PGlite.create();
+const embedded = await PGlite.create();
+const realDatabase = process.env.TEST_DATABASE_URL
+  ? new pg.Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 3 })
+  : null;
+const db = new Proxy(embedded, {
+  get(target, property) {
+    if (realDatabase && property === 'query') return realDatabase.query.bind(realDatabase);
+    if (realDatabase && property === 'exec') return (sql: string) => realDatabase.query(sql);
+    if (property === 'close')
+      return async () => {
+        await realDatabase?.end();
+        await target.close();
+      };
+    const value = Reflect.get(target, property);
+    return typeof value === 'function' ? value.bind(target) : value;
+  },
+});
+const nativeFetch = globalThis.fetch;
+async function fetch(input: string | URL | Request, options?: RequestInit): Promise<Response> {
+  if (!options?.method || ['GET', 'HEAD', 'OPTIONS'].includes(options.method.toUpperCase()))
+    return nativeFetch(input, options);
+  const currentHeaders = new Headers(options.headers);
+  const csrf = await nativeFetch('http://localhost:3109/api/csrf', {
+    headers: { Cookie: currentHeaders.get('Cookie') || '' },
+  });
+  const csrfPayload = await csrf.json();
+  assert.equal(csrf.status, 200, JSON.stringify(csrfPayload));
+  const { token } = csrfPayload;
+  const headers = new Headers(options.headers);
+  headers.set('X-Nexus-CSRF', token);
+  headers.set(
+    'Cookie',
+    [headers.get('Cookie'), csrf.headers.get('set-cookie')?.split(';')[0]]
+      .filter(Boolean)
+      .join('; '),
+  );
+  return nativeFetch(input, { ...options, headers });
+}
 process.env.INTEGRATIONS_ENCRYPTION_KEY = 'a'.repeat(64);
 await db.exec(await readFile(new URL('../db/001-initial.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/002-integrations.sql', import.meta.url), 'utf8'));
@@ -45,6 +84,17 @@ await db.exec(
 );
 await db.exec(await readFile(new URL('../db/020-pt-lifecycle.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../db/021-password-recovery.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/022-saas-security.sql', import.meta.url), 'utf8'));
+if (realDatabase) {
+  process.env.APP_DATABASE_PASSWORD = 'c'.repeat(64);
+  process.env.WORKER_DATABASE_PASSWORD = 'd'.repeat(64);
+  const provisioning = await realDatabase.connect();
+  try {
+    await provisionRuntimeRoles(provisioning);
+  } finally {
+    provisioning.release();
+  }
+}
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -75,7 +125,10 @@ const server = spawn(
   {
     env: {
       ...process.env,
-      DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/postgres',
+      DATABASE_URL: realDatabase
+        ? `postgresql://nexus_app:${'c'.repeat(64)}@127.0.0.1:5432/ptw_security`
+        : 'postgresql://postgres:postgres@127.0.0.1:55439/postgres',
+      REQUIRE_RESTRICTED_DATABASE: realDatabase ? 'true' : 'false',
       APP_URL: base,
       DB_POOL_SIZE: '1',
       COOKIE_SECURE: 'false',
@@ -140,12 +193,33 @@ try {
       body: body ? JSON.stringify(body) : undefined,
     });
     const json = await r.json();
-    assert.equal(r.status, expected, JSON.stringify(json));
+    const hiddenByRls =
+      realDatabase &&
+      expected === 403 &&
+      r.status === 404 &&
+      /^\/api\/(documents|photos|executor-files|workspace)/.test(path);
+    assert.equal(r.status, hiddenByRls ? 404 : expected, JSON.stringify(json));
     const set = r.headers.get('set-cookie');
     if (set) cookie = set.split(';')[0];
+    // Functional scenarios run faster than human interaction; quota behavior is asserted separately.
+    await db.query('DELETE FROM request_limits');
     return json;
   };
+  const deniedRead = async (path: string): Promise<void> => {
+    const response = await fetch(base + path, { headers: { Cookie: cookie } });
+    assert(
+      [403, 404].includes(response.status),
+      `${path}: esperado acesso negado, recebido HTTP ${response.status}`,
+    );
+  };
   await call('/api/workspace', undefined, 401);
+  const noCsrf = await nativeFetch(base + '/api/auth', {
+    method: 'POST',
+    headers: { Origin: base, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'test@nexus.local', password }),
+  });
+  assert.equal(noCsrf.status, 403);
+  assert.equal((await noCsrf.json()).code, 'CSRF_REQUIRED');
   await call(`/api/audit?context=${unit.id}`, undefined, 401);
   await call(`/api/audit/export?context=${unit.id}&format=xlsx`, undefined, 401);
   await call('/api/auth', { email: 'test@nexus.local', password: 'incorreta' }, 401);
@@ -1002,10 +1076,7 @@ try {
   await call(`/api/workspace?document=${d.id}`, undefined, 403);
   await call(`/api/documents/${d.id}/history`, undefined, 403);
   await call(`/api/documents/${newPt.id}/photos`, undefined, 403);
-  assert.equal(
-    (await fetch(`${base}/api/photos/${otherPhoto}`, { headers: { Cookie: cookie } })).status,
-    403,
-  );
+  await deniedRead(`/api/photos/${otherPhoto}`);
   assert.equal(
     (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
     200,
@@ -1034,10 +1105,7 @@ try {
   cookie = contractorCookie;
   await call(`/api/workspace?unit=${unit.id}`, undefined, 403);
   assert.equal((await call(`/api/workspace?unit=${secondUnit.id}`)).unit.id, secondUnit.id);
-  assert.equal(
-    (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
-    403,
-  );
+  await deniedRead(`/api/photos/${ownPhoto}`);
   cookie = adminCookie;
   person = (await call(`/api/workspace?unit=${unit.id}`)).people.find(
     (p: { id: string }) => p.id === person.id,
@@ -2121,10 +2189,7 @@ try {
   await call(`/api/documents/${d.id}/history`, undefined, 403);
   await call(`/api/documents/${matrixDocument!.id}/history`);
   await call(`/api/documents/${pt.id}/photos`, undefined, 403);
-  assert.equal(
-    (await fetch(`${base}/api/photos/${ownPhoto}`, { headers: { Cookie: cookie } })).status,
-    403,
-  );
+  await deniedRead(`/api/photos/${ownPhoto}`);
   assert.equal((await fetch(`${base}/print/${d.id}`, { headers: { Cookie: cookie } })).status, 404);
   assert.equal(
     (await fetch(`${base}/print/${matrixDocument!.id}`, { headers: { Cookie: cookie } })).status,
@@ -2305,14 +2370,7 @@ try {
     ),
     [otherContact.id],
   );
-  assert.equal(
-    (
-      await fetch(`${base}/api/executor-files/${executorA.files[0].id}`, {
-        headers: { Cookie: cookie },
-      })
-    ).status,
-    403,
-  );
+  await deniedRead(`/api/executor-files/${executorA.files[0].id}`);
   await db.query('UPDATE companies SET approval_mfa_required=true WHERE id=$1', [company.id]);
   cookie = '';
   const challenge = await call('/api/auth', { email: onboardingDetails.email, password });
@@ -2601,6 +2659,16 @@ try {
   });
   assert.equal(recoveredMfaChallenge.mfaRequired, true);
   assert.equal(recoveredMfaChallenge.setupRequired, false, 'MFA existente continua cadastrado');
+  const pageSecurity = await nativeFetch(base);
+  assert(pageSecurity.headers.get('Content-Security-Policy')?.includes("object-src 'none'"));
+  assert.equal(pageSecurity.headers.get('X-Frame-Options'), 'DENY');
+  await db.query(
+    'INSERT INTO request_limits(bucket,attempts) VALUES($1,1200) ON CONFLICT(bucket) DO UPDATE SET attempts=1200,window_at=now()',
+    [digest('global:all')],
+  );
+  const limited = await nativeFetch(base + '/api/csrf');
+  assert.equal(limited.status, 429);
+  assert.match(limited.headers.get('Retry-After') || '', /^\d+$/);
   console.log(
     'Integração OK: APR/PT, integrações, gestão de acessos por unidade, contatos independentes, isolamento de documentos/fotos por terceirizada, desativação sem exclusão, proteção do último administrador e CSRF. Nenhuma chamada a provedores reais.',
   );

@@ -1,4 +1,5 @@
 'use client';
+import { fetchApi } from '@/lib/fetchApi';
 import PasswordInput from './password-input';
 import { useEffect, useState, useRef } from 'react';
 import { MessageCircle, RefreshCw, Save } from 'lucide-react';
@@ -94,7 +95,7 @@ export default function WhatsappSettings({
     setError('');
     setNotice('');
     try {
-      const response = await fetch('/api/whatsapp', {
+      const response = await fetchApi('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { currentUser, unitAccess } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { assertOrigin, HttpError } from '@/lib/security';
 import { uuid } from '@/lib/validation';
 import {
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     assertOrigin(request);
-    const input = integrationSchema.parse(await request.json());
+    const input = integrationSchema.parse(await readJsonBody(request));
     const { user, unit } = await access(input.unitId);
     if (input.service === 'whatsapp' && !user.platform_admin)
       throw new HttpError(403, 'Gateway restrito ao superadmin.');
@@ -142,7 +142,7 @@ export async function PUT(request: Request) {
     const input = z
       .object({ unitId: uuid, version: z.number().int().positive() })
       .strict()
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     const { user, unit } = await access(input.unitId);
     if (!user.platform_admin) throw new HttpError(403, 'Gateway restrito ao superadmin.');
     const {

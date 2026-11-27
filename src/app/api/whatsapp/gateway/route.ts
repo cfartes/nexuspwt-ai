@@ -3,7 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
 import { encryptSecret } from '@/lib/integrations';
 import { openwaBaseUrl } from '@/lib/openwa';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { assertOrigin, HttpError } from '@/lib/security';
 async function superadmin() {
   const user = await currentUser();
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         secret: z.string().trim().max(16000),
       })
       .strict()
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     const base = openwaBaseUrl(input.baseUrl);
     if (
       input.secret &&

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { currentUser, unitAccess } from '@/lib/auth';
 import { transaction } from '@/lib/db';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { assertOrigin } from '@/lib/security';
 import { createInvitation } from '@/lib/invitations';
 export async function POST(request: Request) {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const input = z
       .object({ unitId: z.uuid(), userId: z.uuid() })
       .strict()
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     const user = await currentUser();
     await transaction(async (c) => {
       const unit = await unitAccess(user, input.unitId, ['admin'], c);

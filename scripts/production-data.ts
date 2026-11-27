@@ -8,6 +8,7 @@ import { savePersonCpf } from '../src/lib/personCpf';
 import { aprProfiles, ptProfiles } from '../src/lib/forms';
 
 const businessTables = [
+  'request_limits',
   'password_recoveries',
   'password_recovery_limits',
   'approvals',

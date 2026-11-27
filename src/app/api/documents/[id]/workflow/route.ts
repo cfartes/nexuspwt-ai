@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
 import { assertOrigin, digest, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { uuid, documentSchema, submissionErrors } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { aprResponsibles } from '@/lib/apr-responsibles';
@@ -29,7 +29,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           .regex(/^$|^\d{6}$/)
           .default(''),
       })
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     let proof: Awaited<ReturnType<typeof authenticateDecision>> | undefined;
     if (['approve', 'reject'].includes(input.action)) {
       const {

@@ -7,6 +7,8 @@ Aplicação local, destinada às VPS do projeto. Nenhum serviço foi publicado e
 
 ## Implementado
 
+As proteções de runtime, RLS, CSRF, limites de requisição e instruções de atualização estão em [Segurança SaaS](docs/SEGURANCA-SAAS.md). A migração 022 adiciona as proteções sem reinstalar o banco; abas anteriores à atualização precisam usar o aviso de nova versão para habilitar o token CSRF.
+
 O acompanhamento da implementação e das diretrizes recebidas está em [Implementado](docs/IMPLEMENTADO.md) e [Pendente](docs/PENDENTE.md). Esses registros distinguem os recursos existentes das adequações arquiteturais, de segurança, privacidade e acessibilidade ainda necessárias.
 
 - Next.js, React e TypeScript, interface responsiva em português.

@@ -34,6 +34,8 @@ services:
       BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:?Configure BOOTSTRAP_EMAIL}
       BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:?Configure BOOTSTRAP_PASSWORD}
       BOOTSTRAP_UNIT: Unidade piloto
+      APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:?Configure runtime pelo instalador}
+      WORKER_DATABASE_PASSWORD: ${WORKER_DATABASE_PASSWORD:?Configure runtime pelo instalador}
     networks: [database]
     labels: {traefik.enable: 'false'}
     depends_on:
@@ -48,6 +50,8 @@ services:
     environment:
       <<: *runtime
       COOKIE_SECURE: 'true'
+      DATABASE_URL: ${APP_DATABASE_URL:?Configure runtime pelo instalador}
+      REQUIRE_RESTRICTED_DATABASE: 'true'
     networks: [database, traefik]
     depends_on:
       database: {condition: service_healthy}
@@ -74,7 +78,11 @@ services:
       target: notifications
     restart: unless-stopped
     stop_grace_period: 40s
-    environment: *runtime
+    environment:
+      <<: *runtime
+      DATABASE_URL: ${WORKER_DATABASE_URL:?Configure runtime pelo instalador}
+      DATABASE_CONTEXT: worker
+      REQUIRE_RESTRICTED_DATABASE: 'true'
     networks: [database, egress]
     labels: {traefik.enable: 'false'}
     depends_on:

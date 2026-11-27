@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { db, transaction } from '@/lib/db';
 import { currentUser, unitAccess, assertContractorAccess, assertDocumentRead } from '@/lib/auth';
 import { assertOrigin, digest, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { uuid } from '@/lib/validation';
 const schema = z.object({
   id: uuid,
@@ -22,7 +22,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     uuid.parse(id);
     if (Number(request.headers.get('content-length') || 0) > 7100000)
       throw new HttpError(413, 'Foto muito grande. Limite de 5 MB.');
-    const p = schema.parse(await request.json());
+    const p = schema.parse(await readJsonBody(request));
     const bytes = Buffer.from(p.base64, 'base64');
     if (bytes.length > 5 * 1024 * 1024 || bytes.length < 12)
       throw new HttpError(400, 'Tamanho de imagem inválido.');

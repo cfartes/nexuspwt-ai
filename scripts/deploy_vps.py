@@ -6,6 +6,7 @@ import re
 import secrets
 import subprocess
 import sys
+from urllib.parse import urlsplit, urlunsplit
 import fcntl
 from datetime import datetime, timezone
 
@@ -113,9 +114,28 @@ def main(update_only=False):
             'OPENWA_ALLOWED_ORIGINS': 'https://openwa.187-77-58-10.sslip.io',
             'OPENWA_DEFAULT_URL': 'https://openwa.187-77-58-10.sslip.io/api',
         }
+    runtime_added = False
+    for prefix, username in (('APP', 'nexus_app'), ('WORKER', 'nexus_worker')):
+        secret_key = prefix + '_DATABASE_PASSWORD'
+        url_key = prefix + '_DATABASE_URL'
+        if bool(existing.get(secret_key)) != bool(existing.get(url_key)):
+            raise ValueError('Credencial de runtime incompleta; nenhuma senha será regenerada.')
+        if not existing.get(secret_key):
+            runtime_password = secrets.token_hex(32)
+            parsed_database = urlsplit(existing['DATABASE_URL'])
+            if not parsed_database.hostname or not parsed_database.path:
+                raise ValueError('DATABASE_URL inválida para provisionar runtime.')
+            hostname = parsed_database.hostname
+            if ':' in hostname:
+                hostname = '[' + hostname + ']'
+            authority = f'{username}:{runtime_password}@{hostname}:{parsed_database.port or 5432}'
+            existing[secret_key] = runtime_password
+            existing[url_key] = urlunsplit((parsed_database.scheme, authority, parsed_database.path, parsed_database.query, ''))
+            runtime_added = True
     if not update_only:
         existing.update(config)
         existing['APP_URL'] = 'https://nexusptw.nexusdataanalytics.tech'
+    if not update_only or runtime_added:
         temp = ENV.with_suffix('.tmp')
         with temp.open('w', encoding='utf-8') as file:
             file.write(''.join(f'{key}={value}\n' for key, value in existing.items()))

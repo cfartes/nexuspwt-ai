@@ -1,4 +1,5 @@
 'use client';
+import { fetchApi } from '@/lib/fetchApi';
 import { useEffect, useRef, useState } from 'react';
 import { contractorDetails } from '@/lib/contractors';
 import type { ContractorRegistrationData } from '@/lib/contractorRegistration';
@@ -19,7 +20,7 @@ type RegistrationView = {
 };
 type Employee = { name: string; cpf: string; email: string; phone: string; role: ContractorRole };
 async function registrationRequest<T>(body: object): Promise<T> {
-  const response = await fetch('/api/contractor-registration', {
+  const response = await fetchApi('/api/contractor-registration', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

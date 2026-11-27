@@ -3,7 +3,7 @@ import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
 import { uuid } from '@/lib/validation';
 import { assertOrigin, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 
 export async function GET(request: Request) {
   try {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const input = z
       .object({ id: uuid, unitId: uuid, confirmDuplicateRisk: z.boolean().default(false) })
       .strict()
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     const unit = await unitAccess(user, input.unitId, ['admin', 'gestor']);
     await transaction(async (c) => {
       const {

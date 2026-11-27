@@ -2,6 +2,14 @@
 
 Atualizado em 27/11/2026. Este arquivo reúne trabalho ainda não concluído; não é um laudo de segurança.
 
+## Segurança SaaS — homologação e evolução
+
+- Aplicar a migração 022 pelo atualizador e homologar app/worker com as novas credenciais na VPS, sem expor os arquivos de ambiente. Preservar a credencial administrativa para backup/restauração e rollback.
+- Recarregar abas antigas pelo aviso do app para habilitar CSRF; não apagar IndexedDB, rascunhos ou filas. Validar envios offline após atualização.
+- Medir os limites globais/por sessão sob carga real e configurar limite por IP no proxy de entrada com confiança explícita nos proxies. O app não confia em X-Forwarded-For arbitrário.
+- Expandir RLS aos cadastros restantes e aos fluxos públicos de autenticação/convite com contratos específicos. A migração 022 protege sete tabelas sensíveis; não é cobertura universal de todas as tabelas.
+- Substituir permissões inline da CSP por nonces em uma mudança específica do rendering Next.js. Homologar navegador/celular e obter revisão independente antes de expansão ampla.
+
 ## Recuperação de senha
 
 - Aplicar a migração 021 e atualizar app/worker pelo atualizador da VPS. Homologar **Esqueci minha senha**, entrega real pelo Resend, abertura do link em celular, nova senha e login com MFA quando exigido.
@@ -16,8 +24,8 @@ Atualizado em 27/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 - Melhorar a separação entre transporte, regras de negócio e acesso a dados dentro da stack atual, somente nos escopos autorizados, sem refatoração geral como efeito colateral.
 - Manter lint completo, typecheck e testes aprovados nas próximas alterações. Os diagnósticos do GTS foram corrigidos em 19/11/2026, sem desativar regras; o detalhamento está em `IMPLEMENTADO.md`.
 - Revisar contratos explícitos de API, tipagem, nomes, tratamento de erros e casts contra as novas regras. As rotas atuais ainda possuem consultas e lógica incompatíveis com a separação exigida.
-- Implementar e validar RLS/FORCE RLS, papéis de runtime sem privilégios de superusuário/BYPASSRLS e escopo de empresa por transação. O código atual não contém essas policies; autorização na API não substitui essa adequação.
-- Complementar a proteção de origem existente com token CSRF separado, conforme as diretrizes, preservando os fluxos web e offline.
+- RLS/FORCE e roles restritas foram implementados nas tabelas descritas em `SEGURANCA-SAAS.md`; completar a cobertura restante e a homologação em produção.
+- Token CSRF separado foi implementado, preservando os fluxos web e offline; homologar clientes antigos/atualização e dispositivos reais.
 - Revisar limites persistentes por IP/identidade, confiança nos proxies, CSP e cabeçalhos, segredos, dependências e automações de segurança. Não importar resultados, versões ou exceções históricas do RotaFY como evidência deste projeto.
 - Adaptar política de privacidade, termos, canais de direitos dos titulares, finalidades de coleta e compartilhamentos ao Nexus PTW. Textos e condições comerciais de turismo não devem ser copiados como se fossem aplicáveis ao produto de segurança do trabalho.
 - Validar acessibilidade automatizada e manual, navegação por teclado, leitores de tela, contraste, diálogos e dispositivos reais. Ferramentas adicionais seguem a regra de autorização prévia.
@@ -35,7 +43,7 @@ Atualizado em 27/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 
 Homologar na VPS a migração 020 e o ciclo de PT (aprovação interna, foto de conclusão, encerramento, reabertura e prorrogação no mesmo dia), incluindo os avisos reais e as telas em celular. A integração de assinaturas e liberação operacional formal permanecem pendentes; os documentos do piloto preservam o aviso correspondente.
 
-Os testes legados `test_update_preserves_environment_and_never_recreates_database` e `test_existing_credentials_preserved_and_migration_precedes_workers` em `deploy_vps_test.py` ainda assumem o fluxo anterior ao deploy online. Em Linux falham pelos mocks/imports antigos; precisam ser adequados ao `RollingDeployment`. O teste específico da nova senha gerada pelo instalador passou. Homologar também os botões de visualizar senha no navegador/celular; nenhuma atualização foi executada na VPS nesta alteração.
+Os testes de instalação foram adaptados ao `RollingDeployment` e à geração das credenciais restritas; 14 testes Python passaram em Linux, incluindo preservação das credenciais, proteção do banco e retorno da candidata. Homologar também os botões de visualizar senha no navegador/celular; nenhuma atualização foi executada na VPS nesta alteração.
 
 - Aplicar a migração 019 e atualizar app/worker na VPS pelo atualizador existente.
 - Validar e-mails reais de cadastro, devolução e senha, além dos avisos por WhatsApp após aprovação. Nenhum provedor real foi acionado nos testes automatizados.

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
 import { assertOrigin, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import {
   inviteContractor,
   registrationAccess,
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
           })
           .strict(),
       ])
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     await transaction(async (client) => {
       if (input.action === 'invite')
         return inviteContractor(client, actor, input.unitId, input.email);

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { currentUser, unitAccess } from '@/lib/auth';
 import { transaction } from '@/lib/db';
 import { assertOrigin, hashPassword, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { uuid } from '@/lib/validation';
 import { aprProfiles, ptProfiles } from '@/lib/forms';
 import { saveMembership } from '@/lib/memberships';
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
   try {
     assertOrigin(request);
     const user = await currentUser();
-    const input = schema.parse(await request.json());
+    const input = schema.parse(await readJsonBody(request));
     const unit = await unitAccess(user, input.unitId, ['admin']);
     if (['contractor', 'linkContractor'].includes(input.action) && !user.platform_admin)
       throw new HttpError(

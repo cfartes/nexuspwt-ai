@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { randomBytes, scryptSync } from 'node:crypto';
 import pg from 'pg';
+import { provisionRuntimeRoles } from './runtime-roles.mjs';
 if (!process.env.DATABASE_URL) throw new Error('Configure DATABASE_URL em .env.local');
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
@@ -49,6 +50,7 @@ try {
     } else console.log('Administrador já existe; credenciais preservadas.');
   }
   await db.query('COMMIT');
+  await provisionRuntimeRoles(db);
   console.log('Banco atualizado.');
 } catch (e) {
   await db.query('ROLLBACK');

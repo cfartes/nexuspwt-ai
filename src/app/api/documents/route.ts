@@ -1,7 +1,7 @@
 import { currentUser, unitAccess, assertContractorAccess } from '@/lib/auth';
 import { transaction } from '@/lib/db';
 import { assertOrigin, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { documentSchema } from '@/lib/validation';
 import { isDeepStrictEqual } from 'node:util';
 import { aprResponsibles } from '@/lib/apr-responsibles';
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     assertOrigin(request);
     const user = await currentUser();
-    const d = documentSchema.parse(await request.json());
+    const d = documentSchema.parse(await readJsonBody(request));
     const result = await transaction(async (c) => {
       // Keep deletion/access changes from invalidating associations while a document is saved.
       await c.query('SELECT id FROM units WHERE id=$1 FOR KEY SHARE', [d.unitId]);
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       const {
         rows: [existing],
       } = await c.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [d.id]);
+      if (!existing && d.version > 0) throw new HttpError(403, 'Documento indisponível.');
       if (existing && existing.unit_id !== unit.id)
         throw new HttpError(403, 'Documento indisponível.');
       if (existing?.removed_at)

@@ -18,32 +18,30 @@ export default async function PrintPage({
   if (!user) redirect('/');
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
+  const requestedVersion = (await searchParams).version;
+  const requestedNumber = requestedVersion === undefined ? null : Number(requestedVersion);
+  if (requestedNumber !== null && (!Number.isSafeInteger(requestedNumber) || requestedNumber < 1))
+    notFound();
   const {
-    rows: [doc],
-  } = await db.query(
-    'SELECT d.*,c.name contractor,u.name unit,c2.name company FROM documents d JOIN contractors c ON c.id=d.contractor_id JOIN units u ON u.id=d.unit_id JOIN companies c2 ON c2.id=d.company_id WHERE d.id=$1',
-    [id],
-  );
+    rows: [printed],
+  } = await db.query<{
+    payload:
+      | (DocumentRow & {
+          current_version: number;
+          removed_at: string | null;
+          contractor: string;
+          unit: string;
+          company: string;
+        })
+      | null;
+  }>('SELECT ptw_print_document($1,$2) payload', [id, requestedNumber]);
+  const doc = printed?.payload;
   if (!doc) notFound();
   const unit = await unitAccess(user, doc.unit_id).catch(() => null);
   if (!unit) notFound();
-  const requestedVersion = (await searchParams).version;
-  const version = requestedVersion === undefined ? doc.version : Number(requestedVersion);
-  if (!Number.isSafeInteger(version) || version < 1) notFound();
-  const {
-    rows: [archived],
-  } = await db.query('SELECT snapshot FROM document_versions WHERE document_id=$1 AND version=$2', [
-    id,
-    version,
-  ]);
-  if (!archived && version !== doc.version) notFound();
-  const historical = version !== doc.version;
-  const d = {
-    ...doc,
-    ...(archived?.snapshot || {}),
-    starts_at: archived?.snapshot.starts_at || doc.starts_at.toISOString(),
-    ends_at: archived?.snapshot.ends_at || doc.ends_at.toISOString(),
-  } as DocumentRow & { contractor: string; unit: string; company: string };
+  const version = doc.version;
+  const historical = version !== doc.current_version;
+  const d = doc;
   try {
     assertContractorAccess(unit, d.contractor_id);
   } catch {

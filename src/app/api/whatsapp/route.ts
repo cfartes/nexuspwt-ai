@@ -1,6 +1,6 @@
 import { currentUser, unitAccess } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { assertOrigin, HttpError } from '@/lib/security';
 import { companyManager } from '@/lib/permissions';
 import { uuid } from '@/lib/validation';
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     assertOrigin(request);
-    const input = connectionInput.parse(await request.json());
+    const input = connectionInput.parse(await readJsonBody(request));
     const user = await currentUser();
     const result = await transaction(async (c) => {
       const unit = await unitAccess(user, input.unitId, ['admin'], c);

@@ -1,4 +1,5 @@
 'use client';
+import { fetchApi } from '@/lib/fetchApi';
 import PasswordInput from './password-input';
 import { readApiJson } from '@/lib/api-response';
 import { ptToday, ptAprError, ptCreationError } from '@/lib/pt-calendar';
@@ -53,7 +54,7 @@ export type Tab =
   | 'identity'
   | RegistrationTab;
 export async function api(path: string, body?: unknown, method?: string) {
-  const response = await fetch(path, {
+  const response = await fetchApi(path, {
     method: method || (body ? 'POST' : 'GET'),
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,

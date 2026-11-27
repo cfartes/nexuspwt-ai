@@ -13,7 +13,7 @@ await test('auditoria exclusiva da empresa: isolamento, filtros, paginação e p
   const files = (await readdir(new URL('../db/', import.meta.url)))
     .filter((f) => f.endsWith('.sql'))
     .sort();
-  for (const file of files.filter((f) => !f.startsWith('015-')))
+  for (const file of files.filter((f) => !f.startsWith('015-') && !f.startsWith('022-')))
     await embedded.exec(await readFile(new URL('../db/' + file, import.meta.url), 'utf8'));
   const { rows: companies } = await embedded.query<{ id: string }>(
     "INSERT INTO companies(name) VALUES('A'),('B') RETURNING id",
@@ -51,6 +51,9 @@ await test('auditoria exclusiva da empresa: isolamento, filtros, paginação e p
   const migration = await readFile(new URL('../db/015-company-audit.sql', import.meta.url), 'utf8');
   await embedded.exec(migration);
   await embedded.exec(migration);
+  await embedded.exec(
+    await readFile(new URL('../db/022-saas-security.sql', import.meta.url), 'utf8'),
+  );
   const socket = new PGLiteSocketServer({
     db: embedded,
     host: '127.0.0.1',

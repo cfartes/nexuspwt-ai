@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { db, transaction } from '@/lib/db';
 import { assertOrigin, digest, hashPassword, verifyPassword, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { requiresLoginMfa } from '@/lib/session-security';
 import { authenticateDecision } from '@/lib/approval-security';
 import { newTotpSecret } from '@/lib/totp';
@@ -26,8 +26,9 @@ export async function POST(request: Request) {
           .default(''),
         enroll: z.boolean().default(false),
       })
-      .parse(await request.json());
+      .parse(await readJsonBody(request));
     const user = await transaction(async (c) => {
+      await c.query("DELETE FROM login_attempts WHERE window_at<now()-interval '1 day'");
       await c.query('INSERT INTO login_attempts(email) VALUES($1) ON CONFLICT DO NOTHING', [email]);
       const {
         rows: [attempt],

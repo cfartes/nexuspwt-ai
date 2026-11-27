@@ -1,4 +1,5 @@
 'use client';
+import { fetchApi } from '@/lib/fetchApi';
 import PasswordInput from './password-input';
 import { passwordHint, passwordPattern } from '@/lib/password-policy';
 import { useEffect, useState, useRef } from 'react';
@@ -81,7 +82,7 @@ export default function DefinePassword({ recovery = false }: { recovery?: boolea
               setBusy(true);
               let passwordDefined = false;
               try {
-                const response = await fetch(
+                const response = await fetchApi(
                   recovery ? '/api/password-recovery/confirm' : '/api/invitations/accept',
                   {
                     method: 'POST',
@@ -105,7 +106,7 @@ export default function DefinePassword({ recovery = false }: { recovery?: boolea
                 const accountInfo = { email: result.email, unitId: result.unitId };
                 setAccount({ ...accountInfo, mfa: false, setup: false });
                 passwordDefined = true;
-                const login = await fetch('/api/auth', {
+                const login = await fetchApi('/api/auth', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ email: accountInfo.email, password }),

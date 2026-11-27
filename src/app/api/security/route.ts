@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { currentUser, unitAccess } from '@/lib/auth';
 import { db, transaction } from '@/lib/db';
 import { assertOrigin, HttpError } from '@/lib/security';
-import { apiError } from '@/lib/http';
+import { apiError, readJsonBody } from '@/lib/http';
 import { encryptSecret } from '@/lib/integrations';
 import { newTotpSecret } from '@/lib/totp';
 import { totpQrCode } from '@/lib/totp-qr';
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   try {
     assertOrigin(request);
     const user = await currentUser();
-    const input = schema.parse(await request.json());
+    const input = schema.parse(await readJsonBody(request));
     const admin = ['policy', 'verify', 'reset'].includes(input.action);
     const unit = await unitAccess(user, input.unitId, admin ? ['admin'] : undefined);
     if (['policy', 'reset'].includes(input.action) && !companyManager(user, unit))

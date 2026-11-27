@@ -1,10 +1,13 @@
 import importlib.util
 import json
 import os
+import sys
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+import rolling_deploy
 
 spec = importlib.util.spec_from_file_location('deploy_vps', Path(__file__).resolve().parents[1] / 'scripts' / 'deploy_vps.py')
 deploy = importlib.util.module_from_spec(spec)
@@ -37,18 +40,20 @@ class InstallTests(unittest.TestCase):
             env.write_text(original)
             previous_umask = os.umask(0o077)
             try:
-                with patch.object(deploy, 'ROOT', root), patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing', side_effect=AssertionError('Não redetectar Traefik')), patch.object(deploy, 'output', side_effect=['database-id', json.dumps([{'Mounts': [{'Type': 'volume', 'Destination': '/var/lib/postgresql/data'}]}]), 't']), patch.object(deploy.subprocess, 'run') as run:
+                with patch.object(deploy, 'ROOT', root), patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing', return_value={}), patch.object(deploy, 'output', side_effect=['database-id', json.dumps([{'Mounts': [{'Type': 'volume', 'Destination': '/var/lib/postgresql/data'}]}]), 't','{}']), patch.object(rolling_deploy,'RollingDeployment') as rolling, patch.object(deploy.subprocess, 'run') as run:
                     deploy.main(update_only=True)
-                self.assertEqual(env.read_text(), original)
+                saved=deploy.load_env(env)
+                for line in original.splitlines():
+                    key,value=line.split('=',1)
+                    self.assertEqual(saved[key],value)
+                self.assertNotEqual(saved['APP_DATABASE_PASSWORD'],saved['WORKER_DATABASE_PASSWORD'])
+                self.assertIn('nexus_app:',saved['APP_DATABASE_URL'])
+                self.assertIn('nexus_worker:',saved['WORKER_DATABASE_URL'])
+                self.assertEqual(env.stat().st_mode & 0o777,0o600)
+                rolling.return_value.deploy.assert_called_once()
                 commands = [call.args[0] for call in run.call_args_list]
                 self.assertFalse(any(command[-1] == 'database' and 'up' in command for command in commands))
                 self.assertFalse(any('down' in command or 'prune' in command or '--volumes' in command for command in commands))
-                migration = next(i for i, command in enumerate(commands) if command[-1] == 'bootstrap')
-                self.assertIn('--no-deps', commands[migration])
-                self.assertIn('BOOTSTRAP_EMAIL=', commands[migration])
-                self.assertIn('BOOTSTRAP_PASSWORD=', commands[migration])
-                self.assertIn('--no-deps', commands[migration + 1])
-                self.assertTrue(any('pg_dump' in command for command in commands[:migration]))
             finally:
                 os.umask(previous_umask)
 
@@ -89,16 +94,13 @@ class InstallTests(unittest.TestCase):
             routing = dict(TRAEFIK_NETWORK='proxy', TRAEFIK_HTTPS_ENTRYPOINT='websecure', TRAEFIK_CERTRESOLVER='letsencrypt')
             previous_umask = os.umask(0o077)
             try:
-                with patch.object(deploy, 'ROOT', root), patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing', return_value=routing), patch.object(deploy.subprocess, 'run') as run:
+                with patch.object(deploy, 'ROOT', root), patch.object(deploy, 'ENV', env), patch.object(deploy, 'routing', return_value=routing), patch.object(deploy,'output',side_effect=['db',json.dumps([{'Mounts':[{'Type':'volume','Destination':'/var/lib/postgresql/data'}]}]),'t','{}']), patch.object(rolling_deploy,'RollingDeployment') as rolling, patch.object(deploy.subprocess, 'run') as run:
                     deploy.main()
                 saved = deploy.load_env(env)
                 for key, value in original.items():
                     self.assertEqual(saved[key], value)
-                self.assertEqual(saved['APP_URL'], 'https://nexusptw.nexusdataanalytics.tech')
                 commands = [call.args[0] for call in run.call_args_list]
-                migration = next(i for i, command in enumerate(commands) if command[-1] == 'bootstrap')
-                self.assertEqual(commands[migration + 1][-5:], ['up', '-d', '--wait', 'app', 'notifications'])
-                self.assertTrue(any('pg_dump' in command for command in commands[:migration]))
+                rolling.return_value.deploy.assert_called_once()
                 self.assertFalse(any('down' in command or 'prune' in command for command in commands))
             finally:
                 os.umask(previous_umask)

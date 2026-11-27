@@ -2,6 +2,12 @@
 
 Atualizado em 27/11/2026. Este registro distingue implementação e validação local de confirmações de produção informadas pelo responsável.
 
+## Segurança para ampliação do SaaS — 27/11/2026
+
+Separação de roles app/worker/migração, RLS/FORCE nos documentos, fotos, versões, aprovações, auditoria e arquivos pessoais, contexto de sessão por conexão, CSRF centralizado e frontend adaptado, orçamentos persistentes de requisições, limite de leitura JSON e cabeçalhos CSP/HSTS. Detalhes, implantação e limites em `SEGURANCA-SAAS.md`. Nenhuma dependência adicionada. Homologação na VPS e controles adicionais constam em `PENDENTE.md`.
+
+Validação local isolada: 54 testes Node, 14 testes Python de implantação, lint sem avisos/erros, TypeScript, build de produção e integração HTTP aprovados. O fluxo HTTP completo também passou com PostgreSQL 17 real e `nexus_app`; o worker foi testado separadamente com `nexus_worker`, sem acionar provedores. Foram preservados os cenários de impressão de revisões antigas e acesso ao histórico. Testes específicos rejeitam troca de empresa/contratada sem filtros, uso de hash armazenado como prova de sessão, DDL/TRUNCATE, acesso do worker a senhas/documentos pessoais e alteração de hashes de convite/recuperação. Nenhuma alteração foi aplicada na VPS.
+
 ## Recuperação de senha — 27/11/2026
 
 - Link **Esqueci minha senha** no login, solicitação por e-mail e formulário para nova senha/confirmar senha, ambos com visualizar/ocultar.
