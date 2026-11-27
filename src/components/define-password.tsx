@@ -3,7 +3,13 @@ import PasswordInput from './password-input';
 import { passwordHint, passwordPattern } from '@/lib/password-policy';
 import { useEffect, useState, useRef } from 'react';
 import { Login } from './workspace';
-export default function DefinePassword() {
+import { z } from 'zod';
+const passwordResponse = z.object({
+  email: z.email().optional(),
+  unitId: z.uuid().optional(),
+  error: z.string().optional(),
+});
+export default function DefinePassword({ recovery = false }: { recovery?: boolean }) {
   const [token, setToken] = useState(''),
     [password, setPassword] = useState(''),
     [confirmation, setConfirmation] = useState(''),
@@ -24,8 +30,12 @@ export default function DefinePassword() {
     setToken(value);
     window.history.replaceState(null, '', window.location.pathname);
     if (!/^[a-f\d]{64}$/.test(value))
-      setError('Convite inválido. Abra o link recebido por e-mail ou WhatsApp.');
-  }, []);
+      setError(
+        recovery
+          ? 'Link inválido. Solicite um novo em Esqueci minha senha.'
+          : 'Convite inválido. Abra o link recebido por e-mail ou WhatsApp.',
+      );
+  }, [recovery]);
   if (done && account)
     return (
       <Login
@@ -45,8 +55,8 @@ export default function DefinePassword() {
       <section className="card">
         <div className="card-heading">
           <div>
-            <h1>Defina sua senha</h1>
-            <p>Nexus PTW · Primeiro acesso</p>
+            <h1>{recovery ? 'Redefina sua senha' : 'Defina sua senha'}</h1>
+            <p>Nexus PTW · {recovery ? 'Recuperação de acesso' : 'Primeiro acesso'}</p>
           </div>
         </div>
         {done ? (
@@ -71,19 +81,28 @@ export default function DefinePassword() {
               setBusy(true);
               let passwordDefined = false;
               try {
-                const response = await fetch('/api/invitations/accept', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ token, password }),
-                  signal: AbortSignal.timeout(20000),
-                });
-                const result: { email: string; unitId: string; error?: string } =
-                  await response.json();
+                const response = await fetch(
+                  recovery ? '/api/password-recovery/confirm' : '/api/invitations/accept',
+                  {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, password }),
+                    signal: AbortSignal.timeout(20000),
+                  },
+                );
+                const result = passwordResponse.parse(await response.json());
                 if (!response.ok)
                   throw new Error(result.error || 'Não foi possível definir a senha.');
                 setToken('');
                 setConfirmation('');
-                const accountInfo: { email: string; unitId: string } = result;
+                if (recovery) {
+                  setPassword('');
+                  setDone(true);
+                  return;
+                }
+                if (!result.email || !result.unitId)
+                  throw new Error('Senha definida. Entre no app para continuar.');
+                const accountInfo = { email: result.email, unitId: result.unitId };
                 setAccount({ ...accountInfo, mfa: false, setup: false });
                 passwordDefined = true;
                 const login = await fetch('/api/auth', {
@@ -119,7 +138,12 @@ export default function DefinePassword() {
                 {error}
               </div>
             )}
-            <p className="muted">O convite vale por 24 horas e só pode ser utilizado uma vez.</p>
+            <p className="muted">
+              {recovery
+                ? 'O link vale por uma hora e só pode ser utilizado uma vez. Ao redefinir, suas sessões serão encerradas. O autenticador permanece configurado.'
+                : 'O convite vale por 24 horas e só pode ser utilizado uma vez.'}
+            </p>
+            {recovery && <a href="/recuperar-senha">Solicitar outro link</a>}
             <p className="muted">{passwordHint}</p>
             <fieldset className="form-grid" disabled={busy || !token}>
               <label className="span-2">

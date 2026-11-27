@@ -1,5 +1,6 @@
 ﻿export const auditActionLabels: Record<string, string> = {
   'cadastro.company': 'Empresa cadastrada',
+  'usuario.senha_recuperada': 'Senha recuperada pelo usuário',
   'contratada.convite_cadastro': 'Link de cadastro da contratada solicitado',
   'contratada.convite_reenviado': 'Link de cadastro da contratada reenviado',
   'contratada.cadastro_enviado': 'Contratada enviou cadastro para conferência',

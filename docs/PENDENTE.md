@@ -1,11 +1,16 @@
 # Nexus PTW — pendências
 
-Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; não é um laudo de segurança.
+Atualizado em 27/11/2026. Este arquivo reúne trabalho ainda não concluído; não é um laudo de segurança.
+
+## Recuperação de senha
+
+- Aplicar a migração 021 e atualizar app/worker pelo atualizador da VPS. Homologar **Esqueci minha senha**, entrega real pelo Resend, abertura do link em celular, nova senha e login com MFA quando exigido.
+- Recuperação é por e-mail. Perda do autenticador continua no fluxo assistido existente; redefinir senha não remove MFA.
+- O teto global de cem solicitações por quinze minutos é adequado ao MVP e precisa ser revisto ao ampliar o número de clientes; sob abuso, novas solicitações aguardam a próxima janela.
 
 ## Adequação às diretrizes de C:\Projetos
 
-- Validar a primeira adoção do deploy blue/green na VPS real, incluindo Traefik/HTTPS, capacidade para duas instâncias e espaço para backups/bundles. A implementação não substitui alta disponibilidade de PostgreSQL ou da própria VPS. Abas anteriores à instalação do detector precisam ser recarregadas uma vez.
-- Confirmar na VPS a correção da falha `No such image: sha256:…` na preservação de bundles: o atualizador agora lê arquivos do container ativo e usa tags próprias para as imagens candidatas, sem executar imagens antigas por SHA interno.
+- Atualização sem interrupção validada em produção pelo responsável em 27/11/2026. Manter monitoramento de capacidade e backups; testes de restauração e alta disponibilidade são assuntos independentes.
 
 - A migração para Python/FastAPI/SQLAlchemy/Alembic foi descartada pelo responsável pelo projeto. Manter Next.js/TypeScript, Zod, `pg`, PostgreSQL e migrações SQL incrementais. Não há pendência de substituir o backend ou reorganizar toda a aplicação para seguir a estrutura Python genérica.
 - Melhorar a separação entre transporte, regras de negócio e acesso a dados dentro da stack atual, somente nos escopos autorizados, sem refatoração geral como efeito colateral.
@@ -16,7 +21,7 @@ Atualizado em 19/11/2026. Este arquivo reúne trabalho ainda não concluído; n�
 - Revisar limites persistentes por IP/identidade, confiança nos proxies, CSP e cabeçalhos, segredos, dependências e automações de segurança. Não importar resultados, versões ou exceções históricas do RotaFY como evidência deste projeto.
 - Adaptar política de privacidade, termos, canais de direitos dos titulares, finalidades de coleta e compartilhamentos ao Nexus PTW. Textos e condições comerciais de turismo não devem ser copiados como se fossem aplicáveis ao produto de segurança do trabalho.
 - Validar acessibilidade automatizada e manual, navegação por teclado, leitores de tela, contraste, diálogos e dispositivos reais. Ferramentas adicionais seguem a regra de autorização prévia.
-- Consultar o modelo de implantação em `C:\RotaFY` e planejar atualização com continuidade de uso. O atualizador atual pausa app/worker durante parte da atualização; não foi estabelecida implantação sem interrupção.
+- Preservar o modelo de deploy online existente em novas migrações e alterações; não retornar ao fluxo antigo que interrompia o app.
 
 ## Produto e operação
 

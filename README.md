@@ -40,7 +40,13 @@ Requer Node.js 24 e PostgreSQL 17. O Docker instalado nesta estação estava sem
 
 Não há senha padrão, conta pública ou demonstração com dados simulados no aplicativo.
 
-Os cadastros possuem menus próprios: **Empresas**, **Regionais**, **Unidades**, **Terceirizadas**, **Pessoas e acessos** e **Aprovadores**, com listagem e botão **Novo cadastro**. Empresas é exclusivo do superadmin. Administradores consultam as unidades e regionais da empresa ativa; terceirizadas, usuários e aprovadores seguem o contexto da unidade. As listas de empresas, regionais, unidades e terceirizadas possuem busca e contagem. Em Pessoas, o formulário permite criar usuário ou vincular uma conta existente. Para aproveitar aprovador regional, crie uma regional e uma unidade nessa regional, dê acesso ao aprovador e atribua o perfil regional. Integrações permanecem em Configurações. Convites de primeiro acesso estão disponíveis para todos os novos usuários; recuperação de senha de contas ativas ainda não está implementada.
+Os cadastros possuem menus próprios: **Empresas**, **Regionais**, **Unidades**, **Terceirizadas**, **Pessoas e acessos** e **Aprovadores**, com listagem e botão **Novo cadastro**. Empresas é exclusivo do superadmin. Administradores consultam as unidades e regionais da empresa ativa; terceirizadas, usuários e aprovadores seguem o contexto da unidade. As listas de empresas, regionais, unidades e terceirizadas possuem busca e contagem. Em Pessoas, o formulário permite criar usuário ou vincular uma conta existente. Para aproveitar aprovador regional, crie uma regional e uma unidade nessa regional, dê acesso ao aprovador e atribua o perfil regional. Integrações permanecem em Configurações. Convites de primeiro acesso estão disponíveis para todos os novos usuários; contas com senha definida podem usar Esqueci minha senha no login.
+
+## Recuperação de senha
+
+No login, **Esqueci minha senha** envia um link ao e-mail cadastrado pelo Resend já configurado. O link vale por uma hora, só funciona uma vez e é substituído por novo pedido aceito. A nova senha exige oito caracteres, uma letra maiúscula e um símbolo. Todas as sessões são encerradas; MFA, acessos e documentos são preservados. Contas pendentes de primeiro acesso continuam usando seus convites.
+
+A migração `021-password-recovery.sql` é aplicada pelo atualizador online existente, sem reinstalar o banco. O serviço `notifications` precisa estar atualizado e executando, com Resend e `APP_URL` HTTPS público configurados. O endpoint responde sem revelar se o e-mail existe; há limites persistentes por endereço e globais. Não há envio de recuperação por WhatsApp.
 
 ## Convite de primeiro acesso para usuários
 

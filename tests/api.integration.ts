@@ -44,6 +44,7 @@ await db.exec(
   await readFile(new URL('../db/018-identity-upload-policy.sql', import.meta.url), 'utf8'),
 );
 await db.exec(await readFile(new URL('../db/020-pt-lifecycle.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../db/021-password-recovery.sql', import.meta.url), 'utf8'));
 const {
   rows: [company],
 } = await db.query<{ id: string }>("INSERT INTO companies(name) VALUES('Ambev') RETURNING id");
@@ -2532,6 +2533,74 @@ try {
   });
   assert.equal(publicApproved.status, 'approved');
   assert.equal(publicApproved.data, null);
+  cookie = '';
+  const deniedRecovery = await fetch(base + '/api/password-recovery', {
+    method: 'POST',
+    headers: { Origin: 'https://foreign.example', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'test@nexus.local' }),
+  });
+  assert.equal(deniedRecovery.status, 403);
+  const recoverySent = await call('/api/password-recovery', { email: 'test@nexus.local' });
+  const recoveryUnknown = await call('/api/password-recovery', { email: 'unknown@example.com' });
+  assert.deepEqual(
+    recoverySent,
+    recoveryUnknown,
+    'Resposta pública não revela a existência da conta',
+  );
+  const recoveryPage = await fetch(base + '/recuperar-senha');
+  assert((await recoveryPage.text()).includes('Enviar link de recuperação'));
+  const confirmationPage = await fetch(base + '/recuperar-senha?confirmar=1');
+  assert((await confirmationPage.text()).includes('Redefina sua senha'));
+  const {
+    rows: [recoveryRow],
+  } = await db.query<{ id: string; token_ciphertext: string }>(
+    'SELECT id,token_ciphertext FROM password_recoveries WHERE user_id=$1 AND consumed_at IS NULL',
+    [user.id],
+  );
+  const recoveryToken = decryptSecret(
+    recoveryRow.token_ciphertext,
+    recoveryRow.id,
+    'password-recovery',
+  );
+  await call('/api/password-recovery/confirm', { token: recoveryToken, password: 'fraca' }, 400);
+  const replacementPassword = 'NovaSenha!' + randomUUID();
+  await call('/api/password-recovery/confirm', {
+    token: recoveryToken,
+    password: replacementPassword,
+  });
+  await call(
+    '/api/password-recovery/confirm',
+    { token: recoveryToken, password: replacementPassword },
+    400,
+  );
+  await call('/api/auth', { email: 'test@nexus.local', password }, 401);
+  await call('/api/auth', { email: 'test@nexus.local', password: replacementPassword });
+  const securitySnapshot = (
+    await db.query('SELECT * FROM user_security WHERE user_id=$1', [matrixUsers.gestor])
+  ).rows;
+  await db.query('UPDATE companies SET approval_mfa_required=true WHERE id=$1', [company.id]);
+  cookie = '';
+  await call('/api/password-recovery', { email: 'matrix-gestor@example.com' });
+  const {
+    rows: [mfaRecovery],
+  } = await db.query<{ id: string; token_ciphertext: string }>(
+    'SELECT id,token_ciphertext FROM password_recoveries WHERE user_id=$1 AND consumed_at IS NULL',
+    [matrixUsers.gestor],
+  );
+  await call('/api/password-recovery/confirm', {
+    token: decryptSecret(mfaRecovery.token_ciphertext, mfaRecovery.id, 'password-recovery'),
+    password: replacementPassword,
+  });
+  assert.deepEqual(
+    (await db.query('SELECT * FROM user_security WHERE user_id=$1', [matrixUsers.gestor])).rows,
+    securitySnapshot,
+  );
+  const recoveredMfaChallenge = await call('/api/auth', {
+    email: 'matrix-gestor@example.com',
+    password: replacementPassword,
+  });
+  assert.equal(recoveredMfaChallenge.mfaRequired, true);
+  assert.equal(recoveredMfaChallenge.setupRequired, false, 'MFA existente continua cadastrado');
   console.log(
     'Integração OK: APR/PT, integrações, gestão de acessos por unidade, contatos independentes, isolamento de documentos/fotos por terceirizada, desativação sem exclusão, proteção do último administrador e CSRF. Nenhuma chamada a provedores reais.',
   );

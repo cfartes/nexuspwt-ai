@@ -94,10 +94,12 @@ export async function POST(request: Request) {
     await transaction(async (c) => {
       const {
         rows: [fresh],
-      } = await c.query('SELECT active,password_pending FROM users WHERE id=$1 FOR SHARE', [
-        user.id,
-      ]);
-      if (!fresh?.active || fresh.password_pending) throw new HttpError(401, 'Conta indisponível.');
+      } = await c.query(
+        'SELECT active,password_pending,password_hash FROM users WHERE id=$1 FOR SHARE',
+        [user.id],
+      );
+      if (!fresh?.active || fresh.password_pending || fresh.password_hash !== user.password_hash)
+        throw new HttpError(401, 'Conta indisponível ou senha alterada. Entre novamente.');
       if (mfa) {
         const {
           rows: [factor],

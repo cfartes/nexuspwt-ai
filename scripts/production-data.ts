@@ -8,6 +8,8 @@ import { savePersonCpf } from '../src/lib/personCpf';
 import { aprProfiles, ptProfiles } from '../src/lib/forms';
 
 const businessTables = [
+  'password_recoveries',
+  'password_recovery_limits',
   'approvals',
   'audit_events',
   'photos',
@@ -151,6 +153,10 @@ export async function resetValidationPasswords(client: PoolClient, password: str
         [user.id, hashPassword(password)],
       );
       await client.query('DELETE FROM sessions WHERE user_id=$1', [user.id]);
+      await client.query(
+        "UPDATE password_recoveries SET consumed_at=now(),token_ciphertext=NULL,status='cancelled' WHERE user_id=$1 AND consumed_at IS NULL",
+        [user.id],
+      );
       await client.query('DELETE FROM login_attempts WHERE email=$1', [user.email]);
       await client.query(
         'UPDATE user_invitations SET consumed_at=now(),token_ciphertext=NULL WHERE user_id=$1 AND consumed_at IS NULL',

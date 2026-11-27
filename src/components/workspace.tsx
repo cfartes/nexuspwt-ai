@@ -1136,6 +1136,9 @@ export function Login({
               <ArrowUpRight size={18} />
             </button>
           </form>
+          <p className="login-help">
+            <a href="/recuperar-senha">Esqueci minha senha</a>
+          </p>
           <p className="login-help">Seu acesso é disponibilizado pelo administrador da unidade.</p>
         </div>
         <small>Nexus PTW AI · Ambiente piloto</small>

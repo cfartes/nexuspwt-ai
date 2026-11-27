@@ -2,6 +2,7 @@ import { setTimeout } from 'node:timers/promises';
 import { db } from '../src/lib/db';
 import { processNotification } from '../src/lib/notifications';
 import { processInvitation } from '../src/lib/invitation-delivery';
+import { processPasswordRecovery } from '../src/lib/passwordRecovery';
 import { processContractorRegistrationInvite } from '../src/lib/contractorRegistrationDelivery';
 
 let stopping = false;
@@ -15,7 +16,8 @@ console.log('Processo de notificações iniciado. Envios dependem da habilitaç�
 try {
   while (!stopping) {
     try {
-      await processInvitation(db);
+      await processPasswordRecovery(db);
+      if (!stopping) await processInvitation(db);
       if (!stopping) await processContractorRegistrationInvite(db);
       if (!stopping) await processNotification(db);
     } catch {

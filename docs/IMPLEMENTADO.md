@@ -1,6 +1,24 @@
 # Nexus PTW — implementado
 
-Atualizado em 19/11/2026. Este registro descreve código implementado e validações locais; não comprova implantação na VPS nem conformidade integral.
+Atualizado em 27/11/2026. Este registro distingue implementação e validação local de confirmações de produção informadas pelo responsável.
+
+## Recuperação de senha — 27/11/2026
+
+- Link **Esqueci minha senha** no login, solicitação por e-mail e formulário para nova senha/confirmar senha, ambos com visualizar/ocultar.
+- Reaproveita a configuração global Resend e o worker `notifications`, sem novas dependências. A solicitação só enfileira; não envia mensagens na requisição HTTP.
+- Resposta igual para e-mail existente, inexistente, conta inativa ou primeiro acesso pendente. Primeiros acessos continuam usando o convite administrativo.
+- Link com token aleatório de 32 bytes, hash para conferência, cópia cifrada apenas para entrega, fragmento da URL removido da barra após leitura, validade de uma hora e consumo único. Novo pedido aceito substitui os links anteriores.
+- Limite persistente de três solicitações por e-mail em quinze minutos e teto global de cem no mesmo período. Solicitações acima do limite mantêm a resposta genérica e não geram e-mails. Os contadores guardam hash do e-mail, não o endereço.
+- Confirmação exige oito caracteres, uma letra maiúscula e um símbolo; revoga todas as sessões e remove bloqueio de tentativas de login. Não altera perfis, permissões, exigências documentais nem MFA. Não realiza login automático.
+- Decisão de recuperação auditada por empresa vinculada; auditoria global para Superadmin. Links inválidos, usados, expirados, conta inativa ou e-mail alterado são recusados.
+- Migração incremental aditiva `021-password-recovery.sql`, incluída no manifesto de atualização online. Atualizar app e worker pelo script existente, sem reinstalar PostgreSQL.
+- Falhas explícitas de configuração/provedor ficam bloqueadas para reavaliação. Resultado de envio incerto não é repetido automaticamente; o usuário pode solicitar novo link, respeitando os limites.
+
+Validação local: 51 testes automatizados aprovados, GTS sem warnings/erros, TypeScript e build de produção aprovados. Integração HTTP verifica resposta genérica, origem, páginas, troca da senha, rejeição de reutilização/senha antiga e exigência do MFA já cadastrado. Resend simulado nos testes; não houve envio real nem atualização da VPS nesta implementação.
+
+## Atualização sem interrupção — confirmação em produção
+
+Em 27/11/2026, o responsável confirmou como **OK** a validação da atualização sem interrupção em produção. Essa confirmação encerra a pendência de homologação do deploy; não equivale a um teste de restauração de backup ou alta disponibilidade do banco/VPS.
 
 ## Diretrizes adotadas
 
