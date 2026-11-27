@@ -1020,7 +1020,7 @@ export function Login({
       </div>
       <div className="login-form">
         <div>
-          <span className="eyebrow">BEM-VINDO AO NEXUS</span>
+          <span className="eyebrow">BEM-VINDO AO NEXUS PTW</span>
           <h2>Acesse sua operação</h2>
           <p>Entre com sua conta individual para continuar.</p>
           <form
